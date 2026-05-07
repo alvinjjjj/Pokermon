@@ -54,6 +54,11 @@ export default function TabLayout() {
           <Image source={require('../../assets/icons/個人.png')} style={{ width: 22, height: 22, tintColor: color }} />
         ),
       }} />
+
+      {/* 隱藏頁面，不顯示在底部 tab */}
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+<Tabs.Screen name="settings" options={{ href: null }} />
+<Tabs.Screen name="login" options={{ href: null }} />
     </Tabs>
   );
 }
