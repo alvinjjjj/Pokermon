@@ -52,6 +52,7 @@ export default function SearchScreen() {
   const [showPSAModal, setShowPSAModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
   const [selectedPSA, setSelectedPSA] = useState('Raw');
+  const [adding, setAdding] = useState(false);
   const searchTimeout = useRef<any>(null);
 
   useEffect(() => {
@@ -114,24 +115,45 @@ export default function SearchScreen() {
 
   const confirmAddToCollection = async () => {
     if (!selectedCard) return;
-    const price = getPrice(selectedCard);
-    const { error } = await supabase
-      .from('user_collection')
-      .insert({
-        card_id: selectedCard.id,
-        card_name: selectedCard.name,
-        set_name: selectedCard.set.name,
-        purchase_price: price,
-        current_price: price,
-        quantity: 1,
-        psa_grade: selectedPSA,
-      });
-    if (!error) {
-      setAddedCards(prev => new Set([...prev, selectedCard.id]));
-      setShowPSAModal(false);
-      alert(`✅ ${selectedCard.name} (${selectedPSA === 'Raw' ? 'Raw' : `PSA ${selectedPSA}`}) 已加入收藏！`);
-    } else {
+    setAdding(true);
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        alert('請先登入');
+        setAdding(false);
+        return;
+      }
+
+      const price = getPrice(selectedCard);
+
+      const { error } = await supabase
+        .from('user_collection')
+        .insert({
+          user_id: user.id,
+          card_id: selectedCard.id,
+          card_name: selectedCard.name,
+          set_name: selectedCard.set.name,
+          purchase_price: price,
+          current_price: price,
+          quantity: 1,
+          psa_grade: selectedPSA,
+        });
+
+      if (!error) {
+        setAddedCards(prev => new Set([...prev, selectedCard.id]));
+        setShowPSAModal(false);
+        alert(`✅ ${selectedCard.name} (${selectedPSA === 'Raw' ? 'Raw' : `PSA ${selectedPSA}`}) 已加入收藏！`);
+      } else {
+        console.error('Supabase error:', error);
+        alert('加入失敗，請重試');
+      }
+    } catch (e) {
+      console.error(e);
       alert('加入失敗，請重試');
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -270,7 +292,7 @@ export default function SearchScreen() {
         />
       )}
 
-      {/* Hot Cards (shown when no search) */}
+      {/* Hot Cards */}
       {!loading && query.length === 0 && (
         <FlatList
           data={hotCards}
@@ -307,8 +329,15 @@ export default function SearchScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.confirmBtn} onPress={confirmAddToCollection}>
-              <Text style={styles.confirmBtnText}>確認加入收藏</Text>
+            <TouchableOpacity
+              style={[styles.confirmBtn, adding && { opacity: 0.7 }]}
+              onPress={confirmAddToCollection}
+              disabled={adding}
+            >
+              {adding
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.confirmBtnText}>確認加入收藏</Text>
+              }
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPSAModal(false)}>
               <Text style={styles.cancelBtnText}>取消</Text>

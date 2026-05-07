@@ -69,20 +69,12 @@ export default function ProfileScreen() {
     setRefreshing(false);
   }
 
-  function goToEditProfile() {
-    router.push('../edit-profile' as any);
-  }
-
-  function goToNewPost() {
-    router.push('../new-post' as any);
-  }
-
   const renderPost = ({ item }: { item: Post }) => {
     const thumb = item.media_type === 'video' ? item.thumbnail_url : item.media_url;
     return (
       <TouchableOpacity
         style={styles.gridItem}
-        onPress={() => router.push({ pathname: '../post-detail' as any, params: { id: item.id } })}
+        onPress={() => router.push({ pathname: '/post-detail' as any, params: { id: item.id } })}
       >
         {thumb ? (
           <Image source={{ uri: thumb }} style={styles.gridImage} resizeMode="cover" />
@@ -116,66 +108,6 @@ export default function ProfileScreen() {
     );
   }
 
-  const ListHeader = (
-    <View>
-      <View style={styles.profileSection}>
-        <View style={styles.profileTop}>
-          <TouchableOpacity onPress={goToEditProfile}>
-            {profile?.avatar_url ? (
-              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarEmoji}>👤</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>帖子</Text>
-            </View>
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{followerCount}</Text>
-              <Text style={styles.statLabel}>粉絲</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{followingCount}</Text>
-              <Text style={styles.statLabel}>關注中</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <Text style={styles.profileName}>
-          {profile?.username ?? '未設定名稱'}
-        </Text>
-        {profile?.bio ? (
-          <Text style={styles.profileBio}>{profile.bio}</Text>
-        ) : null}
-
-        <View style={styles.profileActions}>
-          <TouchableOpacity style={styles.editBtn} onPress={goToEditProfile}>
-            <Text style={styles.editBtnText}>編輯個人資料</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.newPostBtn} onPress={goToNewPost}>
-            <Text style={styles.newPostBtnText}>＋</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {posts.length === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🃏</Text>
-          <Text style={styles.emptyTitle}>還沒有帖子</Text>
-          <Text style={styles.emptySub}>分享你今天抽到的卡！</Text>
-          <TouchableOpacity style={styles.emptyBtn} onPress={goToNewPost}>
-            <Text style={styles.emptyBtnText}>+ 發第一篇帖子</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.safe}>
       <Header />
@@ -186,7 +118,80 @@ export default function ProfileScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor="#FF6900" />
         }
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={
+          <View>
+            {/* Profile Info */}
+            <View style={styles.profileSection}>
+              <View style={styles.profileTop}>
+                {/* Avatar */}
+                <TouchableOpacity onPress={() => router.push('/edit-profile' as any)}>
+                  {profile?.avatar_url ? (
+                    <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarEmoji}>👤</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Stats */}
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{posts.length}</Text>
+                    <Text style={styles.statLabel}>帖子</Text>
+                  </View>
+                  <TouchableOpacity style={styles.statItem}>
+                    <Text style={styles.statNumber}>{followerCount}</Text>
+                    <Text style={styles.statLabel}>粉絲</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.statItem}>
+                    <Text style={styles.statNumber}>{followingCount}</Text>
+                    <Text style={styles.statLabel}>關注中</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Name & Bio */}
+              <Text style={styles.profileName}>
+                {profile?.username ?? '未設定名稱'}
+              </Text>
+              {profile?.bio ? (
+                <Text style={styles.profileBio}>{profile.bio}</Text>
+              ) : null}
+
+              {/* Actions */}
+              <View style={styles.profileActions}>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={() => router.push('/edit-profile' as any)}
+                >
+                  <Text style={styles.editBtnText}>編輯個人資料</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.newPostBtn}
+                  onPress={() => router.push('/new-post' as any)}
+                >
+                  <Text style={styles.newPostBtnText}>＋</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Grid header */}
+            {posts.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyEmoji}>🃏</Text>
+                <Text style={styles.emptyTitle}>還沒有帖子</Text>
+                <Text style={styles.emptySub}>分享你今天抽到的卡！</Text>
+                <TouchableOpacity
+                  style={styles.emptyBtn}
+                  onPress={() => router.push('/new-post' as any)}
+                >
+                  <Text style={styles.emptyBtnText}>+ 發第一篇帖子</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        }
         renderItem={renderPost}
         columnWrapperStyle={posts.length > 0 ? styles.row : undefined}
         showsVerticalScrollIndicator={false}
@@ -249,6 +254,7 @@ const styles = StyleSheet.create({
   },
   newPostBtnText: { fontSize: 22, color: '#fff', fontWeight: '400' },
 
+  // Empty state
   emptyState: { alignItems: 'center', paddingTop: 60, paddingBottom: 40 },
   emptyEmoji: { fontSize: 52, marginBottom: 12 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: '#101828', marginBottom: 6 },
@@ -261,6 +267,7 @@ const styles = StyleSheet.create({
   },
   emptyBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 
+  // Grid
   row: { gap: 1.5 },
   gridItem: { width: GRID_ITEM_W, height: GRID_ITEM_W, marginBottom: 1.5 },
   gridImage: { width: '100%', height: '100%' },

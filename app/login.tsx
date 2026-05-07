@@ -32,29 +32,28 @@ export default function LoginScreen() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) alert(error.message);
-    else router.replace('/(tabs)');
+    // _layout.tsx 會自動偵測 session 並跳轉
     setLoading(false);
   };
 
-const handleGoogleLogin = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: 'collectr://auth/callback',
-      skipBrowserRedirect: true,
-    },
-  });
-  if (error) { alert(error.message); return; }
-  if (data?.url) {
-    const result = await WebBrowser.openAuthSessionAsync(
-      data.url,
-      'collectr://'
-    );
-    if (result.type === 'success') {
-      router.replace('/(tabs)');
+  const handleGoogleLogin = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'collectr://auth/callback',
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) { alert(error.message); return; }
+    if (data?.url) {
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        'collectr://'
+      );
+      // _layout.tsx 會自動偵測 session 並跳轉
     }
-  }
-};
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -159,7 +158,7 @@ const handleGoogleLogin = async () => {
 
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>還沒有帳戶？ </Text>
-            <TouchableOpacity onPress={() => router.push('/register')}>
+            <TouchableOpacity onPress={() => router.push('/register' as any)}>
               <Text style={styles.registerLink}>立即註冊</Text>
             </TouchableOpacity>
           </View>
