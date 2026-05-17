@@ -13,11 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
+import { searchCards } from '../../lib/pokemontcg';
 import { supabase } from '../../lib/supabase';
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
-const API_KEY = 'b58e91e7-d37e-48af-a472-09f364116acd';
 
 type PokemonCard = {
   id: string;
@@ -64,12 +64,12 @@ export default function SearchScreen() {
     try {
       const hotNames = ['Charizard', 'Pikachu', 'Mewtwo', 'Umbreon', 'Rayquaza'];
       const randomName = hotNames[Math.floor(Math.random() * hotNames.length)];
-      const res = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:"${randomName}"&pageSize=10&orderBy=-set.releaseDate`,
-        { headers: { 'X-Api-Key': API_KEY } }
-      );
-      const data = await res.json();
-      setHotCards(data.data || []);
+      const data = await searchCards({
+        q: `name:"${randomName}"`,
+        pageSize: 10,
+        orderBy: '-set.releaseDate',
+      });
+      setHotCards(data?.data || []);
     } catch (e) {
       console.error(e);
     }
@@ -80,20 +80,22 @@ export default function SearchScreen() {
     setQuery(text);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
-      searchCards(text);
+      runSearch(text);
     }, 600);
   };
 
-  const searchCards = async (text: string, category = activeCategory, lang = activeLang) => {
+  const runSearch = async (text: string, category = activeCategory, lang = activeLang) => {
     if (text.length < 2) { setCards([]); return; }
     setLoading(true);
     try {
       let q = `name:"${text}*"`;
       if (category !== '全部') q += ` subtypes:${category}`;
-      const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=20&orderBy=-set.releaseDate`;
-      const res = await fetch(url, { headers: { 'X-Api-Key': API_KEY } });
-      const data = await res.json();
-      setCards(data.data || []);
+      const data = await searchCards({
+        q,
+        pageSize: 20,
+        orderBy: '-set.releaseDate',
+      });
+      setCards(data?.data || []);
     } catch (e) {
       console.error(e);
     }
@@ -216,7 +218,7 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.langBtn, activeLang === item.value && styles.langBtnActive]}
-              onPress={() => { setActiveLang(item.value); if (query) searchCards(query, activeCategory, item.value); }}
+              onPress={() => { setActiveLang(item.value); if (query) runSearch(query, activeCategory, item.value); }}
             >
               <Text style={[styles.langText, activeLang === item.value && styles.langTextActive]}>{item.label}</Text>
             </TouchableOpacity>
@@ -235,7 +237,7 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.catBtn, activeCategory === item && styles.catBtnActive]}
-              onPress={() => { setActiveCategory(item); if (query) searchCards(query, item, activeLang); }}
+              onPress={() => { setActiveCategory(item); if (query) runSearch(query, item, activeLang); }}
             >
               <Text style={[styles.catText, activeCategory === item && styles.catTextActive]}>{item}</Text>
             </TouchableOpacity>

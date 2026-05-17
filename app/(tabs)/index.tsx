@@ -4,11 +4,11 @@ import { Dimensions, Image, PanResponder, ScrollView, StyleSheet, Text, Touchabl
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 import Header from '../../components/Header';
+import { searchCards } from '../../lib/pokemontcg';
 import { supabase } from '../../lib/supabase';
 
 const WIDTH = Dimensions.get('window').width;
 const periods = ['1D', '7D', '1M', '3M', '6M', 'MAX'];
-const API_KEY = 'b58e91e7-d37e-48af-a472-09f364116acd';
 
 const creators = [
   { id: '1', name: 'TCG Gaming', followers: '2.94K', emoji: '🎮' },
@@ -229,19 +229,19 @@ export default function HomeScreen() {
 
   const fetchMarketCards = async () => {
     try {
-      const topRes = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:Charizard&pageSize=3&orderBy=-cardmarket.prices.averageSellPrice`,
-        { headers: { 'X-Api-Key': API_KEY } }
-      );
-      const topData = await topRes.json();
-      setTopCards(topData.data || []);
+      const topData = await searchCards({
+        q: 'name:Charizard',
+        pageSize: 3,
+        orderBy: '-cardmarket.prices.averageSellPrice',
+      });
+      setTopCards(topData?.data || []);
 
-      const hotRes = await fetch(
-        `https://api.pokemontcg.io/v2/cards?q=name:Pikachu&pageSize=3&orderBy=-set.releaseDate`,
-        { headers: { 'X-Api-Key': API_KEY } }
-      );
-      const hotData = await hotRes.json();
-      setHotCards(hotData.data || []);
+      const hotData = await searchCards({
+        q: 'name:Pikachu',
+        pageSize: 3,
+        orderBy: '-set.releaseDate',
+      });
+      setHotCards(hotData?.data || []);
     } catch (e) {
       console.error(e);
     }
