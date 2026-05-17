@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
+import { getCard } from '../../lib/pokemontcg';
 import { supabase } from '../../lib/supabase';
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
-const API_KEY = 'b58e91e7-d37e-48af-a472-09f364116acd';
 
 type Card = {
   id: string;
@@ -80,12 +80,8 @@ export default function PortfolioScreen() {
       data.map(async (card) => {
         if (!card.card_id || card.card_id === 'EMPTY') return card;
         try {
-          const res = await fetch(
-            `https://api.pokemontcg.io/v2/cards/${card.card_id}`,
-            { headers: { 'X-Api-Key': API_KEY } }
-          );
-          const json = await res.json();
-          return { ...card, image_url: json.data?.images?.small ?? null };
+          const json = await getCard(card.card_id);
+          return { ...card, image_url: json?.data?.images?.small ?? null };
         } catch {
           return card;
         }

@@ -2,8 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
-const SUPABASE_URL = 'https://vudqydqzrlgetcdegfvc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1ZHF5ZHF6cmxnZXRjZGVnZnZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMzcwNDAsImV4cCI6MjA5MzcxMzA0MH0.bW8RcrcZnJiQwmJE65a4V4zDfxHKtLFc-UkdgiGUARg';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. Copy .env.example to .env and fill in values from Supabase Dashboard → Settings → API.'
+  );
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
