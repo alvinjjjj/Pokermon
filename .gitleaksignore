@@ -1,0 +1,21 @@
+# Gitleaks fingerprints to ignore. Triaged 2026-05-17 (INC-3).
+# Each entry is a known acknowledged finding — not an active secret.
+
+# ──────────────────────────────────────────────────────────────────
+# Supabase anon JWT — public by design.
+# Anon keys are intended for client distribution; appearance in
+# .env or historical source is not a security exposure.
+# ──────────────────────────────────────────────────────────────────
+.env:jwt:2
+1753c241c51088635095db5961b0ddbd76c8c185:lib/supabase.ts:jwt:4
+
+# ──────────────────────────────────────────────────────────────────
+# Historical pokemontcg.io API key (b58e91e7-...).
+# Hardcoded in client until commit b598fd5 (2026-05-17). Rotated at
+# provider same day. Per INC-2 finding, api.pokemontcg.io/v2 does
+# not authenticate X-Api-Key (empty/garbage/valid all return 200) —
+# practical exposure of the leaked value is ≈ 0. See CLAUDE.md §8.
+# ──────────────────────────────────────────────────────────────────
+84ba8f5a36da8a69595bfbbd68738534e88a2f18:app/(tabs)/portfolio.tsx:generic-api-key:22
+1753c241c51088635095db5961b0ddbd76c8c185:app/(tabs)/index.tsx:generic-api-key:11
+1753c241c51088635095db5961b0ddbd76c8c185:app/(tabs)/search.tsx:generic-api-key:20
