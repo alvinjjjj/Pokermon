@@ -204,10 +204,16 @@ eas submit --platform ios
 
 ## 8 · 已知問題（rebrand 同 release 前要清）
 
-⚠ **Secrets / deploy 待辦**
-- `pokemontcg-proxy` edge function 已 scaffold 但**未 deploy**。要 `supabase login` → `supabase link --project-ref vudqydqzrlgetcdegfvc` → `supabase secrets set POKEMONTCG_API_KEY=<新值>` → `supabase functions deploy pokemontcg-proxy`。未 deploy 前 client 三個 callsite（[index.tsx](app/(tabs)/index.tsx)、[portfolio.tsx](app/(tabs)/portfolio.tsx)、[search.tsx](app/(tabs)/search.tsx)）會失敗。
-- 舊 pokemontcg.io key `b58e91e7-d37e-48af-a472-09f364116acd` 已 leak 入 git history（commits before 2026-05-17）；必須喺 https://dev.pokemontcg.io/ regenerate。
+⚠ **Secrets / deploy 狀態**
+- `pokemontcg-proxy` edge function **已 deploy**（v1，2026-05-17 07:24 UTC）。`POKEMONTCG_API_KEY` secret 設咗喺 Supabase。Dashboard：https://supabase.com/dashboard/project/vudqydqzrlgetcdegfvc/functions
 - EAS production build 要喺 expo.dev project secrets 設 `EXPO_PUBLIC_SUPABASE_URL` 同 `EXPO_PUBLIC_SUPABASE_ANON_KEY`（本地 `.env` 唔會 build 入 EAS image）。
+
+ℹ️ **pokemontcg.io API key — 重要 finding（2026-05-17）**
+- 舊 leaked key `b58e91e7-d37e-48af-a472-09f364116acd` 寫死過喺 client，仍然喺 git history。
+- 但 `api.pokemontcg.io/v2` **唔做 key authentication**：empty header / garbage key / 有效 key 全部返 200 + JSON。實測 4 個 case 全 pass。
+- 即係：**leaked key 嘅實際曝光值近乎零**（攻擊者根本唔需要 key 就攞到 data）；revoke 操作對呢個 API **structurally impossible**。
+- Edge function proxy 仍然保留有價值（key 唔入 bundle、集中加 cache / rate limit 嘅 hook、將來升 paid tier 嗰陣安全持 secret），但**唔好誤導性咁標榜為「access control」**。
+- 未來如果要做真嘅 access control（譬如限 quota 唔俾 abuse），要喺 edge function 入面加 per-user rate limit，唔好靠 upstream API。
 
 ⚠ **Rebrand 未完成**（`product.md` §04）
 - `app.json` 嘅 `name` / `slug` / `scheme` 仲係 `collectr`。Display name 要改 `HKCardColl`；scheme 要改 `hkcardcoll://`；ios.bundleIdentifier 要明確設 `com.collectr.app`。
@@ -238,3 +244,4 @@ eas submit --platform ios
 | Date | Change |
 |---|---|
 | 2026-05-17 | 初版建立。基於 worktree 現狀 + `/Users/alvin/collectr/product.md` 整合 |
+| 2026-05-17 | 加 §2 / §3 / §8 之 edge function + .env 落地紀錄。Finding：pokemontcg.io API 唔做 key auth → revoke 操作 unsolvable，§8 reflect。 |
