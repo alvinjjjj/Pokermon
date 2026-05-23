@@ -51,3 +51,6 @@ start-expo.command
 supabase/.temp/
 # Cowork-generated HTML artifacts at root (use notes/artifacts/ for keepers)
 /*.html
+
+# PII protection — financial documents stay local-only
+Finance invoice and receive/
