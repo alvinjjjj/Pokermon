@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
 import { Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   return (
     <Tabs screenOptions={{
         tabBarShowLabel: true,
@@ -19,46 +21,42 @@ export default function TabLayout() {
       tabBarLabelStyle: { fontSize: 10, marginTop: 3 },
     }}>
       <Tabs.Screen name="index" options={{
-        title: '主頁',
+        title: t('tabs.home'),
         tabBarIcon: ({ color }) => (
-          <Image source={require('../../assets/icons/主頁.png')} style={{ width: 22, height: 22, tintColor: color }} />
+          <Image source={require('../../assets/icons/home.png')} style={{ width: 22, height: 22, tintColor: color }} />
         ),
       }} />
       <Tabs.Screen name="search" options={{
-        title: '搜尋',
+        title: t('tabs.search'),
         tabBarIcon: ({ color }) => (
-          <Image source={require('../../assets/icons/搜尋.png')} style={{ width: 22, height: 22, tintColor: color }} />
-        ),
-      }} />
-      <Tabs.Screen name="shops" options={{
-        title: '商店',
-        tabBarIcon: ({ color }) => (
-          <Image source={require('../../assets/icons/商店.png')} style={{ width: 22, height: 22, tintColor: color }} />
-        ),
-      }} />
-      <Tabs.Screen name="social" options={{
-        title: '社交',
-        tabBarIcon: ({ color }) => (
-          <Image source={require('../../assets/icons/社交.png')} style={{ width: 22, height: 22, tintColor: color }} />
+          <Image source={require('../../assets/icons/search.png')} style={{ width: 22, height: 22, tintColor: color }} />
         ),
       }} />
       <Tabs.Screen name="portfolio" options={{
-        title: '作品集',
+        title: t('tabs.portfolio'),
         tabBarIcon: ({ color }) => (
-          <Image source={require('../../assets/icons/作品集.png')} style={{ width: 22, height: 22, tintColor: color }} />
+          <Image source={require('../../assets/icons/portfolio.png')} style={{ width: 22, height: 22, tintColor: color }} />
+        ),
+      }} />
+      <Tabs.Screen name="shops" options={{
+        title: t('tabs.shops'),
+        tabBarIcon: ({ color }) => (
+          <Image source={require('../../assets/icons/shops.png')} style={{ width: 22, height: 22, tintColor: color }} />
         ),
       }} />
       <Tabs.Screen name="profile" options={{
-        title: '個人',
+        title: t('tabs.profile'),
         tabBarIcon: ({ color }) => (
-          <Image source={require('../../assets/icons/個人.png')} style={{ width: 22, height: 22, tintColor: color }} />
+          <Image source={require('../../assets/icons/profile.png')} style={{ width: 22, height: 22, tintColor: color }} />
         ),
       }} />
 
       {/* 隱藏頁面，不顯示在底部 tab */}
+      <Tabs.Screen name="social"        options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
-<Tabs.Screen name="settings" options={{ href: null }} />
-<Tabs.Screen name="login" options={{ href: null }} />
+      <Tabs.Screen name="inbox"         options={{ href: null }} />
+      <Tabs.Screen name="settings"      options={{ href: null }} />
+      <Tabs.Screen name="card/[id]"     options={{ href: null }} />
     </Tabs>
   );
 }

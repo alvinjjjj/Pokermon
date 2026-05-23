@@ -1,8 +1,11 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -18,24 +21,49 @@ import { supabase } from '../lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
-export default function LoginScreen() {
-  const [step, setStep] = useState<'choose' | 'email'>('choose');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [keepSignedIn, setKeepSignedIn] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+/**
+ * Passwordless login. Three options:
+ *   1. Phone OTP   — primary, no password ever
+ *   2. Google      — OAuth, Google manages credentials
+ *   3. Apple       — Apple Sign In, required by App Store when offering OAuth
+ *
+ * No email+password flow. Users without phone can still sign in via Google/Apple.
+ */
+type LoginStep = 'choose' | 'phone';
 
-  const handleLogin = async () => {
-    if (!email || !password) { alert('請填寫所有欄位'); return; }
+export default function LoginScreen() {
+  const router = useRouter();
+  const { t }  = useTranslation();
+
+  const [step, setStep]       = useState<LoginStep>('choose');
+  const [phone, setPhone]     = useState('');          // Local digits, no +852
+  const [loading, setLoading] = useState(false);
+
+  // ─── Phone OTP ──────────────────────────────────────────────────────────
+  const handlePhoneLogin = async () => {
+    if (loading) return;
+    const digits = phone.replace(/\D/g, '');
+    if (!digits || digits.length < 8) {
+      Alert.alert(t('login.invalidPhone')); return;
+    }
+    const e164 = digits.startsWith('852') ? `+${digits}` : `+852${digits}`;
+
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    // _layout.tsx 會自動偵測 session 並跳轉
+    const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
     setLoading(false);
+
+    if (error) {
+      Alert.alert(t('login.loginFailed'), error.message);
+      return;
+    }
+    router.push({
+      pathname: '/verify-otp',
+      params:   { phone: e164, type: 'phone_signup' },
+    } as any);
   };
 
+  // ─── Google OAuth ───────────────────────────────────────────────────────
+  // Note: deep-link redirect only works on dev / production builds, NOT Expo Go.
   const handleGoogleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -44,13 +72,31 @@ export default function LoginScreen() {
         skipBrowserRedirect: true,
       },
     });
-    if (error) { alert(error.message); return; }
+    if (error) { Alert.alert(t('login.loginFailed'), error.message); return; }
     if (data?.url) {
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        'collectr://'
-      );
-      // _layout.tsx 會自動偵測 session 並跳轉
+      await WebBrowser.openAuthSessionAsync(data.url, 'collectr://');
+    }
+  };
+
+  // ─── Apple Sign In (native) ─────────────────────────────────────────────
+  const handleAppleLogin = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        ],
+      });
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken!,
+      });
+      if (error) Alert.alert(t('login.loginFailed'), error.message);
+    } catch (e: any) {
+      // User cancelled — silent
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert(t('login.loginFailed'), e.message);
+      }
     }
   };
 
@@ -59,107 +105,88 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
 
-          <Text style={styles.logo}>HKCARDCOLL</Text>
-          <Text style={styles.title}>登入您的帳戶</Text>
-          <Text style={styles.sub}>寶可夢卡片收藏平台</Text>
+          <Image
+            source={require('../assets/images/Logo.png')}
+            style={styles.logoImg}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>{t('login.title')}</Text>
+          <Text style={styles.sub}>{t('login.platformSub')}</Text>
 
           {step === 'choose' ? (
             <>
-              <TouchableOpacity style={styles.socialBtn} onPress={() => setStep('email')}>
-                <Image source={require('../assets/icons/Email.png')} style={styles.socialIcon} />
-                <Text style={styles.socialText}>使用 Email 登入</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleLogin}>
-                <Image source={require('../assets/icons/Google.png')} style={styles.socialIcon} />
-                <Text style={styles.socialText}>使用 Google 登入</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialBtn}>
-                <Image source={require('../assets/icons/Apple.png')} style={styles.socialIcon} />
-                <Text style={styles.socialText}>使用 Apple 登入</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.keepRow} onPress={() => setKeepSignedIn(!keepSignedIn)}>
-                <View style={[styles.checkbox, keepSignedIn && styles.checkboxActive]}>
-                  {keepSignedIn && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.keepText}>Keep me signed in</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.loginBtn} onPress={() => setStep('email')}>
-                <Text style={styles.loginBtnText}>Login</Text>
+              {/* Phone — primary */}
+              <TouchableOpacity style={[styles.socialBtn, styles.primaryBtn]} onPress={() => setStep('phone')}>
+                <Image
+                  source={require('../assets/icons/message.png')}
+                  style={[styles.socialIcon, { tintColor: '#fff' }]}
+                />
+                <Text style={[styles.socialText, { color: '#fff' }]}>{t('login.phoneLogin')}</Text>
               </TouchableOpacity>
 
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or sign in with</Text>
+                <Text style={styles.dividerText}>{t('login.orLoginWith')}</Text>
                 <View style={styles.dividerLine} />
               </View>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity onPress={() => setStep('choose')} style={styles.backBtn}>
-                <Text style={styles.backText}>← 返回</Text>
+
+              {/* OAuth options */}
+              <TouchableOpacity style={styles.socialBtn} onPress={handleGoogleLogin}>
+                <Image source={require('../assets/icons/Google.png')} style={styles.socialIcon} />
+                <Text style={styles.socialText}>{t('login.googleLogin')}</Text>
               </TouchableOpacity>
 
-              <Text style={styles.label}>Email Address</Text>
-              <View style={[styles.inputBox, email ? styles.inputBoxActive : null]}>
+              <TouchableOpacity style={styles.socialBtn} onPress={handleAppleLogin}>
+                <Image source={require('../assets/icons/Apple.png')} style={styles.socialIcon} />
+                <Text style={styles.socialText}>{t('login.appleLogin')}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            // step === 'phone'
+            <>
+              <TouchableOpacity onPress={() => setStep('choose')} style={styles.backBtn}>
+                <Text style={styles.backText}>{t('login.backBtn')}</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.label}>{t('register.phone')}</Text>
+              <View style={[styles.inputBox, phone ? styles.inputBoxActive : null]}>
+                <Text style={styles.countryCode}>+852</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="johndoe@email.com"
+                  placeholder="91234567"
                   placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  maxLength={11}
                   autoFocus
                 />
               </View>
+              <Text style={styles.helperText}>{t('login.phoneHelper')}</Text>
 
-              <View style={styles.passwordHeader}>
-                <Text style={styles.label}>Password</Text>
-                <TouchableOpacity>
-                  <Text style={styles.forgotText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.inputBox, password ? styles.inputBoxActive : null]}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••••••••"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Image
-                    source={showPassword
-                      ? require('../assets/icons/eye-off.png')
-                      : require('../assets/icons/eye.png')
-                    }
-                    style={styles.eyeIcon}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.keepRow} onPress={() => setKeepSignedIn(!keepSignedIn)}>
-                <View style={[styles.checkbox, keepSignedIn && styles.checkboxActive]}>
-                  {keepSignedIn && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.keepText}>Keep me signed in</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>Login</Text>}
-              </TouchableOpacity>
+              {(() => {
+                const phoneDigits = phone.replace(/\D/g, '');
+                const phoneValid  = phoneDigits.length >= 8;
+                return (
+                  <TouchableOpacity
+                    style={[styles.loginBtn, (!phoneValid || loading) && { opacity: 0.45 }]}
+                    onPress={handlePhoneLogin}
+                    disabled={!phoneValid || loading}
+                    accessibilityLabel={t('login.sendCode')}
+                  >
+                    {loading
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={styles.loginBtnText}>{t('login.sendCode')}</Text>}
+                  </TouchableOpacity>
+                );
+              })()}
             </>
           )}
 
           <View style={styles.registerRow}>
-            <Text style={styles.registerText}>還沒有帳戶？ </Text>
+            <Text style={styles.registerText}>{t('login.noAccount')}</Text>
             <TouchableOpacity onPress={() => router.push('/register' as any)}>
-              <Text style={styles.registerLink}>立即註冊</Text>
+              <Text style={styles.registerLink}>{t('login.registerNow')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -170,34 +197,39 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  container: { paddingHorizontal: 24, paddingBottom: 40 },
-  logo: { fontSize: 16, fontWeight: '900', letterSpacing: 4, color: '#101828', textAlign: 'center', paddingTop: 16, marginBottom: 32 },
-  title: { fontSize: 28, fontWeight: '800', color: '#101828', marginBottom: 6 },
-  sub: { fontSize: 15, color: '#9CA3AF', marginBottom: 32 },
-  socialBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FF6900', borderRadius: 12, paddingVertical: 16, marginBottom: 14, gap: 12 },
-  socialIcon: { width: 22, height: 22, resizeMode: 'contain' },
-  socialText: { fontSize: 16, fontWeight: '600', color: '#101828' },
-  keepRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24, marginTop: 8 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
-  checkboxActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  keepText: { fontSize: 14, color: '#101828' },
-  loginBtn: { backgroundColor: '#FF6900', borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginBottom: 24 },
-  loginBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  safe:        { flex: 1, backgroundColor: '#fff' },
+  container:   { paddingHorizontal: 24, paddingBottom: 40 },
+  // Logo.png is 4:1 — height 40 → width 160, centered with top padding for visual balance
+  logoImg:     { height: 40, width: 160, alignSelf: 'center', marginTop: 16, marginBottom: 32 },
+  title:       { fontSize: 28, fontWeight: '800', color: '#101828', marginBottom: 6 },
+  sub:         { fontSize: 15, color: '#9CA3AF', marginBottom: 32 },
+
+  // Buttons
+  socialBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FF6900', borderRadius: 12, paddingVertical: 16, marginBottom: 14, gap: 12 },
+  primaryBtn:  { backgroundColor: '#FF6900', borderColor: '#FF6900' },
+  socialIcon:  { width: 22, height: 22, resizeMode: 'contain' },
+  socialText:  { fontSize: 16, fontWeight: '600', color: '#101828' },
+
+  // Divider
+  dividerRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 8, marginBottom: 14 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
   dividerText: { fontSize: 13, color: '#9CA3AF' },
-  backBtn: { marginBottom: 20 },
-  backText: { fontSize: 15, color: '#FF6900', fontWeight: '600' },
-  label: { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 10 },
-  passwordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  forgotText: { fontSize: 14, color: '#FF6900', fontWeight: '600' },
-  inputBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 20 },
+
+  // Phone step
+  backBtn:        { marginBottom: 20 },
+  backText:       { fontSize: 15, color: '#FF6900', fontWeight: '600' },
+  label:          { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 10 },
+  inputBox:       { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 8 },
   inputBoxActive: { borderColor: '#FF6900' },
-  input: { flex: 1, fontSize: 15, color: '#101828' },
-  eyeIcon: { width: 22, height: 22, tintColor: '#9CA3AF' },
-  registerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
-  registerText: { fontSize: 14, color: '#9CA3AF' },
-  registerLink: { fontSize: 14, color: '#FF6900', fontWeight: '700' },
+  countryCode:    { fontSize: 15, fontWeight: '600', color: '#6B7280', marginRight: 8 },
+  input:          { flex: 1, fontSize: 15, color: '#101828' },
+  helperText:     { fontSize: 12, color: '#9CA3AF', marginBottom: 20 },
+
+  loginBtn:       { backgroundColor: '#FF6900', borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginBottom: 24 },
+  loginBtnText:   { fontSize: 17, fontWeight: '600', color: '#fff' },
+
+  // Register link
+  registerRow:    { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
+  registerText:   { fontSize: 14, color: '#9CA3AF' },
+  registerLink:   { fontSize: 14, color: '#FF6900', fontWeight: '700' },
 });

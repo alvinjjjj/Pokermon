@@ -1,7 +1,11 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+    Animated,
     Dimensions,
+    Easing,
     FlatList,
     Image,
     StyleSheet,
@@ -11,96 +15,303 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const SLIDES = [
-  {
-    id: '1',
-    title: '追蹤你的 Pokemon 卡牌收藏',
-    sub: '輕鬆管理你的每一張卡，隨時掌握市場價格變化',
-    image: require('../assets/images/Onboarding_01.png'),
-  },
-  {
-    id: '2',
-    title: '即時價格追蹤',
-    sub: '連接全球市場數據，讓你的收藏價值一目了然',
-    image: require('../assets/images/Onboarding_02.png'),
-  },
-  {
-    id: '3',
-    title: '加入香港收藏家社群',
-    sub: '與其他收藏家交流、換卡\n一起發掘最珍貴的卡牌',
-    image: require('../assets/images/Onboarding_03.png'),
-  },
-];
+// Hero zone = top section painted with soft orange. The mockup image floats
+// inside it; the caption + button live on a clean white bottom section.
+// This split keeps each region doing ONE thing — much calmer than the
+// previous blob + card + shadow combo.
+const HERO_HEIGHT   = Math.min(height * 0.52, 460);
+// Compound scale: 0.85 × 0.90 × 1.20 ≈ 0.918 of original base.
+// Final ~8% smaller than original, with comfortable spacing for the new
+// decorative card stack behind the main image.
+const MOCKUP_WIDTH  = Math.min(width - 96, 280) * 0.85 * 0.90 * 1.20;
+// Aspect 1.26 (= 1.4 × 0.9) — tightened a further 10% in vertical so the
+// `contain` mode leaves almost no dead space above/below the image content.
+const MOCKUP_HEIGHT = MOCKUP_WIDTH * 1.26;
 
 export default function OnboardingScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const router = useRouter();
+  const { t } = useTranslation();
+
+  // Subtle float — adds life without competing for attention.
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: 1, duration: 2400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [floatAnim]);
+  const translateY = floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
+
+  const SLIDES = [
+    { id: '1', tag: t('onboarding.slide1Tag'), title: t('onboarding.slide1Title'), sub: t('onboarding.slide1Sub'), image: require('../assets/images/Onboarding_001.jpg') },
+    { id: '2', tag: t('onboarding.slide2Tag'), title: t('onboarding.slide2Title'), sub: t('onboarding.slide2Sub'), image: require('../assets/images/Onboarding_002.jpg') },
+    { id: '3', tag: t('onboarding.slide3Tag'), title: t('onboarding.slide3Title'), sub: t('onboarding.slide3Sub'), image: require('../assets/images/Onboarding_003.jpg') },
+  ];
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <Text style={styles.logo}>HKCARDCOLL</Text>
-
-      <FlatList
-  ref={flatListRef}
-  data={SLIDES}
-  horizontal
-  pagingEnabled
-  showsHorizontalScrollIndicator={false}
-  keyExtractor={item => item.id}
-  style={{ flexGrow: 0 }}  // 加这行
-  onMomentumScrollEnd={e => {
-    const index = Math.round(e.nativeEvent.contentOffset.x / width);
-    setActiveIndex(index);
-  }}
-        renderItem={({ item }) => (
-          <View style={styles.slide}>
-            <Image source={item.image} style={styles.cardImage} resizeMode="contain" />
-            <Text style={styles.slideTitle}>{item.title}</Text>
-            <Text style={styles.slideSub}>{item.sub}</Text>
-          </View>
-        )}
+    <View style={styles.root}>
+      {/* Soft single-layer gradient — peach fades into white. Simpler and
+          cleaner than the multi-layer version. */}
+      <LinearGradient
+        colors={['#FFE9D2', '#FFF6EB', '#FFFFFF']}
+        locations={[0, 0.55, 1]}
+        style={styles.heroGradient}
+        pointerEvents="none"
       />
 
-      {/* Dots */}
-      <View style={styles.dotsRow}>
-        {SLIDES.map((_, i) => (
-          <View key={i} style={[styles.dot, activeIndex === i && styles.dotActive]} />
-        ))}
-      </View>
-
-      {/* Buttons */}
-      <View style={styles.btnWrap}>
-        <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
-          <Text style={styles.loginBtnText}>Login</Text>
-        </TouchableOpacity>
-        <View style={styles.registerRow}>
-          <Text style={styles.registerText}>還沒有帳戶？ </Text>
-          <TouchableOpacity onPress={() => router.push('/register')}>
-            <Text style={styles.registerLink}>立即註冊</Text>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        {/* Top bar */}
+        <View style={styles.topBar}>
+          <Image
+            source={require('../assets/images/Logo.png')}
+            style={styles.logoImg}
+            resizeMode="contain"
+          />
+          <TouchableOpacity
+            onPress={() => router.replace('/login')}
+            style={styles.skipBtn}
+            accessibilityLabel={t('onboarding.skip')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </SafeAreaView>
+
+        {/* Pager — image + caption stack per slide */}
+        <FlatList
+          ref={flatListRef}
+          data={SLIDES}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={item => item.id}
+          style={styles.pager}
+          onMomentumScrollEnd={e => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / width);
+            setActiveIndex(index);
+          }}
+          renderItem={({ item }) => (
+            <View style={styles.slide}>
+              {/* Hero — improved TCG card stack:
+                    • Back-left:  warm orange gradient card, larger tilt
+                    • Back-right: peach card, smaller card peeks out top
+                    • Front:      white mockup frame with strong shadow
+                  Two small accent dots break the geometric monotony of
+                  pure rectangles. */}
+              <View style={styles.mockupZone}>
+                {/* Subtle accent dots — break up the pure-rectangle look */}
+                <View style={[styles.accent, styles.accentTopRight]} />
+                <View style={[styles.accent, styles.accentBottomLeft]} />
+
+                {/* Back-left tilted card with gradient */}
+                <LinearGradient
+                  colors={['#FFD9B4', '#FFC089']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.decoCard, styles.decoLeft]}
+                />
+                {/* Back-right tilted card with gradient */}
+                <LinearGradient
+                  colors={['#FFE89C', '#FFD66B']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.decoCard, styles.decoRight]}
+                />
+
+                <Animated.View style={[styles.mockupFrame, { transform: [{ translateY }] }]}>
+                  <Image source={item.image} style={styles.mockupImg} resizeMode="contain" />
+                </Animated.View>
+              </View>
+
+              {/* Caption — sits cleanly on white below the band */}
+              <View style={styles.captionWrap}>
+                <Text style={styles.tag}>{item.tag}</Text>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.sub}>{item.sub}</Text>
+              </View>
+            </View>
+          )}
+        />
+
+        {/* Dots */}
+        <View style={styles.dotsRow}>
+          {SLIDES.map((_, i) => (
+            <View key={i} style={[styles.dot, activeIndex === i && styles.dotActive]} />
+          ))}
+        </View>
+
+        {/* Bottom CTA */}
+        <View style={styles.btnWrap}>
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={() => router.push('/login')}
+            activeOpacity={0.85}
+            accessibilityLabel={t('onboarding.login')}
+          >
+            <Text style={styles.loginBtnText}>{t('onboarding.login')}</Text>
+          </TouchableOpacity>
+          <View style={styles.registerRow}>
+            <Text style={styles.registerText}>{t('onboarding.noAccount')}</Text>
+            <TouchableOpacity onPress={() => router.push('/register')} hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
+              <Text style={styles.registerLink}>{t('onboarding.registerNow')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  logo: { fontSize: 16, fontWeight: '900', letterSpacing: 4, color: '#101828', textAlign: 'center', paddingTop: 16, marginBottom: 8 },
-  slide: { width, paddingHorizontal: 24, alignItems: 'center' },
-  cardImage: { width: width - 80, height: (width - 80) * 1.1, marginVertical: 20, borderRadius: 16 },
-  slideTitle: { fontSize: 22, fontWeight: '800', color: '#101828', textAlign: 'center', marginBottom: 10 },
-  slideSub: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
-  dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20, marginBottom: 28 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5E7EB' },
-  dotActive: { backgroundColor: '#FF6900', width: 20 },
-  btnWrap: { paddingHorizontal: 24, paddingBottom: 32 },
-  loginBtn: { backgroundColor: '#FF6900', borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginBottom: 20 },
-  loginBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
-  registerRow: { flexDirection: 'row', justifyContent: 'center' },
+  root: { flex: 1, backgroundColor: '#fff' },
+  safe: { flex: 1 },
+
+  // ── Hero gradient ────────────────────────────────────────────────────────
+  heroGradient: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: HERO_HEIGHT + 80,
+  },
+
+  // ── Top bar ──────────────────────────────────────────────────────────────
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  logoImg: { height: 28, width: 128 },
+  skipBtn: { paddingVertical: 6, paddingLeft: 12 },
+  skipText: { fontSize: 15, color: '#9CA3AF', fontWeight: '500' },
+
+  // ── Pager ────────────────────────────────────────────────────────────────
+  pager: { flexGrow: 0 },
+  slide: { width, alignItems: 'center' },
+
+  // ── Mockup zone — layered card stack ─────────────────────────────────────
+  // Outer zone is wider/taller than the main card so the tilted deco cards
+  // can peek out from behind without being clipped.
+  mockupZone: {
+    width: MOCKUP_WIDTH + 56,
+    height: MOCKUP_HEIGHT + 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 28,
+  },
+  // ── Card stack improvements ──────────────────────────────────────────────
+  // Each deco card is a LinearGradient instead of flat color, giving them
+  // more visual depth. Sizes/angles tuned so the stack looks intentional
+  // rather than random.
+  decoCard: {
+    position: 'absolute',
+    borderRadius: 28,
+    shadowColor: '#101828',
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 3,
+  },
+  // Slightly bigger so it peeks out generously on the left side.
+  decoLeft: {
+    width:  MOCKUP_WIDTH * 0.98,
+    height: MOCKUP_HEIGHT * 0.98,
+    transform: [{ rotate: '-9deg' }, { translateX: -26 }, { translateY: 8 }],
+  },
+  // Slightly smaller so it sits "behind/further" — adds depth perception.
+  decoRight: {
+    width:  MOCKUP_WIDTH * 0.94,
+    height: MOCKUP_HEIGHT * 0.94,
+    transform: [{ rotate:  '7deg' }, { translateX:  24 }, { translateY: 14 }],
+  },
+  // Tiny accent dots — just enough decoration to break the geometric
+  // monotony without adding visual noise. Two only.
+  accent: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: '#FF6900',
+  },
+  accentTopRight:   { width: 10, height: 10, top:  -4, right:  10 },
+  accentBottomLeft: { width:  8, height:  8, bottom: -2, left:  16, opacity: 0.7 },
+  // Top "hero" frame — white card with the screenshot inside.
+  mockupFrame: {
+    width: MOCKUP_WIDTH,
+    height: MOCKUP_HEIGHT,
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 10,
+    shadowColor: '#101828',
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
+  mockupImg: { width: '100%', height: '100%', borderRadius: 18 },
+
+  // ── Caption — centered, lives on white background below the curve ────────
+  captionWrap: { paddingHorizontal: 32, alignItems: 'center' },
+  tag: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF6900',
+    letterSpacing: 1.2,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#101828',
+    lineHeight: 32,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  sub: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+
+  // ── Dots ─────────────────────────────────────────────────────────────────
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 'auto',
+    marginBottom: 18,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E5E7EB' },
+  dotActive: { backgroundColor: '#FF6900', width: 22 },
+
+  // ── Bottom CTA ───────────────────────────────────────────────────────────
+  btnWrap: { paddingHorizontal: 24, paddingBottom: 16 },
+  loginBtn: {
+    backgroundColor: '#FF6900',
+    borderRadius: 50,
+    paddingVertical: 17,
+    alignItems: 'center',
+    marginBottom: 14,
+    shadowColor: '#FF6900',
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  loginBtnText: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   registerText: { fontSize: 14, color: '#9CA3AF' },
   registerLink: { fontSize: 14, color: '#FF6900', fontWeight: '700' },
 });
