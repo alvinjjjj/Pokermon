@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "HKCardColl Growth Command",
+  "schemaVersion": 1,
+  "description": "HKCardColl Growth 對話專用作戰中心。Waitlist 進度（含來源拆分 bar chart）、商戶 pipeline Kanban（12 target × 5 stage）、Founding merchant deadline 倒數、Lane 1–4 progress + deliverable、7 日內容曆（IG / 小紅書 / FB）、每日 log、Quick Action prompts。全部狀態 localStorage 持久化。Brand Book 配色（Paper / Ink / Card Orange，全頁唯一 orange 喺 deadline 倒數）。"
+}
+</script>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<title>HKCardColl · Growth Command</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root {
+  color-scheme: light;
+  --paper: #F6F2EA;
+  --card-bg: #FFFFFF;
+  --peach: #FFF1E5;
+  --ink: #1A1814;
+  --ink-90: #2A2723;
+  --ink-60: #6B6760;
+  --ink-30: #B8B3AA;
+  --ink-10: #E8E3D8;
+  --orange: #FF6A1F;
+  --border: #d9d3c2;
+  --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang HK", "Noto Sans HK", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
+.label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-60);
+}
+.h-section {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.h-section .meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-60);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+/* ============ HEADER ============ */
+header { border-bottom: 1px solid var(--ink); padding-bottom: 18px; margin-bottom: 24px; }
+.eyebrow {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-60); margin-bottom: 12px;
+}
+.eyebrow strong { color: var(--ink); }
+h1 { font-size: 32px; letter-spacing: -0.02em; font-weight: 700; line-height: 1.05; }
+.h1-sub { font-size: 14px; color: var(--ink-60); margin-top: 4px; }
+
+/* ============ KPI STRIP ============ */
+.kpi {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 1px; background: var(--ink-10); border: 1px solid var(--ink-10);
+  margin-bottom: 32px;
+}
+.kpi-cell {
+  background: var(--card-bg); padding: 18px 16px; min-height: 96px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.kpi-cell .lbl {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-60);
+}
+.kpi-cell .num {
+  font-family: var(--mono); font-size: 28px; font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.kpi-cell .sub {
+  font-size: 11px; color: var(--ink-60);
+}
+.kpi-cell.deadline { background: var(--ink); color: var(--paper); }
+.kpi-cell.deadline .lbl { color: var(--ink-30); }
+.kpi-cell.deadline .num { color: var(--orange); } /* ← 全頁唯一橙 */
+.kpi-cell.deadline .sub { color: var(--ink-30); }
+
+/* ============ LANES ============ */
+.lanes {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 16px; margin-bottom: 32px;
+}
+.lane {
+  background: var(--card-bg); border: 1px solid var(--border);
+  padding: 18px 18px 14px;
+}
+.lane.done { background: var(--peach); }
+.lane h3 {
+  font-size: 14px; font-weight: 700; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 8px;
+}
+.lane h3 .tag {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+  background: var(--ink); color: var(--paper);
+  padding: 2px 5px; text-transform: uppercase;
+}
+.lane.done h3 .tag { background: var(--ink); }
+.lane .desc { font-size: 12px; color: var(--ink-60); margin-bottom: 10px; }
+.bar {
+  height: 4px; background: var(--ink-10); margin-bottom: 10px; position: relative;
+}
+.bar-fill { height: 100%; background: var(--ink); }
+.lane ul { list-style: none; }
+.lane li {
+  font-size: 12px; padding: 4px 0; display: flex; gap: 8px; align-items: baseline;
+  border-top: 1px solid var(--ink-10);
+}
+.lane li:first-child { border-top: none; }
+.lane li .chk {
+  font-family: var(--mono); width: 14px; flex-shrink: 0; color: var(--ink-60);
+}
+.lane li.done .chk { color: var(--ink); }
+.lane li.done { color: var(--ink-60); }
+
+/* ============ MERCHANTS KANBAN ============ */
+.kanban {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 8px; margin-bottom: 12px;
+}
+.col {
+  background: var(--card-bg); border: 1px solid var(--border);
+  min-height: 240px; padding: 10px;
+}
+.col h4 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-60); font-weight: 500;
+  padding-bottom: 6px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--ink-10);
+  display: flex; justify-content: space-between;
+}
+.col h4 .cnt { color: var(--ink); font-weight: 700; }
+.shop-card {
+  background: var(--paper); border: 1px solid var(--ink-10);
+  padding: 8px 10px; margin-bottom: 6px; cursor: pointer;
+  font-size: 12px; line-height: 1.4;
+}
+.shop-card:hover { border-color: var(--ink); }
+.shop-card .name { font-weight: 700; }
+.shop-card .meta { font-size: 10px; color: var(--ink-60); margin-top: 2px; }
+.shop-card .last { font-family: var(--mono); font-size: 10px; color: var(--ink-60); }
+
+.shop-edit {
+  background: var(--card-bg); border: 1px solid var(--border);
+  padding: 16px; margin-bottom: 16px;
+}
+.shop-edit.hidden { display: none; }
+.shop-edit h4 { font-size: 13px; margin-bottom: 12px; font-weight: 700; }
+.field { margin-bottom: 10px; display: grid; grid-template-columns: 80px 1fr; gap: 10px; align-items: center; }
+.field label { font-family: var(--mono); font-size: 11px; color: var(--ink-60); }
+.field input, .field select, .field textarea {
+  font: inherit; font-size: 13px;
+  padding: 6px 8px; border: 1px solid var(--border); background: var(--paper);
+  color: var(--ink); width: 100%;
+}
+.field textarea { min-height: 60px; resize: vertical; font-family: var(--sans); }
+.btn-row { display: flex; gap: 8px; margin-top: 8px; }
+button {
+  font: inherit; font-size: 12px; padding: 7px 14px;
+  border: 1px solid var(--ink); background: var(--card-bg); color: var(--ink);
+  cursor: pointer; font-family: var(--sans);
+}
+button:hover { background: var(--ink); color: var(--paper); }
+button.primary { background: var(--ink); color: var(--paper); }
+button.primary:hover { background: var(--ink-90); }
+button.ghost { border-color: var(--ink-30); color: var(--ink-60); }
+button.danger:hover { background: #8B1A0A; border-color: #8B1A0A; color: var(--paper); }
+
+/* ============ WAITLIST ============ */
+.waitlist-row {
+  display: grid; grid-template-columns: 1fr 1.5fr;
+  gap: 24px; margin-bottom: 32px;
+}
+.waitlist-input { background: var(--card-bg); border: 1px solid var(--border); padding: 18px; }
+.waitlist-chart {
+  background: var(--card-bg); border: 1px solid var(--border); padding: 14px;
+  position: relative; min-height: 220px;
+}
+.waitlist-chart canvas { max-height: 200px; }
+.source-row {
+  display: grid; grid-template-columns: 1fr 80px;
+  gap: 8px; padding: 5px 0; align-items: center;
+  border-top: 1px solid var(--ink-10);
+}
+.source-row:first-of-type { border-top: none; }
+.source-row label { font-size: 12px; }
+.source-row input {
+  font: inherit; font-family: var(--mono);
+  font-size: 13px; padding: 4px 6px;
+  border: 1px solid var(--border); background: var(--paper);
+  text-align: right;
+}
+
+/* ============ CONTENT CALENDAR ============ */
+.calendar {
+  background: var(--card-bg); border: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+.cal-row {
+  display: grid; grid-template-columns: 90px repeat(3, 1fr);
+  border-top: 1px solid var(--ink-10);
+}
+.cal-row:first-child { border-top: none; }
+.cal-row .day {
+  padding: 12px; background: var(--paper);
+  font-family: var(--mono); font-size: 11px;
+  border-right: 1px solid var(--ink-10);
+}
+.cal-row .day .d-date { font-weight: 700; color: var(--ink); }
+.cal-row .day .d-week { color: var(--ink-60); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+.cal-row .day .d-rel { color: var(--ink-60); font-size: 10px; margin-top: 2px; }
+.cal-cell {
+  padding: 10px; border-right: 1px solid var(--ink-10);
+  cursor: pointer; min-height: 64px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cal-cell:last-child { border-right: none; }
+.cal-cell:hover { background: var(--peach); }
+.cal-cell .ph {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-60);
+}
+.cal-cell .draft {
+  font-size: 12px; color: var(--ink-90);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cal-cell .draft.empty { color: var(--ink-30); font-style: italic; }
+.cal-cell .stat {
+  font-family: var(--mono); font-size: 9px; align-self: flex-start;
+  padding: 1px 4px; background: var(--ink-10); color: var(--ink-60);
+  letter-spacing: 0.06em;
+}
+.cal-cell .stat.posted { background: var(--ink); color: var(--paper); }
+.cal-edit.hidden { display: none; }
+.cal-edit { background: var(--card-bg); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
+
+/* ============ DAILY LOG ============ */
+.daily {
+  background: var(--card-bg); border: 1px solid var(--border);
+  padding: 18px; margin-bottom: 32px;
+}
+.daily textarea {
+  width: 100%; min-height: 60px; padding: 10px; font: inherit;
+  border: 1px solid var(--border); background: var(--paper); color: var(--ink);
+  resize: vertical; font-size: 13px;
+}
+.daily .log-list { margin-top: 14px; }
+.log-item {
+  padding: 8px 0; border-top: 1px solid var(--ink-10);
+  display: grid; grid-template-columns: 80px 1fr; gap: 14px; align-items: baseline;
+}
+.log-item .ldate { font-family: var(--mono); font-size: 11px; color: var(--ink-60); }
+.log-item .lnote { font-size: 13px; white-space: pre-wrap; }
+.log-empty { color: var(--ink-30); font-size: 12px; padding: 12px 0; }
+
+/* ============ QUICK ACTIONS ============ */
+.qa {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+  margin-bottom: 24px;
+}
+.qa-btn {
+  text-align: left; padding: 12px 14px; line-height: 1.4;
+  background: var(--card-bg); border: 1px solid var(--border);
+  font-size: 12px;
+}
+.qa-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.qa-btn .ttl { font-weight: 700; display: block; margin-bottom: 2px; }
+.qa-btn .sub { font-size: 10px; opacity: 0.7; font-family: var(--mono); }
+
+/* ============ LINKS ============ */
+.links {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 24px;
+  font-size: 12px; padding-top: 8px;
+}
+.links a {
+  color: var(--ink); border-bottom: 1px dotted var(--ink-30);
+  text-decoration: none; padding: 4px 0;
+  font-family: var(--mono); font-size: 11px;
+}
+.links a:hover { border-bottom-color: var(--ink); border-bottom-style: solid; }
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--paper); padding: 8px 16px;
+  font-size: 12px; font-family: var(--mono); letter-spacing: 0.04em;
+  text-transform: uppercase; opacity: 0; transition: opacity 0.2s;
+  pointer-events: none; z-index: 100;
+}
+.toast.show { opacity: 1; }
+
+/* ============ MOBILE ============ */
+@media (max-width: 880px) {
+  .kpi { grid-template-columns: repeat(2, 1fr); }
+  .lanes { grid-template-columns: 1fr; }
+  .kanban { grid-template-columns: 1fr; gap: 4px; }
+  .col { min-height: auto; }
+  .waitlist-row { grid-template-columns: 1fr; }
+  .cal-row { grid-template-columns: 70px repeat(3, 1fr); }
+  .qa, .links { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ========== HEADER ========== -->
+<header>
+  <div class="eyebrow">
+    <span>HKCC · <strong>Growth</strong> Command Center</span>
+    <span id="now-date"></span>
+  </div>
+  <h1>香港藏家的索引。</h1>
+  <div class="h1-sub">Pre-launch growth ops · waitlist · merchants · content</div>
+</header>
+
+<!-- ========== KPI STRIP ========== -->
+<section class="kpi">
+  <div class="kpi-cell">
+    <div class="lbl">Waitlist</div>
+    <div class="num"><span id="kpi-waitlist">0</span> / 300</div>
+    <div class="sub"><span id="kpi-waitlist-pct">0</span>% to launch target</div>
+  </div>
+  <div class="kpi-cell">
+    <div class="lbl">Founding Merchants</div>
+    <div class="num"><span id="kpi-signed">0</span> / 10</div>
+    <div class="sub"><span id="kpi-pipeline">0</span> in pipeline</div>
+  </div>
+  <div class="kpi-cell deadline">
+    <div class="lbl">Founding Deadline</div>
+    <div class="num"><span id="kpi-days">--</span></div>
+    <div class="sub" id="kpi-deadline-date">2026-05-30</div>
+  </div>
+  <div class="kpi-cell">
+    <div class="lbl">Outreach Attempted</div>
+    <div class="num"><span id="kpi-outreach">0</span> / 12</div>
+    <div class="sub">target shops contacted</div>
+  </div>
+  <div class="kpi-cell">
+    <div class="lbl">Posts Published</div>
+    <div class="num"><span id="kpi-posts">0</span></div>
+    <div class="sub">IG · 小紅書 · FB · 14-day window</div>
+  </div>
+</section>
+
+<!-- ========== DAILY SNAPSHOT (auto-updated by scheduled task) ========== -->
+<!-- SNAPSHOT_START -->
+<div class="h-section"><span>Today's Snapshot</span><span class="meta" id="snap-stamp">last update · 2026-05-23 · auto</span></div>
+<section style="background: var(--peach); border: 1px solid var(--border); padding: 14px 18px; margin-bottom: 32px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+  <div>
+    <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-60); letter-spacing: 0.12em; text-transform: uppercase;">Waitlist</div>
+    <div style="font-family: var(--mono); font-size: 18px; font-weight: 700;" id="snap-waitlist">0 / 300</div>
+  </div>
+  <div>
+    <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-60); letter-spacing: 0.12em; text-transform: uppercase;">Merchants signed</div>
+    <div style="font-family: var(--mono); font-size: 18px; font-weight: 700;" id="snap-merchants">0 / 10</div>
+  </div>
+  <div>
+    <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-60); letter-spacing: 0.12em; text-transform: uppercase;">Contacted</div>
+    <div style="font-family: var(--mono); font-size: 18px; font-weight: 700;" id="snap-contacted">0 / 12</div>
+  </div>
+  <div>
+    <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-60); letter-spacing: 0.12em; text-transform: uppercase;">Days to founding deadline</div>
+    <div style="font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--orange);" id="snap-days">7</div>
+  </div>
+</section>
+<!-- SNAPSHOT_END -->
+
+<!-- ========== LANES ========== -->
+<div class="h-section"><span>Growth Lanes · 1 of 4 complete</span><span class="meta">edit checkbox to update</span></div>
+<section class="lanes" id="lanes-root"></section>
+
+<!-- ========== MERCHANTS ========== -->
+<div class="h-section">
+  <span>Merchant Pipeline · 旺角 / 銅鑼灣 / 灣仔 / 觀塘</span>
+  <span><button id="add-shop">+ Add shop</button></span>
+</div>
+
+<div class="shop-edit hidden" id="shop-edit">
+  <h4 id="shop-edit-title">Edit shop</h4>
+  <input type="hidden" id="shop-id">
+  <div class="field"><label>店名</label><input type="text" id="shop-name" placeholder="e.g. Mint Card"></div>
+  <div class="field"><label>區</label><select id="shop-district">
+    <option>旺角</option><option>銅鑼灣</option><option>灣仔</option><option>觀塘</option>
+    <option>尖沙咀</option><option>太子</option><option>深水埗</option><option>其他</option>
+  </select></div>
+  <div class="field"><label>聯絡</label><input type="text" id="shop-contact" placeholder="老闆名 / IG / WhatsApp"></div>
+  <div class="field"><label>狀態</label><select id="shop-status">
+    <option value="target">Target（未聯絡）</option>
+    <option value="contacted">已聯絡</option>
+    <option value="demo">Demo 約咗</option>
+    <option value="signed">簽咗 founding</option>
+    <option value="onboarded">已 onboard</option>
+  </select></div>
+  <div class="field"><label>最後 action</label><input type="date" id="shop-last"></div>
+  <div class="field"><label>備註</label><textarea id="shop-notes" placeholder="店面位置、營業時間、老闆性格、follow-up 點"></textarea></div>
+  <div class="btn-row">
+    <button class="primary" id="shop-save">Save</button>
+    <button class="ghost" id="shop-cancel">Cancel</button>
+    <button class="ghost danger" id="shop-delete" style="margin-left:auto;">Delete</button>
+  </div>
+</div>
+
+<section class="kanban" id="kanban-root"></section>
+
+<!-- ========== WAITLIST DETAIL ========== -->
+<div class="h-section"><span>Waitlist · Source Breakdown</span><span class="meta">手動入數，每日傍晚 reconcile</span></div>
+<section class="waitlist-row">
+  <div class="waitlist-input">
+    <div class="source-row"><label>FB 群組（搵意見帖）</label><input type="number" min="0" data-src="fb" id="src-fb"></div>
+    <div class="source-row"><label>IG / 小紅書</label><input type="number" min="0" data-src="ig" id="src-ig"></div>
+    <div class="source-row"><label>商戶推介</label><input type="number" min="0" data-src="merchant" id="src-merchant"></div>
+    <div class="source-row"><label>媒體 / KOL</label><input type="number" min="0" data-src="media" id="src-media"></div>
+    <div class="source-row"><label>直接 / 朋友</label><input type="number" min="0" data-src="direct" id="src-direct"></div>
+    <div class="source-row" style="border-top: 1px solid var(--ink); margin-top: 6px;">
+      <label style="font-weight: 700;">Total</label>
+      <input type="number" id="src-total" readonly style="background: var(--ink-10); font-weight: 700;">
+    </div>
+  </div>
+  <div class="waitlist-chart">
+    <canvas id="waitlist-chart"></canvas>
+  </div>
+</section>
+
+<!-- ========== CONTENT CALENDAR ========== -->
+<div class="h-section"><span>7-Day Content Calendar</span><span class="meta">click cell → edit draft + toggle posted</span></div>
+
+<div class="cal-edit hidden" id="cal-edit">
+  <h4 id="cal-edit-title" style="font-size: 13px; margin-bottom: 12px;"></h4>
+  <input type="hidden" id="cal-date">
+  <input type="hidden" id="cal-platform">
+  <div class="field" style="grid-template-columns: 80px 1fr; align-items: flex-start;">
+    <label style="padding-top: 6px;">Draft</label>
+    <textarea id="cal-draft" placeholder="貼 caption + hashtag。先跑 voice.md 6 項 Checklist。"></textarea>
+  </div>
+  <div class="field"><label>Status</label><select id="cal-status">
+    <option value="planned">Planned</option>
+    <option value="drafted">Drafted（已寫稿）</option>
+    <option value="posted">Posted</option>
+  </select></div>
+  <div class="btn-row">
+    <button class="primary" id="cal-save">Save</button>
+    <button class="ghost" id="cal-cancel">Cancel</button>
+    <button class="ghost danger" id="cal-clear" style="margin-left:auto;">Clear</button>
+  </div>
+</div>
+
+<section class="calendar" id="cal-root"></section>
+
+<!-- ========== DAILY LOG ========== -->
+<div class="h-section"><span>Daily Log</span><span class="meta">today's note + 7-day rolling history</span></div>
+<section class="daily">
+  <textarea id="daily-note" placeholder="今日 growth 行動 / 觀察 / 待 follow-up。Cmd+Enter 儲存。"></textarea>
+  <div class="btn-row" style="margin-top: 10px;">
+    <button class="primary" id="daily-save">Save today's note</button>
+    <span style="font-size: 11px; color: var(--ink-60); align-self: center;" id="daily-saved-at"></span>
+  </div>
+  <div class="log-list" id="log-list"></div>
+</section>
+
+<!-- ========== QUICK ACTIONS ========== -->
+<div class="h-section"><span>Quick Actions · paste into new Growth chat</span><span class="meta">click to copy</span></div>
+<section class="qa">
+  <button class="qa-btn" data-copy="請先讀 /Users/alvin/collectr/product.md /Users/alvin/collectr/brand/voice.md /Users/alvin/collectr/notes/growth_lane1-foundation_2026-05.md 本對話接 HKCC · Growth Lane 2（商戶 outreach kit）。出：cold WhatsApp / DM 短訊（< 80 字版）、5 分鐘 in-person demo script、A5 介紹卡稿、Founding Merchant FAQ、D+3 / +7 / +14 跟進 SOP、4 區 12 間 target list。所有對外文字必須通過 voice.md 6 項 Checklist。">
+    <span class="ttl">→ 開 Lane 2 商戶 outreach kit</span>
+    <span class="sub">cold pitch / demo / A5 / FAQ / SOP</span>
+  </button>
+  <button class="qa-btn" data-copy="請先讀 /Users/alvin/collectr/brand/voice.md 同 /Users/alvin/collectr/growth/lane1_foundation/voice_prompt_template.md（BLOCK A + BLOCK C-2）。寫 1 條香港 Pokemon FB 群組嘅「搵意見」帖（非廣告語氣），目標：收 50 個 waitlist email + 收 5 個 user research 願受訪。長度 < 180 字，含 1 條 hkcardcoll.hk link。寫完跑 BLOCK B 自查。">
+    <span class="ttl">→ 出 FB 群組「搵意見」帖</span>
+    <span class="sub">non-promotional · 50 email + 5 user interview</span>
+  </button>
+  <button class="qa-btn" data-copy="請先讀 /Users/alvin/collectr/brand/voice.md 同 /Users/alvin/collectr/growth/lane1_foundation/voice_prompt_template.md（BLOCK A + BLOCK C-2）。寫 5 條 IG launch reel 腳本（每條 < 30 秒，配對應 caption + hashtag），主題建議：(1) JP+EN 同步定價 demo (2) Portfolio 估值即時更新 (3) 認證商戶徽章意義 (4) Excel → App 遷移痛點 (5) 港藏家 Day in the life。每條腳本格式：scene-by-scene 視覺 + voice-over 文字。寫完跑 BLOCK B 自查。">
+    <span class="ttl">→ 寫 5 條 IG launch reel 腳本</span>
+    <span class="sub">< 30s · 5 topic · script + caption + hashtag</span>
+  </button>
+  <button class="qa-btn" data-copy="貼以下文案 → 跑 HKCardColl Voice 6 項 Checklist（見 /Users/alvin/collectr/brand/voice.md）。逐句標 ✓ / ✗，列出 ✗ 嘅原句 + 點解唔過 + 修正建議。全部 ✓ 之後 print 「READY」。【文案】：[喺呢度貼文案]">
+    <span class="ttl">→ Audit 一段文案</span>
+    <span class="sub">voice.md 6 項 逐句 ✓ / ✗</span>
+  </button>
+</section>
+
+<!-- ========== LINKS ========== -->
+<div class="h-section"><span>Quick Links · Lane 1 deliverables</span><span class="meta">file paths · 喺 chat 度引用</span></div>
+<section class="links">
+  <a href="#" onclick="copyText('/Users/alvin/collectr/product.md'); return false;">product.md</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/brand/voice.md'); return false;">brand/voice.md</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/growth/lane1_foundation/handle.md'); return false;">growth/lane1_foundation/handle.md</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/growth/lane1_foundation/email_domain_sop.md'); return false;">growth/lane1_foundation/email_domain_sop.md</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/growth/lane1_foundation/voice_prompt_template.md'); return false;">growth/lane1_foundation/voice_prompt_template.md</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/growth/landing/index.html'); return false;">growth/landing/index.html</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/notes/growth_lane1-foundation_2026-05.md'); return false;">notes/growth_lane1-foundation_2026-05.md</a>
+  <a href="#" onclick="copyText('/Users/alvin/collectr/MERCHANT_SPEC.md'); return false;">MERCHANT_SPEC.md</a>
+</section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// =========== STORAGE ===========
+const STORAGE_KEY = 'hkcc-growth-command-v1';
+const FOUNDING_DEADLINE = '2026-05-30';
+
+const DEFAULT_STATE = {
+  shops: [
+    { id: 's1', name: '卡店 01', district: '旺角', contact: '', status: 'target', last: '', notes: '信和中心 / 西洋菜南街一帶' },
+    { id: 's2', name: '卡店 02', district: '旺角', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's3', name: '卡店 03', district: '旺角', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's4', name: '卡店 04', district: '旺角', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's5', name: '卡店 05', district: '銅鑼灣', contact: '', status: 'target', last: '', notes: '崇光 / 軒尼詩道' },
+    { id: 's6', name: '卡店 06', district: '銅鑼灣', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's7', name: '卡店 07', district: '銅鑼灣', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's8', name: '卡店 08', district: '灣仔', contact: '', status: 'target', last: '', notes: '太原街 / 莊士敦道' },
+    { id: 's9', name: '卡店 09', district: '灣仔', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's10', name: '卡店 10', district: '觀塘', contact: '', status: 'target', last: '', notes: 'APM / 駱駝漆' },
+    { id: 's11', name: '卡店 11', district: '觀塘', contact: '', status: 'target', last: '', notes: '' },
+    { id: 's12', name: '卡店 12', district: '觀塘', contact: '', status: 'target', last: '', notes: '' }
+  ],
+  waitlist: { fb: 0, ig: 0, merchant: 0, media: 0, direct: 0 },
+  calendar: {},   // { 'YYYY-MM-DD': { ig: { draft, status }, xhs: {...}, fb: {...} } }
+  log: [],        // { date: 'YYYY-MM-DD', note: '...' }
+  lanes: {
+    'l1': { done: [true, true, true, true, true, true] },
+    'l2': { done: [false, false, false, false, false, false] },
+    'l3': { done: [false, false, false, false] },
+    'l4': { done: [false, false, false] }
+  }
+};
+
+let state = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    return deepMerge(structuredClone(DEFAULT_STATE), parsed);
+  } catch (e) {
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn('localStorage save failed', e); }
+}
+function deepMerge(a, b) {
+  if (Array.isArray(b)) return b;
+  if (typeof b !== 'object' || b === null) return b;
+  const out = { ...a };
+  for (const k of Object.keys(b)) {
+    out[k] = (k in a) ? deepMerge(a[k], b[k]) : b[k];
+  }
+  return out;
+}
+
+// =========== HELPERS ===========
+function todayISO() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+function daysBetween(aISO, bISO) {
+  const a = new Date(aISO + 'T00:00:00');
+  const b = new Date(bISO + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+function fmtDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const wk = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+  return { date: `${d.getMonth() + 1}/${d.getDate()}`, week: wk };
+}
+function relDay(iso) {
+  const t = todayISO();
+  const diff = daysBetween(t, iso);
+  if (diff === 0) return 'TODAY';
+  if (diff === 1) return 'TMR';
+  if (diff === -1) return 'YDA';
+  if (diff > 0) return `+${diff}d`;
+  return `${diff}d`;
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 1400);
+}
+function copyText(s) {
+  navigator.clipboard.writeText(s).then(() => toast('Copied'));
+}
+
+// =========== HEADER + KPI ===========
+function renderHeader() {
+  const t = new Date();
+  const wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][t.getDay()];
+  document.getElementById('now-date').textContent =
+    `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')} · ${wk}`;
+}
+function renderKPI() {
+  const w = state.waitlist;
+  const wTotal = w.fb + w.ig + w.merchant + w.media + w.direct;
+  document.getElementById('kpi-waitlist').textContent = wTotal;
+  document.getElementById('kpi-waitlist-pct').textContent = Math.round(wTotal / 300 * 100);
+  document.getElementById('src-total').value = wTotal;
+
+  const signed = state.shops.filter(s => s.status === 'signed' || s.status === 'onboarded').length;
+  const pipeline = state.shops.filter(s => s.status === 'contacted' || s.status === 'demo').length;
+  document.getElementById('kpi-signed').textContent = signed;
+  document.getElementById('kpi-pipeline').textContent = pipeline;
+
+  const outreach = state.shops.filter(s => s.status !== 'target').length;
+  document.getElementById('kpi-outreach').textContent = outreach;
+
+  const days = daysBetween(todayISO(), FOUNDING_DEADLINE);
+  const daysEl = document.getElementById('kpi-days');
+  daysEl.textContent = days >= 0 ? `${days}d` : 'past';
+  document.getElementById('kpi-deadline-date').textContent = FOUNDING_DEADLINE;
+
+  let posted = 0;
+  Object.values(state.calendar).forEach(d => {
+    ['ig', 'xhs', 'fb'].forEach(p => {
+      if (d[p] && d[p].status === 'posted') posted++;
+    });
+  });
+  document.getElementById('kpi-posts').textContent = posted;
+}
+
+// =========== LANES ===========
+const LANES_DATA = [
+  { id: 'l1', tag: 'Lane 1', title: 'Foundation', desc: 'Handle / Domain+Email / Landing / Voice template',
+    items: ['Handle 推薦 + 11 平台 reservation checklist', 'Domain + Email 8-step SOP（Cloudflare + Zoho）', 'Waitlist landing 雛形（hkcardcoll.hk）', 'Voice Prompt Template（BLOCK A/B/C）', 'Landing 文案 voice audit + 修 3 處', 'notes/growth_lane1-foundation_2026-05.md'] },
+  { id: 'l2', tag: 'Lane 2', title: '商戶 Outreach', desc: 'Cold pitch · Demo · A5 · FAQ · SOP',
+    items: ['4 區 12 間 target shop list 確認', 'Cold WhatsApp / DM 短訊（< 80 字）', '5 分鐘 in-person demo script', 'A5 介紹卡稿（正反兩面 + QR）', 'Founding Merchant FAQ + deal sheet', 'D+3 / +7 / +14 跟進 SOP'] },
+  { id: 'l3', tag: 'Lane 3', title: 'Waitlist 增長', desc: 'FB group / IG reel / Email sequence',
+    items: ['FB 群組「搵意見」帖（5–8 個群組）', 'IG / 小紅書預告 reel × 3 條', 'Email sequence × 3 封（welcome / D+7 / launch）', 'Landing → Formspree integration'] },
+  { id: 'l4', tag: 'Lane 4', title: '競品 audit + 媒體', desc: 'Competitor matrix · Press kit · KOL',
+    items: ['競品 feature 比較表（6 個 app）', 'Pre-launch 新聞稿 draft（中英）', 'HK Pokémon KOL shortlist + DM template'] }
+];
+
+function renderLanes() {
+  const root = document.getElementById('lanes-root');
+  root.innerHTML = '';
+  LANES_DATA.forEach((L, idx) => {
+    const lane = state.lanes[L.id];
+    const total = L.items.length;
+    const done = lane.done.filter(Boolean).length;
+    const pct = Math.round(done / total * 100);
+    const div = document.createElement('div');
+    div.className = 'lane' + (done === total ? ' done' : '');
+    div.innerHTML = `
+      <h3><span class="tag">${L.tag}</span>${L.title} <span style="font-family: var(--mono); font-size: 11px; color: var(--ink-60); margin-left: auto;">${done}/${total}</span></h3>
+      <div class="desc">${L.desc}</div>
+      <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <ul>${L.items.map((it, i) => `
+        <li class="${lane.done[i] ? 'done' : ''}">
+          <span class="chk">${lane.done[i] ? '[✓]' : '[ ]'}</span>
+          <span>${it}</span>
+        </li>
+      `).join('')}</ul>
+    `;
+    div.querySelectorAll('li').forEach((li, i) => {
+      li.addEventListener('click', () => {
+        state.lanes[L.id].done[i] = !state.lanes[L.id].done[i];
+        save();
+        renderLanes();
+      });
+    });
+    root.appendChild(div);
+  });
+}
+
+// =========== MERCHANTS ===========
+const STATUS_LABELS = {
+  target: 'Target', contacted: '已聯絡', demo: 'Demo 約咗',
+  signed: '簽咗 founding', onboarded: '已 onboard'
+};
+const STATUS_ORDER = ['target', 'contacted', 'demo', 'signed', 'onboarded'];
+
+function renderKanban() {
+  const root = document.getElementById('kanban-root');
+  root.innerHTML = '';
+  STATUS_ORDER.forEach(st => {
+    const col = document.createElement('div');
+    col.className = 'col';
+    const shops = state.shops.filter(s => s.status === st);
+    col.innerHTML = `<h4>${STATUS_LABELS[st]} <span class="cnt">${shops.length}</span></h4>`;
+    shops.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      card.innerHTML = `
+        <div class="name">${escapeHtml(s.name)}</div>
+        <div class="meta">${escapeHtml(s.district)}${s.contact ? ' · ' + escapeHtml(s.contact) : ''}</div>
+        ${s.last ? `<div class="last">last: ${s.last}</div>` : ''}
+      `;
+      card.addEventListener('click', () => openShopEdit(s.id));
+      col.appendChild(card);
+    });
+    root.appendChild(col);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function openShopEdit(id) {
+  const isNew = !id;
+  const shop = isNew
+    ? { id: 's' + Date.now(), name: '', district: '旺角', contact: '', status: 'target', last: todayISO(), notes: '' }
+    : state.shops.find(s => s.id === id);
+  if (!shop) return;
+  document.getElementById('shop-edit-title').textContent = isNew ? 'Add shop' : `Edit · ${shop.name}`;
+  document.getElementById('shop-id').value = shop.id;
+  document.getElementById('shop-name').value = shop.name;
+  document.getElementById('shop-district').value = shop.district;
+  document.getElementById('shop-contact').value = shop.contact;
+  document.getElementById('shop-status').value = shop.status;
+  document.getElementById('shop-last').value = shop.last || '';
+  document.getElementById('shop-notes').value = shop.notes;
+  document.getElementById('shop-delete').style.display = isNew ? 'none' : '';
+  document.getElementById('shop-edit').classList.remove('hidden');
+  document.getElementById('shop-edit').dataset.isNew = isNew ? '1' : '0';
+  document.getElementById('shop-name').focus();
+}
+
+function closeShopEdit() {
+  document.getElementById('shop-edit').classList.add('hidden');
+}
+
+document.getElementById('add-shop').addEventListener('click', () => openShopEdit(null));
+document.getElementById('shop-cancel').addEventListener('click', closeShopEdit);
+document.getElementById('shop-save').addEventListener('click', () => {
+  const id = document.getElementById('shop-id').value;
+  const isNew = document.getElementById('shop-edit').dataset.isNew === '1';
+  const data = {
+    id,
+    name: document.getElementById('shop-name').value.trim() || '(無名)',
+    district: document.getElementById('shop-district').value,
+    contact: document.getElementById('shop-contact').value.trim(),
+    status: document.getElementById('shop-status').value,
+    last: document.getElementById('shop-last').value,
+    notes: document.getElementById('shop-notes').value.trim()
+  };
+  if (isNew) state.shops.push(data);
+  else {
+    const idx = state.shops.findIndex(s => s.id === id);
+    if (idx >= 0) state.shops[idx] = data;
+  }
+  save();
+  closeShopEdit();
+  renderKanban();
+  renderKPI();
+  toast('Saved');
+});
+document.getElementById('shop-delete').addEventListener('click', () => {
+  const id = document.getElementById('shop-id').value;
+  if (!confirm('Delete this shop?')) return;
+  state.shops = state.shops.filter(s => s.id !== id);
+  save();
+  closeShopEdit();
+  renderKanban();
+  renderKPI();
+  toast('Deleted');
+});
+
+// =========== WAITLIST + CHART ===========
+let chart = null;
+function renderWaitlist() {
+  const w = state.waitlist;
+  document.getElementById('src-fb').value = w.fb;
+  document.getElementById('src-ig').value = w.ig;
+  document.getElementById('src-merchant').value = w.merchant;
+  document.getElementById('src-media').value = w.media;
+  document.getElementById('src-direct').value = w.direct;
+  renderChart();
+}
+function renderChart() {
+  const ctx = document.getElementById('waitlist-chart');
+  const w = state.waitlist;
+  const data = {
+    labels: ['FB 群組', 'IG / 小紅書', '商戶推介', '媒體 / KOL', '直接 / 朋友'],
+    datasets: [{
+      label: 'Waitlist signups',
+      data: [w.fb, w.ig, w.merchant, w.media, w.direct],
+      backgroundColor: '#1A1814',
+      borderWidth: 0,
+      barThickness: 18
+    }]
+  };
+  const config = {
+    type: 'bar',
+    data,
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: true } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#E8E3D8' }, ticks: { color: '#6B6760', font: { family: 'ui-monospace', size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: '#1A1814', font: { size: 11 } } }
+      }
+    }
+  };
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, config);
+}
+document.querySelectorAll('input[data-src]').forEach(input => {
+  input.addEventListener('change', () => {
+    state.waitlist[input.dataset.src] = parseInt(input.value, 10) || 0;
+    save();
+    renderKPI();
+    renderChart();
+  });
+});
+
+// =========== CONTENT CALENDAR ===========
+const PLATFORMS = [
+  { id: 'ig', label: 'IG' },
+  { id: 'xhs', label: '小紅書' },
+  { id: 'fb', label: 'FB' }
+];
+function renderCalendar() {
+  const root = document.getElementById('cal-root');
+  root.innerHTML = '';
+  const today = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const iso = d.toISOString().slice(0, 10);
+    const f = fmtDate(iso);
+    const row = document.createElement('div');
+    row.className = 'cal-row';
+    row.innerHTML = `<div class="day">
+      <div class="d-date">${f.date}</div>
+      <div class="d-week">${f.week}</div>
+      <div class="d-rel">${relDay(iso)}</div>
+    </div>`;
+    PLATFORMS.forEach(p => {
+      const slot = (state.calendar[iso] && state.calendar[iso][p.id]) || { draft: '', status: 'planned' };
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell';
+      cell.innerHTML = `
+        <div class="ph">${p.label}</div>
+        <div class="draft ${slot.draft ? '' : 'empty'}">${slot.draft ? escapeHtml(slot.draft) : '— click to draft —'}</div>
+        ${slot.draft ? `<div class="stat ${slot.status}">${slot.status}</div>` : ''}
+      `;
+      cell.addEventListener('click', () => openCalEdit(iso, p.id, p.label, f));
+      row.appendChild(cell);
+    });
+    root.appendChild(row);
+  }
+}
+function openCalEdit(iso, plat, platLabel, f) {
+  const slot = (state.calendar[iso] && state.calendar[iso][plat]) || { draft: '', status: 'planned' };
+  document.getElementById('cal-edit-title').textContent = `${f.date} (週${f.week}) · ${platLabel}`;
+  document.getElementById('cal-date').value = iso;
+  document.getElementById('cal-platform').value = plat;
+  document.getElementById('cal-draft').value = slot.draft;
+  document.getElementById('cal-status').value = slot.status;
+  document.getElementById('cal-edit').classList.remove('hidden');
+  document.getElementById('cal-draft').focus();
+}
+document.getElementById('cal-cancel').addEventListener('click', () => {
+  document.getElementById('cal-edit').classList.add('hidden');
+});
+document.getElementById('cal-save').addEventListener('click', () => {
+  const iso = document.getElementById('cal-date').value;
+  const plat = document.getElementById('cal-platform').value;
+  const draft = document.getElementById('cal-draft').value.trim();
+  const status = document.getElementById('cal-status').value;
+  if (!state.calendar[iso]) state.calendar[iso] = {};
+  state.calendar[iso][plat] = { draft, status };
+  save();
+  document.getElementById('cal-edit').classList.add('hidden');
+  renderCalendar();
+  renderKPI();
+  toast('Saved');
+});
+document.getElementById('cal-clear').addEventListener('click', () => {
+  const iso = document.getElementById('cal-date').value;
+  const plat = document.getElementById('cal-platform').value;
+  if (state.calendar[iso]) delete state.calendar[iso][plat];
+  save();
+  document.getElementById('cal-edit').classList.add('hidden');
+  renderCalendar();
+  renderKPI();
+  toast('Cleared');
+});
+
+// =========== DAILY LOG ===========
+function renderLog() {
+  const today = todayISO();
+  const todayItem = state.log.find(l => l.date === today);
+  document.getElementById('daily-note').value = todayItem ? todayItem.note : '';
+  const list = document.getElementById('log-list');
+  list.innerHTML = '';
+  const recent = state.log
+    .filter(l => l.date !== today)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 7);
+  if (recent.length === 0) {
+    list.innerHTML = '<div class="log-empty">— 未有過往 log —</div>';
+  } else {
+    recent.forEach(l => {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      const rel = relDay(l.date);
+      div.innerHTML = `<div class="ldate">${l.date}<br><span style="opacity:0.7;">${rel}</span></div>
+        <div class="lnote">${escapeHtml(l.note)}</div>`;
+      list.appendChild(div);
+    });
+  }
+}
+function saveDaily() {
+  const today = todayISO();
+  const note = document.getElementById('daily-note').value.trim();
+  state.log = state.log.filter(l => l.date !== today);
+  if (note) state.log.push({ date: today, note });
+  save();
+  document.getElementById('daily-saved-at').textContent = `Saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  renderLog();
+}
+document.getElementById('daily-save').addEventListener('click', saveDaily);
+document.getElementById('daily-note').addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); saveDaily(); }
+});
+
+// =========== QUICK ACTIONS ===========
+document.querySelectorAll('.qa-btn').forEach(btn => {
+  btn.addEventListener('click', () => copyText(btn.dataset.copy));
+});
+
+// =========== INIT ===========
+function init() {
+  renderHeader();
+  renderKPI();
+  renderLanes();
+  renderKanban();
+  renderWaitlist();
+  renderCalendar();
+  renderLog();
+}
+init();
+</script>
+</body>
+</html>

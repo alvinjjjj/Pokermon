@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "config": {
+    "founding_deadline": "2026-05-30",
+    "company_founded": "2026-05-11",
+    "rebrand_date": "2026-05-16",
+    "apple_submission_target": "2026-06-15",
+    "launch_target": "2026-06-30",
+    "waitlist_goal": 300,
+    "founding_merchants_goal": 10,
+    "target_shops_total": 12
+  },
+  "current": {
+    "waitlist": 0,
+    "merchants_signed": 0,
+    "merchants_contacted": 0,
+    "posts_published": 0,
+    "duns_status": "pending",
+    "blockers": [
+      "DUNS pending — Apple submission blocked",
+      "Social handles not yet reserved (IG / 小紅書 / FB / TikTok)",
+      "Formspree integration on landing page",
+      "5 'first / 全港首個' wording fixes pending",
+      "CardLand + HobbyX partnership cold pitch not sent"
+    ]
+  },
+  "history": [
+    {
+      "date": "2026-05-17",
+      "waitlist": 0,
+      "merchants_signed": 0,
+      "merchants_contacted": 0,
+      "posts_published": 0,
+      "notes": "Lane 1 Foundation done (handle reco / email SOP / landing / voice template / notes / Growth Command artifact). Lane 1.5 App Store copy v02 done. 4 decks v03/v02 + handoff brief done. Competitor scan: CardLand and HobbyX as adjacent players (partnership > compete); pokeca-soken JP-only reference (not competitor). DUNS waiting confirmed by founder."
+    },
+    {
+      "date": "2026-05-19",
+      "waitlist": 0,
+      "merchants_signed": 0,
+      "merchants_contacted": 0,
+      "posts_published": 0,
+      "notes": "Auto wrap-up: no user input captured (scheduled run, 0 deltas applied). 11 日 to founding deadline. Lane 2 商戶 outreach kit 仍未開始 — 最緊要 unblock。"
+    },
+    {
+      "date": "2026-05-20",
+      "waitlist": 0,
+      "merchants_signed": 0,
+      "merchants_contacted": 0,
+      "posts_published": 0,
+      "notes": "Auto wrap-up: no user input captured (scheduled run, 0 deltas applied). 10 日 to founding deadline. Lane 2 商戶 outreach kit 仍未開始；DUNS 仍 pending。"
+    },
+    {
+      "date": "2026-05-21",
+      "waitlist": 0,
+      "merchants_signed": 0,
+      "merchants_contacted": 0,
+      "posts_published": 0,
+      "notes": "Auto wrap-up: no user input captured (scheduled run, 0 deltas applied). 9 日 to founding deadline. Lane 2 商戶 outreach kit 仍未開始；DUNS 仍 pending。"
+    },
+    {
+      "date": "2026-05-22",
+      "waitlist": 0,
+      "merchants_signed": 0,
+      "merchants_contacted": 0,
+      "posts_published": 0,
+      "notes": "Auto wrap-up: no user input captured (scheduled run, 0 deltas applied). 8 日 to founding deadline. Lane 2 商戶 outreach kit 仍未開始；DUNS 仍 pending。"
+    },
+    {
+      "date": "2026-05-23",
+      "waitlist": 0,
+      "merchants_signed": 0,
+      "merchants_contacted": 0,
+      "posts_published": 0,
+      "notes": "Auto wrap-up: no user input captured (scheduled run, 0 deltas applied). 7 日 to founding deadline. Lane 2 商戶 outreach kit 仍未開始；DUNS 仍 pending。"
+    }
+  ]
+}

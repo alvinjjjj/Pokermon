@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HKCardColl · 香港藏家的索引</title>
+<meta name="description" content="香港首個 JP + EN 同步定價嘅 Pokémon 卡牌平台。即時換算 HKD，認證商戶系統，本地 P2P 二手市集。App 即將上線。">
+
+<!-- Open Graph (for FB / IG link preview) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://hkcardcoll.hk/">
+<meta property="og:title" content="HKCardColl · 香港藏家的索引">
+<meta property="og:description" content="JP + EN 同步定價，自動換算 HKD。App 即將上線。">
+<meta property="og:image" content="https://hkcardcoll.hk/og-image.png">
+<meta property="og:locale" content="zh_HK">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+HK:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #1A1814;
+    --paper: #F6F2EA;
+    --orange: #FF6A1F;
+    --grey-90: #2A2723;
+    --grey-60: #6B6760;
+    --grey-30: #B8B3AA;
+    --grey-10: #E8E3D8;
+    --sans: 'Space Grotesk', 'Noto Sans HK', 'PingFang HK', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --maxw: 960px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--grey-30); }
+  a:hover { border-bottom-color: var(--ink); }
+  .mono { font-family: var(--mono); }
+  .container { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .small { font-size: 13px; color: var(--grey-60); }
+  .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey-60); }
+
+  /* ============ NAV ============ */
+  nav {
+    border-bottom: 1px solid var(--grey-10);
+    padding: 18px 0;
+    background: var(--paper);
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(6px);
+  }
+  nav .container { display: flex; justify-content: space-between; align-items: center; }
+  .brand {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    border: none;
+  }
+  .brand .dot { color: var(--ink); }
+  nav .cta-link {
+    font-family: var(--mono);
+    font-size: 13px;
+    border: none;
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    padding: 96px 0 80px;
+    border-bottom: 1px solid var(--grey-10);
+  }
+  .hero .label { margin-bottom: 24px; }
+  .hero h1 {
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+  .hero .sub {
+    font-size: clamp(17px, 2vw, 20px);
+    color: var(--grey-90);
+    max-width: 620px;
+    margin-bottom: 40px;
+  }
+  .hero .fact-row {
+    display: flex; flex-wrap: wrap; gap: 24px 40px;
+    border-top: 1px solid var(--grey-10);
+    padding-top: 28px;
+    margin-top: 48px;
+  }
+  .fact { min-width: 140px; }
+  .fact .n { font-family: var(--mono); font-size: 22px; font-weight: 500; }
+  .fact .t { font-size: 13px; color: var(--grey-60); margin-top: 2px; }
+
+  /* ============ FORM ============ */
+  .form-wrap {
+    background: white;
+    border: 1px solid var(--grey-10);
+    padding: 28px;
+    border-radius: 4px;
+    max-width: 520px;
+  }
+  .form-wrap .label { margin-bottom: 12px; }
+  .form-wrap h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .form-wrap p { font-size: 14px; color: var(--grey-60); margin-bottom: 20px; }
+  .field {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
+  }
+  .field label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--grey-60);
+  }
+  .field input, .field select {
+    font: inherit;
+    padding: 12px 14px;
+    border: 1px solid var(--grey-30);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .field input:focus, .field select:focus {
+    outline: none; border-color: var(--ink);
+  }
+  button.submit {
+    width: 100%;
+    font: inherit;
+    font-weight: 700;
+    background: var(--orange);              /* ← 全頁唯一橙 */
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 4px;
+    letter-spacing: 0.01em;
+  }
+  button.submit:hover { background: #E55C16; }
+  .form-foot { font-size: 12px; color: var(--grey-60); margin-top: 12px; }
+
+  /* ============ SECTIONS ============ */
+  section.block {
+    padding: 80px 0;
+    border-bottom: 1px solid var(--grey-10);
+  }
+  section.block .label { margin-bottom: 16px; }
+  section.block h2 {
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    margin-bottom: 24px;
+    max-width: 720px;
+  }
+  section.block .lede {
+    font-size: 17px;
+    color: var(--grey-90);
+    max-width: 640px;
+    margin-bottom: 48px;
+  }
+
+  /* ============ PILLARS ============ */
+  .pillars {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--grey-10);
+    border: 1px solid var(--grey-10);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .pillar {
+    background: var(--paper);
+    padding: 32px 28px;
+  }
+  .pillar .n {
+    font-family: var(--mono); font-size: 13px; color: var(--grey-60);
+    margin-bottom: 10px;
+  }
+  .pillar h3 {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .pillar p { font-size: 15px; color: var(--grey-90); }
+
+  /* ============ WHY ============ */
+  .why-rows {
+    display: grid; gap: 0;
+  }
+  .why-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 24px;
+    padding: 20px 0;
+    border-top: 1px solid var(--grey-10);
+  }
+  .why-row:last-child { border-bottom: 1px solid var(--grey-10); }
+  .why-row .src {
+    font-family: var(--mono); font-size: 12px; color: var(--grey-60);
+    padding-top: 4px;
+  }
+  .why-row h4 { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
+  .why-row .meta { font-size: 13px; color: var(--grey-60); }
+
+  /* ============ MERCHANT ============ */
+  .merchant-card {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 48px 36px;
+    border-radius: 4px;
+    max-width: 720px;
+  }
+  .merchant-card .label { color: var(--grey-30); }
+  .merchant-card h2 { color: var(--paper); }
+  .merchant-card ul {
+    list-style: none;
+    margin: 24px 0 28px;
+  }
+  .merchant-card li {
+    padding: 10px 0;
+    border-top: 1px solid var(--grey-90);
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    font-size: 15px;
+  }
+  .merchant-card li:first-child { border-top: none; }
+  .merchant-card li .num {
+    font-family: var(--mono); font-size: 12px; color: var(--grey-30);
+  }
+  .merchant-card .ask {
+    font-family: var(--mono); font-size: 13px; color: var(--grey-30);
+    border-top: 1px solid var(--grey-90); padding-top: 20px;
+  }
+  .merchant-card .ask a { color: var(--paper); border-bottom-color: var(--grey-60); }
+
+  /* ============ FAQ ============ */
+  details {
+    border-top: 1px solid var(--grey-10);
+    padding: 18px 0;
+  }
+  details:last-of-type { border-bottom: 1px solid var(--grey-10); }
+  details summary {
+    cursor: pointer; list-style: none;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 16px; font-weight: 500;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after {
+    content: '＋'; font-family: var(--mono); color: var(--grey-60);
+  }
+  details[open] summary::after { content: '−'; }
+  details .answer {
+    font-size: 15px;
+    color: var(--grey-90);
+    margin-top: 12px;
+    max-width: 680px;
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    padding: 48px 0 64px;
+    color: var(--grey-60);
+    font-size: 13px;
+  }
+  footer .row {
+    display: flex; flex-wrap: wrap; gap: 24px 48px;
+    justify-content: space-between;
+  }
+  footer .col { min-width: 200px; }
+  footer .col h5 {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--grey-90); margin-bottom: 10px;
+    font-weight: 500;
+  }
+  footer .col p, footer .col a { display: block; line-height: 1.7; border: none; }
+  footer .col a:hover { color: var(--ink); }
+  footer .legal {
+    margin-top: 32px; padding-top: 24px;
+    border-top: 1px solid var(--grey-10);
+    font-size: 12px;
+  }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 640px) {
+    .hero { padding: 64px 0 56px; }
+    section.block { padding: 56px 0; }
+    .pillars { grid-template-columns: 1fr; }
+    .merchant-card { padding: 32px 24px; }
+    .form-wrap { padding: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="brand" href="/">HKCardColl<span class="dot">.</span></a>
+    <a class="cta-link" href="#waitlist">加入 waitlist →</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="container">
+    <div class="label">App 即將上線 · 2026 Q2</div>
+    <h1>香港藏家的索引。</h1>
+    <p class="sub">
+      JP + EN 即時卡價，自動換算 HKD。<br>
+      認證商戶系統。本地 P2P 二手市集。
+    </p>
+
+    <!-- ============ FORM ============ -->
+    <div id="waitlist" class="form-wrap">
+      <div class="label">Waitlist · 目標 300 · 額滿即出第一波 invite</div>
+      <h3>加入 waitlist</h3>
+      <p>上線當日 email 通知。冇 spam，冇推銷。</p>
+
+      <!--
+        TODO (Lane 1 / Step 8):
+        將 action URL 換成 Formspree endpoint
+        申請流程：formspree.io → new form → confirm email → copy form ID
+        免費 plan: 50 submissions / month。超過要升 paid。
+        替代方案: Google Form embed（unlimited free）或 Cloudflare Worker。
+      -->
+      <form id="waitlist-form" action="https://formspree.io/f/REPLACE_FORMSPREE_ID" method="POST">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="role">你係</label>
+          <select id="role" name="role" required>
+            <option value="">揀一項</option>
+            <option value="collector">收藏家</option>
+            <option value="seller">個人賣家</option>
+            <option value="merchant">卡店 / 商戶</option>
+            <option value="media">媒體 / KOL</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="referrer">點知道我哋？（optional）</label>
+          <input type="text" id="referrer" name="referrer" placeholder="FB 群組 / 卡店 / 朋友介紹">
+        </div>
+        <input type="hidden" name="_subject" value="HKCardColl Waitlist signup">
+        <input type="hidden" name="source" value="hkcardcoll.hk landing">
+        <button type="submit" class="submit">加入 waitlist</button>
+        <p class="form-foot">submit 即代表同意接收 launch 通知 email。可隨時 unsubscribe。</p>
+      </form>
+    </div>
+
+    <div class="fact-row">
+      <div class="fact"><div class="n">3</div><div class="t">價格資料來源</div></div>
+      <div class="fact"><div class="n">4</div><div class="t">語言（zh-HK / zh-CN / en / ja）</div></div>
+      <div class="fact"><div class="n">2</div><div class="t">層商戶系統</div></div>
+      <div class="fact"><div class="n">52</div><div class="t">日版補充包追蹤</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ PILLARS ============ -->
+<section class="block" id="pillars">
+  <div class="container">
+    <div class="label">產品 · 四個支柱</div>
+    <h2>香港藏家而家要做嘅嘢，HKCardColl 一個 App 解決。</h2>
+    <p class="lede">
+      要去 5 個平台搵卡價、用 Excel 記幾十萬嘅收藏、喺 FB 群組同 WhatsApp 之間做交易冇任何保障——呢三件事我哋整合成一個平台。
+    </p>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="n">01 · PRICING</div>
+        <h3>卡價</h3>
+        <p>TCGplayer · Cardmarket · 日本零售，三個資料源即時抓，自動換算 HKD。</p>
+      </div>
+      <div class="pillar">
+        <div class="n">02 · PORTFOLIO</div>
+        <h3>收藏</h3>
+        <p>個人作品集、PSA / BGS 溢價追蹤、即時估值。30 / 90 / 180 日價格走勢屬進階訂閱。</p>
+      </div>
+      <div class="pillar">
+        <div class="n">03 · TRADE</div>
+        <h3>交易</h3>
+        <p>兩層商戶系統：個人賣家 + BR 認證商戶。本地 P2P 二手市集，HKD 計價。</p>
+      </div>
+      <div class="pillar">
+        <div class="n">04 · COMMUNITY</div>
+        <h3>社群</h3>
+        <p>社交動態、開箱、追蹤、即時訊息。先記錄，再評論。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY ============ -->
+<section class="block" id="why">
+  <div class="container">
+    <div class="label">差異化</div>
+    <h2>全港首個 JP + EN 同步定價平台。</h2>
+    <p class="lede">
+      不少港藏家同時持有日版同英版卡，其他平台只覆蓋其中一邊。我哋三個資料源一齊抓，自動換算 HKD。
+    </p>
+
+    <div class="why-rows">
+      <div class="why-row">
+        <div class="src">EN · USD</div>
+        <div>
+          <h4>TCGplayer</h4>
+          <div class="meta">英版主流市場，美國價格基準</div>
+        </div>
+      </div>
+      <div class="why-row">
+        <div class="src">EN · EUR</div>
+        <div>
+          <h4>Cardmarket</h4>
+          <div class="meta">英版歐洲市場，補完北美未覆蓋嘅 print run</div>
+        </div>
+      </div>
+      <div class="why-row">
+        <div class="src">JP · JPY</div>
+        <div>
+          <h4>日本零售商</h4>
+          <div class="meta">52 個日版補充包系列，含 XY-P / SM-P / SV-P promo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MERCHANT ============ -->
+<section class="block" id="merchants">
+  <div class="container">
+    <div class="merchant-card">
+      <div class="label">商戶招募 · Founding 名額 10 個 · 截止 2026-05-30</div>
+      <h2>頭 10 間認證商戶，HK$0 · 12 個月。</h2>
+      <p style="color: var(--grey-30); margin-bottom: 8px; max-width: 580px;">
+        我哋上線前親身拜訪旺角 / 銅鑼灣 / 灣仔 / 觀塘嘅卡店。首批簽約嘅 10 間享：
+      </p>
+      <ul>
+        <li><span class="num">01</span><span><strong>認證徽章</strong>——同 BR 驗證掛鈎，HK 公信力</span></li>
+        <li><span class="num">02</span><span><strong>24/7 數碼店面</strong>——最多 100 個 listing，跨平台同步</span></li>
+        <li><span class="num">03</span><span><strong>定價數據庫貢獻權</strong>——你哋嘅成交價影響 HK 市場指數</span></li>
+        <li><span class="num">04</span><span><strong>即時 DM</strong>——直接同藏家對話</span></li>
+        <li><span class="num">05</span><span><strong>直接觸達 HK 藏家社群</strong>——而唔係再排 FB 群組</span></li>
+      </ul>
+      <div class="ask">
+        申請 / 約 5 分鐘 demo：<a href="mailto:hello@hkcardcoll.hk?subject=Founding%20Merchant%20%E7%94%B3%E8%AB%8B">hello@hkcardcoll.hk</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="block" id="faq">
+  <div class="container">
+    <div class="label">FAQ</div>
+    <h2>常見問題。</h2>
+
+    <details>
+      <summary>幾時上線？</summary>
+      <div class="answer">
+        2026 Q2。Apple Review 一般 14 日內。Waitlist 用戶 launch 當日收 email 通知。
+      </div>
+    </details>
+    <details>
+      <summary>同其他 Pokémon 卡 App 有咩唔同？</summary>
+      <div class="answer">
+        其他 App 大多只覆蓋英版（TCGplayer）或者只覆蓋日版（Cardrush / Yuyutei）。HKCardColl 三個資料源一齊抓，自動換算 HKD，配 HK 本地認證商戶 + P2P 市集。
+      </div>
+    </details>
+    <details>
+      <summary>定價數據幾耐 update 一次？</summary>
+      <div class="answer">
+        熱門卡 6 小時 cache，個別卡 24 小時 cache。Cache 跨用戶共享，API quota 5,000 用戶內 daily limit 用唔到 10%。
+      </div>
+    </details>
+    <details>
+      <summary>個人賣家 vs 認證商戶有咩分別？</summary>
+      <div class="answer">
+        個人賣家自行申報、最多 10 個 listing。認證商戶要交 BR 文件核驗、最多 100 個 listing、有認證徽章、成交價計入 HK 市場指數。
+      </div>
+    </details>
+    <details>
+      <summary>用咩語言？</summary>
+      <div class="answer">
+        繁體中文（zh-HK）、English、简体中文（zh-CN）、日本語（ja）。預設繁中。
+      </div>
+    </details>
+    <details>
+      <summary>App 收唔收費？</summary>
+      <div class="answer">
+        基礎功能（卡價搜尋、收藏管理、社群、本地交易）免費。後期推出進階分析嘅高級訂閱（30 / 90 / 180 日走勢）。商戶有獨立年費方案。
+      </div>
+    </details>
+    <details>
+      <summary>邊個團隊做？</summary>
+      <div class="answer">
+        POTO Creative Tech Limited（BR 80363844），香港註冊。創辦人本身係 Pokémon 卡藏家，跨港、日、英三市場買賣，搵唔到一個 App 同時覆蓋 JP + EN 定價同 HK 本地交易，所以親手起。
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <h5>HKCardColl</h5>
+        <p>香港藏家的索引</p>
+        <p>A field guide to Hong Kong card collectors</p>
+      </div>
+      <div class="col">
+        <h5>聯絡</h5>
+        <a href="mailto:hello@hkcardcoll.hk">hello@hkcardcoll.hk</a>
+        <a href="mailto:merchants@hkcardcoll.hk">merchants@hkcardcoll.hk</a>
+        <a href="mailto:press@hkcardcoll.hk">press@hkcardcoll.hk</a>
+      </div>
+      <div class="col">
+        <h5>追蹤</h5>
+        <!-- TODO: 待 handle.md 完成 reservation 後更新 URL -->
+        <a href="#" aria-disabled="true">Instagram（即將）</a>
+        <a href="#" aria-disabled="true">小紅書（即將）</a>
+        <a href="#" aria-disabled="true">Facebook（即將）</a>
+      </div>
+      <div class="col">
+        <h5>法律</h5>
+        <!-- TODO: Privacy Policy / Terms 由 Code chat / Notion 過渡頁面提供 URL -->
+        <a href="#" aria-disabled="true">私隱政策</a>
+        <a href="#" aria-disabled="true">服務條款</a>
+      </div>
+    </div>
+    <div class="legal">
+      © 2026 POTO Creative Tech Limited（寶圖創意科技有限公司）· BR 80363844 · Hong Kong
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
