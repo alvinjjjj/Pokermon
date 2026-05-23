@@ -47,3 +47,5 @@ ov2-*.jpg
 *.bak
 *.swp
 start-expo.command
+# CLI session state (per-machine, never share)
+supabase/.temp/
