@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<title>HKCardColl · Launch Readiness</title>
+<style>
+:root {
+  color-scheme: light;
+  --paper: #F6F2EA;
+  --ink: #1A1814;
+  --orange: #FF6A1F;
+  --muted: #6B6760;
+  --border: #E5DFD2;
+  --line: #D4CCB8;
+  --success: #2D7D3F;
+  --danger: #B23A2E;
+  --warning: #C97B1F;
+  --card: #FFFFFF;
+  --shadow: 0 1px 2px rgba(26,24,20,0.04);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.container { max-width: 880px; margin: 0 auto; padding: 24px 20px 48px; }
+
+header.app {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+header h1 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+header .sub {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 640px;
+}
+.update-note {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(255,106,31,0.06);
+  border-left: 2px solid var(--orange);
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--ink);
+}
+.update-note strong { color: var(--orange); }
+header .meta {
+  margin-top: 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.overall-bar {
+  flex: 1;
+  max-width: 280px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.overall-bar > div {
+  height: 100%;
+  background: var(--orange);
+  transition: width 0.3s;
+}
+
+/* External blocker — DUNS / domain etc. */
+.external-blocker {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warning);
+  border-radius: 6px;
+  padding: 14px 18px 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.external-blocker.critical {
+  border-left-color: var(--danger);
+  background: linear-gradient(180deg, rgba(178,58,46,0.04) 0%, var(--card) 60%);
+}
+.external-blocker.critical h2 { color: var(--danger); }
+.external-blocker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.external-blocker h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--warning);
+  font-weight: 600;
+}
+.external-blocker .est { font-size: 12px; color: var(--muted); }
+.external-blocker p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.scheduled-info {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.scheduled-info strong { color: var(--ink); }
+.scheduled-info code {
+  background: var(--paper);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+/* Session Status — today's snapshot */
+.session-status {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--success);
+  border-radius: 6px;
+  padding: 14px 18px 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.session-status-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+.session-status h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--success);
+  font-weight: 600;
+}
+.session-time {
+  font-size: 12px;
+  color: var(--muted);
+}
+.status-group { margin-bottom: 12px; }
+.status-group:last-child { margin-bottom: 0; }
+.status-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.status-item {
+  font-size: 13px;
+  padding: 4px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.5;
+}
+.status-item .icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  width: 14px;
+  text-align: center;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.status-item.done { color: var(--ink); }
+.status-item.done .icon { color: var(--success); }
+.status-item.progress { color: var(--ink); }
+.status-item.progress .icon { color: var(--warning); }
+.status-item.pending { color: var(--muted); }
+.status-item.pending .icon { color: var(--muted); }
+
+/* Active Incidents */
+.incidents {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  padding: 14px 18px 4px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.incidents-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.incidents h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--danger);
+  font-weight: 600;
+}
+.incidents-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+.incidents-status.cleared { color: var(--success); }
+.incidents-status.active { color: var(--ink); }
+.incidents-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 8px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.incident {
+  display: flex;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.incident:last-child { border-bottom: none; }
+.incident:hover { background: rgba(246,242,234,0.5); }
+.incident .check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  margin-right: 12px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.incident.done .check { background: var(--ink); border-color: var(--ink); }
+.incident.done .check::after {
+  content: "✓";
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.incident .body { flex: 1; min-width: 0; }
+.incident .title {
+  font-weight: 500;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.priority-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--danger);
+  color: white;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  line-height: 1;
+}
+.priority-badge.p05 { background: var(--warning); }
+.incident.done .title { text-decoration: line-through; color: var(--muted); }
+.incident .why { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.incident .verify {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: var(--paper);
+  padding: 4px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  display: inline-block;
+  max-width: 100%;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+/* Ship Gate */
+.ship-gate {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  border-radius: 6px;
+  padding: 14px 18px 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+.ship-gate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.ship-gate h2 {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--orange);
+  font-weight: 600;
+}
+.gate-verdict { font-size: 13px; font-weight: 600; }
+.gate-verdict.go { color: var(--success); }
+.gate-verdict.nogo { color: var(--ink); }
+.gate-list { display: flex; flex-direction: column; gap: 6px; }
+.gate {
+  display: flex;
+  align-items: center;
+  padding: 9px 11px;
+  border-radius: 4px;
+  background: var(--paper);
+  font-size: 13px;
+}
+.gate.done { background: rgba(45,125,63,0.07); }
+.gate .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+.gate.done .dot { background: var(--success); }
+.gate .label { flex: 1; }
+.gate .status {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.gate.done .status { color: var(--success); }
+
+/* Circle */
+.circle {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.circle-head {
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.circle-head.collapsed { border-bottom: none; }
+.circle-head:hover { background: rgba(246,242,234,0.5); }
+.circle-head .left { display: flex; align-items: baseline; gap: 10px; }
+.circle-head .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.circle-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.circle-head .right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.progress-mini {
+  width: 50px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-mini > div {
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.3s;
+}
+.chevron {
+  color: var(--muted);
+  font-size: 10px;
+  transition: transform 0.2s;
+  width: 12px;
+  text-align: center;
+}
+.circle-head.collapsed .chevron { transform: rotate(-90deg); }
+
+.task-list.hidden { display: none; }
+.task {
+  display: flex;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.task:last-child { border-bottom: none; }
+.task:hover { background: rgba(246,242,234,0.5); }
+.task .check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  margin-right: 12px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.task.done .check { background: var(--ink); border-color: var(--ink); }
+.task.done .check::after {
+  content: "✓";
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.task .body { flex: 1; min-width: 0; }
+.task .title {
+  font-weight: 500;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gate-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--orange);
+  color: white;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  line-height: 1;
+}
+.task.done .title { text-decoration: line-through; color: var(--muted); }
+.task .why { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.task .verify {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: var(--paper);
+  padding: 4px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  display: inline-block;
+  max-width: 100%;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+.decisions {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px 4px;
+  margin-top: 24px;
+  box-shadow: var(--shadow);
+}
+.decisions h2 {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.decision {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.decision:last-child { border-bottom: none; }
+.decision .q { font-weight: 500; margin-bottom: 3px; font-size: 13px; }
+.decision .lean { font-size: 12px; color: var(--muted); }
+.decision .lean strong { color: var(--orange); font-weight: 600; }
+
+footer {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+button.reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+}
+button.reset:hover {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--line);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="app">
+    <h1>HKCardColl · Launch Readiness</h1>
+    <div class="sub">4 個 concentric circle 嘅 engineering 準備度。Solo founder + 14 日 window — focus matters more than scope。Single-thread Active Incidents → Circle 1 → Circle 2。</div>
+    <div class="update-note">
+      <strong>2026-05-23 update · repo hygiene blocker surfaced:</strong> 試啟動 theme work 時發現主 checkout 157 file uncommitted、worktree PR #1 base 5/7 stale、feat/theme-system branch 名存實亡。<strong>所有 feature work 暫停，下個 Claude Code session 唯一 goal = repo hygiene</strong>（見紅色 banner）。Theme 設計已完（brand book + task blocks），hygiene 完即 resume。
+      <br><br><strong>2026-05-17 update:</strong> CLAUDE.md done · pokemontcg.io key isolated 入 edge function · session 揭發 GitHub PAT leak。<br><strong>Finding:</strong> pokemontcg.io v2 API 唔做 auth gate · X-Api-Key 純 rate-limit tier · revoke 係 symbolic（edge function migration 仍保留 bundle hygiene + provider hedge 價值）。<strong>真正 P0 security 仲喺</strong>: PPT / PriceCharting / Supabase service_role / GitHub PAT。
+    </div>
+    <div class="meta">
+      <span id="overallText">0 / 0</span>
+      <div class="overall-bar"><div id="overallBar" style="width:0%"></div></div>
+      <span id="lastSaved">未儲存</span>
+    </div>
+  </header>
+
+  <div class="external-blocker critical">
+    <div class="external-blocker-head">
+      <h2>🔴 Internal Blocker · Repo hygiene crisis</h2>
+      <span class="est">2026-05-23 surfaced · 2-3 hr dedicated session</span>
+    </div>
+    <p><strong>主 checkout 上 157 file uncommitted</strong>（109 untracked · 27 deleted · 21 modified）· <code>feat/theme-system</code> branch 名存實亡（0 commits ahead of main）· 冇 stash · 冇 backup。<strong>整個 production app + product.md 預告嘅 contexts/、locales/、merchant spec、decks/、journal/、SQL migration 全部冇入 git。</strong>單一 laptop failure = 全失。</p>
+    <p style="margin-top:8px;"><strong>連帶問題:</strong> worktree PR #1 base 係 5/7 snapshot，相對主 checkout 已 stale 18 日。Prior session 嘅 security work（GitHub PAT fix · pokemontcg-proxy · CLAUDE.md）全部 land 喺呢個古老 base 上 — 同主 checkout 實際 state 未 reconcile 過。</p>
+    <p style="margin-top:8px;"><strong>Decision:</strong> 所有 feature work（包括 theme / dark mode）暫停，下個 Claude Code session 唯一 goal = repo hygiene。Task block：<code>outputs/repo-hygiene-task-blocks.html</code>（backup → inventory → plan → execute → reconcile）。</p>
+    <div class="scheduled-info">
+      <strong>Why this is bigger than DUNS:</strong> DUNS 係 external wait（你冇 control）· repo hygiene 係 internal blocker（每日唔做就累積更多 risk）· 而家修最便宜，等到 launch 前修要 emergency rebase。
+    </div>
+  </div>
+
+  <div class="external-blocker">
+    <div class="external-blocker-head">
+      <h2>🟡 External Blocker · DUNS pending</h2>
+      <span class="est">~5-14 working days typical</span>
+    </div>
+    <p>Apple Developer organization enrollment 卡住直到 D&amp;B DUNS number 通過驗證。即係 binary submission 做唔到，<strong>真實 launch window 由 ~3 週後起計</strong>（DUNS clear + 5-7 日 prep + 1-2 日 Apple review）。<strong>修訂:</strong> DUNS pending 時間先處理 repo hygiene (above)，然後先做 design/brand parallel work — 唔好喺爛 base 上做 feature work。</p>
+    <div class="scheduled-info">
+      <strong>Scheduled task active:</strong> <code>hkcc-daily-wrapup</code> · 每日 ~8 PM HK · pulls git activity + asks wins / time allocation / blockers / tomorrow top 3 · appends to <code>journal/YYYY-MM.md</code>
+    </div>
+  </div>
+
+  <div class="session-status">
+    <div class="session-status-head">
+      <h2>Session Status · 2026-05-17 · Backend close-out</h2>
+      <span class="session-time">~6+ 小時 · scope closed</span>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">今日完成 (9 wins)</div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>CLAUDE.md</strong> · 211 行 AI-agent onboarding doc</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>pokemontcg-proxy edge function</strong> deployed (bonus security fix · key 由 client bundle 移 server-side)</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>INC-1 / SSH</strong> · GitHub PAT revoked · 轉 SSH · ssh -T returns "Hi alvinjjjj"</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>INC-3</strong> · 舊 pokemontcg key revoke (symbolic — API 唔 auth-gate)</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>INC-4 / Gitleaks</strong> · 5 findings triaged · 0 active · .gitleaksignore committed with audit trail</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>INC-5</strong> · pokemontcg-proxy smoke test (curl + anon JWT) 200 + valid Pokemon data</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>INC-6</strong> · PR #1 (Pokermon repo) opened · 3 commits</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>Task 1 M1</strong> · POKEPRICE_API_KEY rotated · digest d974ee86 → 4eca6b67 · ppt-proxy redeployed · provider validated 200</span></div>
+      <div class="status-item done"><span class="icon">✓</span><span><strong>Task 1 / JUSTTCG cleanup</strong> · grep 0 hits across 主 checkout + worktree</span></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">⚠ 今日 surfaced — launch-affecting</div>
+      <div class="status-item progress"><span class="icon">⚠</span><span><strong>pc-proxy 係 ghost infrastructure</strong> — edge function deployed 但 Supabase secret 從未 set · <code>lib/boosterPrices.ts</code> 仲有 caller · 即係 app 入面有 silently-failing PriceCharting-dependent UI。需要 product call: decommission OR 真正 activate。<strong>Launch-blocker</strong>。</span></div>
+      <div class="status-item progress"><span class="icon">⚠</span><span><strong>Supabase 退役 per-key reset</strong> — APP_STORE_CHECKLIST §2 嘅 service_role reset 步驟過時。Real path 係 JWT secret rotate (連 anon + 所有 session 都 invalidate) OR migrate 去新 Publishable + Secret API key model。需要架構決策。</span></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">等你做 (non-coding · 隨時)</div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>PR #1 self-review + merge</strong> · 用 GitHub web UI 撳「Merge pull request」(gh CLI 未裝)</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>舊 PPT key revoke at provider dashboard</strong> · 30 秒 1-click task</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>3-tab UI smoke test</strong> · npm run start → home / search / portfolio tab 真係出 Pokemon data</span></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">🎯 While DUNS pending · parallel work queue (revised 2026-05-23)</div>
+      <div class="status-item progress"><span class="icon">⚠</span><span><strong>0. REPO HYGIENE</strong> · <strong>blocking everything else</strong> · 1 個 focused 2-3 hr Claude Code session · backup → inventory 157 files → plan.md → atomic commits → reconcile PR #1 · 點開：<code>outputs/repo-hygiene-task-blocks.html</code></span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>0a. Theme / dark mode work</strong> · paused · brand book + task blocks 已 ready · resume 喺 repo hygiene 完成後 · brand-book.html + theme-task-blocks.html</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>1. HKCardColl 視覺 rebrand inventory + execute</strong> · 你 native domain · 1-2 日 · grep -rn "Collectr" → app icon / splash 換 brand book asset · in-app strings replace (deep-link scheme collectr:// 保留)</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>2. App Store screenshots × 6</strong> · 1 日 · dev build + 真實 test data · 1290×2796 (6.7") + 1284×2778 (6.5") · 6 narrative frames (home / search / card detail / portfolio / market / merchant)</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>3. brand/voice.md document</strong> · 半日 · product.md 寫嘅「即將建立」voice doc · 一次過寫好做 reference</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>4. Privacy + Terms via Notion MCP</strong> · 半日 · 用 Notion connect 即時 host · 唔需要等 hkcardcoll.hk DNS · App Store Connect 提交時必填</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>5. Backend close-out</strong> · 半日 · Task 2 migration + pc-proxy decommission + Task 3 dead screens + PR #1 merge</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>6. Investor + Merchant deck rebrand</strong> · 1 日 · Collectr_Investor_Deck.pptx → HKCardColl Vol.02 + Tier-02 merchant pitch deck</span></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">After DUNS arrives (~30 min admin)</div>
+      <div class="status-item pending"><span class="icon">○</span><span>Apple Developer organization enrollment · 用 DUNS number submit</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span>App Store Connect: create app record · bundle ID com.collectr.app · category Shopping / Lifestyle</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span>EAS production build → TestFlight (要 Apple Developer account active 先 work)</span></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">Future backend session (~60-90 min · 揀 dedicated 時間)</div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>SUPABASE_SERVICE_ROLE migration</strong> · 揀 JWT rotate vs Publishable+Secret model (見 Open Decisions)</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>pc-proxy 決策落地</strong> · decommission lib/boosterPrices.ts OR activate PriceCharting</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>主 checkout secret scan</strong> · main 有 massive uncommitted changes，clean 後再 scan</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>Bring pokemontcg-proxy 入主 checkout</strong> · supabase/functions/ · PR #1 merge 後做</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>Circle 1 Task 2</strong> · security_hardening.sql migration + verify SQL</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span><strong>Circle 1 Task 3-6 + Circle 2-4 全部</strong></span></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-label">Suggested docs to update (per session report)</div>
+      <div class="status-item pending"><span class="icon">○</span><span>APP_STORE_CHECKLIST.md §2 — rewrite (current spec 過時 per Supabase change)</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span>notes/security_session_2026-05-17.md — create session log</span></div>
+      <div class="status-item pending"><span class="icon">○</span><span>CLAUDE.md §8 — record pokemontcg.io auth-gate finding</span></div>
+    </div>
+  </div>
+
+  <div class="incidents">
+    <div class="incidents-head">
+      <h2>Active Incidents · 即刻處理</h2>
+      <span class="incidents-status" id="incidentsStatus">0 / 6</span>
+    </div>
+    <p class="incidents-note">今日 session 揭出嘅 P0 / P0.5 動作 — 全部清晒先碰 Circle 1。</p>
+    <div id="incidentList"></div>
+  </div>
+
+  <div class="ship-gate">
+    <div class="ship-gate-header">
+      <h2>Ship Gate · 3 條 binary criteria</h2>
+      <span class="gate-verdict" id="gateVerdict">未準備好</span>
+    </div>
+    <div class="gate-list" id="gateList"></div>
+  </div>
+
+  <div id="circles"></div>
+
+  <div class="decisions">
+    <h2>Open Decisions · 仲未拍板</h2>
+    <div id="decisionList"></div>
+  </div>
+
+  <footer>
+    <span>HKCardColl v1.0 · localStorage 本地儲存（清快取會失去進度）</span>
+    <button class="reset" onclick="resetAll()">Reset all</button>
+  </footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'hkcc-launch-readiness-v1';
+
+const INCIDENTS = [
+  { id: 'inc-1', priority: 'P0',
+    title: 'Revoke ghp_MiGy... GitHub PAT',
+    why: 'Token 今日喺 chat 入面 expose 過 · 仲 valid 等於 attacker 攞到可以 push backdoor / 刪 repo / 讀 git history 所有 secret。',
+    verify: 'github.com/settings/tokens · token list 唔再見到 ghp_MiGy...' },
+  { id: 'inc-2', priority: 'P0',
+    title: '轉 SSH for git auth (取代 PAT)',
+    why: 'SSH 私 key 本地 only · 唔會 accidentally paste 入 chat / log · 冇 90-day expiry foot-gun。',
+    verify: 'ssh -T git@github.com 成功 · git remote -v 顯示 git@github.com:user/repo.git' },
+  { id: 'inc-3', priority: 'P0',
+    title: 'Revoke 舊 pokemontcg.io key (b58e91e7...) — symbolic',
+    why: 'Finding 2026-05-17: pokemontcg.io v2 API 唔做 auth gate (X-Api-Key 純 rate-limit tier · no/garbage/real key 都返 200)。Revoke = symbolic dashboard hygiene · edge function migration 仍保留 bundle / provider hedge 價值。',
+    verify: 'dev.pokemontcg.io 入面舊 key 唔再 listed (provider 唔做 auth-gate 所以無 401 可驗，dashboard 清咗即 done)' },
+  { id: 'inc-4', priority: 'P0.5',
+    title: 'Gitleaks 全 history secrets scan',
+    why: '今日意外發現 pokemontcg.io key 證明 APP_STORE_CHECKLIST「4 條 key list」唔 exhaustive · scan 確認冇第 5、第 6 條漏網。',
+    verify: 'gitleaks detect --source . --log-opts="--all" --verbose · 0 unexpected finding 或者全部 triage 完' },
+  { id: 'inc-5', priority: 'P0.5',
+    title: 'Smoke test pokemontcg-proxy',
+    why: '昨日 deploy 咗但冇 end-to-end test · index / portfolio / search 三個主 tab 依賴佢。順帶嘅 probe (no/garbage/real key 對照) 揭出 upstream 唔 auth-gate — 呢個係今日最有 value 嘅 finding。',
+    verify: 'curl pokemontcg-proxy/search 200 + app 三 tab 出 result · 已驗證 upstream behavior (X-Api-Key 純 rate-limit tier)' },
+  { id: 'inc-6', priority: 'P0.5',
+    title: 'Commit + push worktree + 開 PR',
+    why: '今日 work 仲喺本機 worktree · SSH 設好之後可以 sync 返 main · 唔做等於 disk fail 全部 work 蒸發。',
+    verify: 'gh pr view 顯示 PR · PR diff 入面 0 個 .env 或真 key value' }
+];
+
+const GATES = [
+  { id: 'gate-1', label: 'Test phone OTP works on real device', taskId: 'c1-4' },
+  { id: 'gate-2', label: 'Privacy + Terms URLs public', taskId: 'c1-6' },
+  { id: 'gate-3', label: 'EAS production build successful', taskId: 'c2-2' }
+];
+
+const CIRCLES = [
+  {
+    id: 'c1',
+    label: 'Circle 1',
+    name: 'Launch Unblock · 本週',
+    tasks: [
+      { id: 'c1-1', title: 'Rotate 原始 4 條 server-side API key — partial done (2026-05-17)',
+        why: 'Status: ✓ POKEPRICE rotated · ✓ JUSTTCG cleanup (0 hits) · ⏸ PRICECHARTING skipped (pc-proxy ghost — 需要 product decision) · ⏸ SUPABASE_SERVICE_ROLE deferred (dashboard 退役 per-key reset，需要架構決策 JWT rotate vs new key model)。',
+        verify: '主 checkout: POKEPRICE secret digest d974ee86 → 4eca6b67 · ppt-proxy redeployed · provider validated 200' },
+      { id: 'c1-2', title: 'Deploy security_hardening.sql + verify',
+        why: 'Posts visibility · merchant-assets storage · listings price constraint。Migration 唔可以半遷移，fail 就 rollback。',
+        verify: 'supabase db push · psql -c "select polname from pg_policy where polrelid = ′public.posts′::regclass"' },
+      { id: 'c1-3', title: '刪 dead password screens',
+        why: 'Passwordless 後 change/forgot/reset-password.tsx 嘅 error path 冇 test · expo-router file-based 有 deep-link 攻擊面。',
+        verify: '刪 app/change-password.tsx · forgot-password.tsx · reset-password.tsx + tsc clean' },
+      { id: 'c1-4', title: 'Test phone E.164 format 真機 verify', gate: true,
+        why: '+852 6100 0001 vs 85261000001 format mismatch 係隱性 reject 風險 · 唔測就 submit = 賭。',
+        verify: 'Prod build 真機輸入 +852 6100 0001 · OTP 111111 入 app 成功' },
+      { id: 'c1-5', title: 'Verify admin entry + RPC role re-check',
+        why: 'Client isAdmin flag 唔可以做 authorization gate · server-side RPC 內部要再 check is_admin()。',
+        verify: 'settings.tsx 有 admin button · 7 個 admin RPC 內部 check 一次' },
+      { id: 'c1-6', title: 'Privacy + Terms 公網 host', gate: true,
+        why: 'App Store Connect 必填欄位 · Notion public page 過渡可接受，等 hkcardcoll.hk DNS 起到再遷移。',
+        verify: 'Notion share to web · 兩條 URL 記低 · curl -I 200 OK' }
+    ]
+  },
+  {
+    id: 'c2',
+    label: 'Circle 2',
+    name: 'Day-1 Safety Net · 送審前 2 週',
+    tasks: [
+      { id: 'c2-1', title: 'Sentry 接入（排喺 EAS build 之前）',
+        why: '一上 TestFlight 已經有真用戶 crash · 冇 Sentry 等於盲飛。Sample rate 10% 起。',
+        verify: '@sentry/react-native install · app.json plugin · _layout.tsx Sentry.init · 故意 throw 驗證' },
+      { id: 'c2-2', title: 'EAS production build 跑通', gate: true,
+        why: 'Apple Sign In 必須 native build · 順便驗證 splash / status bar / deep link 真實行為。',
+        verify: 'eas build --profile production --platform ios · 收到 TestFlight email' },
+      { id: 'c2-3', title: 'Trainer 卡 scraper 跑完',
+        why: '社群 feed 第一眼用戶見到 placeholder 體感差。',
+        verify: 'scripts/scrape-artofpkm.mjs --characters-all · count ≥ 5 per character' },
+      { id: 'c2-4', title: 'super_admin recovery runbook 寫低',
+        why: 'Sole founder single-point-of-failure · service_role escrow + 換 phone SOP。',
+        verify: 'notes/runbooks/super-admin-recovery.md · escrow location + 換 phone SQL snippet' },
+      { id: 'c2-5', title: 'Pre-submit 1 小時自我測試',
+        why: 'APP_STORE_CHECKLIST scenarios 跑齊 · 飛航 / 超長卡名 / 跨帳號 leak / 多語系。',
+        verify: 'Checklist 全 tick · 起碼 2 台 device' }
+    ]
+  },
+  {
+    id: 'c3',
+    label: 'Circle 3',
+    name: 'Day-30 Readiness · 上線後 4 週',
+    tasks: [
+      { id: 'c3-1', title: 'OCR scanner 接入',
+        why: '預期 day-1 用戶 feedback top candidate · lean ML Kit on-device。',
+        verify: '@react-native-ml-kit/text-recognition · 識別準確度 ≥ 80%' },
+      { id: 'c3-2', title: 'Message delete / unsend',
+        why: 'Column-level grant 而家只 allow is_read · unsend 預期 day-1 feature request top 1。',
+        verify: 'Soft-delete column + chat UI long-press menu' },
+      { id: 'c3-3', title: 'Listing price UI cap 提升',
+        why: 'LISTING_PRICE_MAX = 999,999 cut 走 grail tier · 同 7 位數收藏 persona 對唔上。',
+        verify: 'constants/config.ts update 到 HKD 5M · DB 100M cap 保留' },
+      { id: 'c3-4', title: 'PPT cold-start UX',
+        why: '大 portfolio 第一次 sync · 60/hour quota 易撞。',
+        verify: 'Progressive load + per-card throttle' },
+      { id: 'c3-5', title: 'Analytics 接入',
+        why: 'Sentry 只睇 crash · funnel / retention 要 PostHog 或 Mixpanel。',
+        verify: 'PostHog SDK · onboarding / first-listing / first-purchase funnel' }
+    ]
+  },
+  {
+    id: 'c4',
+    label: 'Circle 4',
+    name: 'Year-1 Sustainability · 持續做',
+    tasks: [
+      { id: 'c4-1', title: 'CLAUDE.md 持續 maintain',
+        why: 'Codebase 事實基準 · agentic dev workflow 嘅 single source of truth · 今日 done 第一版。',
+        verify: '每次 major feature merged 後 review 一次' },
+      { id: 'c4-2', title: 'EAS Build 加 typecheck / lint pre-build hook',
+        why: '防 regression slip 入 production · solo dev 無 peer review 嘅 backup gate。',
+        verify: 'eas.json prebuildCommand: tsc --noEmit && eslint · 失敗 abort build' },
+      { id: 'c4-3', title: 'Edge function structured logging',
+        why: 'console.log unstructured · debug rate limit / RPC 失敗時搵唔到。',
+        verify: 'JSON log shape · Supabase log saved view' },
+      { id: 'c4-4', title: 'Critical-path unit tests',
+        why: 'Phone normalization · merchant-assets path validation · price formatter 跨幣別。',
+        verify: 'Jest + RN testing library · 3 個 file 起碼 80% line coverage' }
+    ]
+  }
+];
+
+const DECISIONS = [
+  { q: 'PriceCharting (pc-proxy ghost): decommission vs activate?',
+    lean: 'NEW (2026-05-17) · pc-proxy 已 deploy 但 secret 從未 set · lib/boosterPrices.ts 仍 call · launch-blocker。Lean: 先 decommission (UI 隱藏 booster price 嘅地方) · post-launch 視 user demand 再 activate。' },
+  { q: 'SUPABASE_SERVICE_ROLE rotation: JWT secret rotate vs migrate Publishable+Secret?',
+    lean: 'NEW (2026-05-17) · Supabase 退役 per-key reset。JWT rotate = nuke 全部 active session (用戶 forced logout)；migrate = 改 lib/supabase.ts 用 publishable key + service_role 獨立 rotatable。Lean: migrate · 一次過 clean，將來 incident response 唔需要 nuke 用戶。' },
+  { q: 'Worktree vs main checkout — long-running strategy?',
+    lean: 'Option A · 盡快 merge worktree 返 main · solo founder dual-track sync cost > value' },
+  { q: 'OCR scanner: ocr.space vs ML Kit on-device',
+    lean: 'ML Kit · 冇外部 quota · privacy 好 · bundle size 接受' },
+  { q: 'super_admin service_role key escrow 邊度放',
+    lean: 'Password manager (1Password / Bitwarden) + 信任嘅人保管副本 · 待 founder 揀具體人選' },
+  { q: 'Listing price UI cap 改成幾多',
+    lean: 'HKD 5,000,000 · grail 香港市場上限 · DB 100M cap 保留' },
+  { q: 'Analytics tool: PostHog vs Mixpanel',
+    lean: 'PostHog · self-host option · open source · free tier 較闊' }
+];
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { done: {}, collapsed: {}, lastSaved: null };
+}
+
+function saveState() {
+  state.lastSaved = new Date().toISOString();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function formatTime(iso) {
+  if (!iso) return '未儲存';
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return '啱啱儲存';
+  if (diff < 3600) return Math.floor(diff/60) + ' 分鐘前儲存';
+  if (diff < 86400) return Math.floor(diff/3600) + ' 小時前儲存';
+  return d.toLocaleDateString('zh-HK') + ' 儲存';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleTask(id) {
+  state.done[id] = !state.done[id];
+  saveState();
+  render();
+}
+
+function toggleCircle(id) {
+  state.collapsed[id] = !state.collapsed[id];
+  saveState();
+  render();
+}
+
+function resetAll() {
+  if (!confirm('清空所有 tick？不能還原。')) return;
+  state = { done: {}, collapsed: {}, lastSaved: null };
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  render();
+}
+
+function renderTask(t) {
+  const done = !!state.done[t.id];
+  const gate = t.gate ? '<span class="gate-badge">Gate</span>' : '';
+  return '<div class="task ' + (done?'done':'') + '" onclick="toggleTask(\'' + t.id + '\')">' +
+    '<div class="check"></div>' +
+    '<div class="body">' +
+      '<div class="title">' + esc(t.title) + gate + '</div>' +
+      '<div class="why">' + esc(t.why) + '</div>' +
+      (t.verify ? '<div class="verify">' + esc(t.verify) + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function renderIncident(inc) {
+  const done = !!state.done[inc.id];
+  const badge = '<span class="priority-badge ' + (inc.priority === 'P0.5' ? 'p05' : '') + '">' + inc.priority + '</span>';
+  return '<div class="incident ' + (done?'done':'') + '" onclick="toggleTask(\'' + inc.id + '\')">' +
+    '<div class="check"></div>' +
+    '<div class="body">' +
+      '<div class="title">' + badge + esc(inc.title) + '</div>' +
+      '<div class="why">' + esc(inc.why) + '</div>' +
+      (inc.verify ? '<div class="verify">' + esc(inc.verify) + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function render() {
+  // Incidents
+  const incDone = INCIDENTS.filter(i => state.done[i.id]).length;
+  const incTotal = INCIDENTS.length;
+  const incStatus = document.getElementById('incidentsStatus');
+  incStatus.textContent = incDone + ' / ' + incTotal + (incDone === incTotal ? ' · cleared' : '');
+  incStatus.className = 'incidents-status ' + (incDone === incTotal ? 'cleared' : 'active');
+  document.getElementById('incidentList').innerHTML = INCIDENTS.map(renderIncident).join('');
+
+  // Ship gate
+  const gateDone = GATES.filter(g => state.done[g.taskId]).length;
+  const gateTotal = GATES.length;
+  const verdict = document.getElementById('gateVerdict');
+  if (gateDone === gateTotal) {
+    verdict.textContent = '可以 submit · ' + gateDone + ' / ' + gateTotal;
+    verdict.className = 'gate-verdict go';
+  } else {
+    verdict.textContent = '未準備好 · ' + gateDone + ' / ' + gateTotal;
+    verdict.className = 'gate-verdict nogo';
+  }
+  document.getElementById('gateList').innerHTML = GATES.map(function(g) {
+    const done = !!state.done[g.taskId];
+    return '<div class="gate ' + (done?'done':'') + '">' +
+      '<span class="dot"></span>' +
+      '<span class="label">' + esc(g.label) + '</span>' +
+      '<span class="status">' + (done?'green':'pending') + '</span>' +
+    '</div>';
+  }).join('');
+
+  // Circles
+  let allTotal = INCIDENTS.length, allDone = incDone;
+  document.getElementById('circles').innerHTML = CIRCLES.map(function(c) {
+    const total = c.tasks.length;
+    const done = c.tasks.filter(function(t) { return state.done[t.id]; }).length;
+    allTotal += total;
+    allDone += done;
+    const collapsed = !!state.collapsed[c.id];
+    const pct = total ? (done/total*100) : 0;
+    return '<div class="circle">' +
+      '<div class="circle-head ' + (collapsed?'collapsed':'') + '" onclick="toggleCircle(\'' + c.id + '\')">' +
+        '<div class="left"><span class="label">' + c.label + '</span><h2>' + esc(c.name) + '</h2></div>' +
+        '<div class="right">' +
+          '<span>' + done + ' / ' + total + '</span>' +
+          '<div class="progress-mini"><div style="width:' + pct + '%"></div></div>' +
+          '<span class="chevron">▾</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="task-list ' + (collapsed?'hidden':'') + '">' +
+        c.tasks.map(renderTask).join('') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  const overallPct = allTotal ? (allDone/allTotal*100) : 0;
+  document.getElementById('overallText').textContent = allDone + ' / ' + allTotal + ' · ' + Math.round(overallPct) + '%';
+  document.getElementById('overallBar').style.width = overallPct + '%';
+
+  document.getElementById('lastSaved').textContent = formatTime(state.lastSaved);
+
+  document.getElementById('decisionList').innerHTML = DECISIONS.map(function(d) {
+    return '<div class="decision">' +
+      '<div class="q">' + esc(d.q) + '</div>' +
+      '<div class="lean"><strong>Lean:</strong> ' + esc(d.lean) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>

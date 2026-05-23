@@ -49,3 +49,5 @@ ov2-*.jpg
 start-expo.command
 # CLI session state (per-machine, never share)
 supabase/.temp/
+# Cowork-generated HTML artifacts at root (use notes/artifacts/ for keepers)
+/*.html

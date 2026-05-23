@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Collectr · Theme Implementation · Claude Code Task Blocks</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #F9FAFB;
+    color: #101828;
+    padding: 32px 24px 96px;
+    line-height: 1.55;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  header { border-bottom: 1px solid #E5E7EB; padding-bottom: 24px; margin-bottom: 32px; }
+  .meta { color: #6B7280; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  h1 { font-size: 32px; font-weight: 700; }
+  h1 .accent { color: #FF6900; }
+  h2 { font-size: 22px; font-weight: 600; margin-top: 48px; margin-bottom: 8px; }
+  h2::before { content: ""; display: inline-block; width: 4px; height: 20px; background: #FF6900; margin-right: 12px; vertical-align: -4px; border-radius: 2px; }
+  p { color: #374151; margin-bottom: 10px; }
+  .lead { color: #6B7280; font-size: 14px; margin-bottom: 16px; max-width: 700px; }
+
+  .task {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 14px;
+    margin-top: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .task-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #FAFBFC;
+  }
+  .task-title { font-size: 15px; font-weight: 600; }
+  .task-num {
+    background: #FFF3E8;
+    color: #FF6900;
+    font-weight: 700;
+    font-size: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+  }
+  .pill {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .pill.infra { background: #EFF6FF; color: #1D4ED8; }
+  .pill.ui { background: #FFF3E8; color: #B45309; }
+  .pill.refactor { background: #ECFDF5; color: #047857; }
+
+  .task-body { padding: 22px; }
+  .why { font-size: 13px; color: #6B7280; margin-bottom: 14px; }
+  .label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6B7280; margin-top: 14px; margin-bottom: 6px; }
+  .ac { padding-left: 0; list-style: none; }
+  .ac li { padding: 4px 0; padding-left: 22px; position: relative; font-size: 14px; color: #374151; }
+  .ac li::before { content: "□"; position: absolute; left: 0; color: #9CA3AF; font-size: 16px; line-height: 14px; }
+
+  pre {
+    background: #0F1115;
+    color: #F3F4F6;
+    padding: 18px 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin-top: 8px;
+    border: 1px solid #2A2F3A;
+    white-space: pre;
+  }
+  pre .c { color: #6B7280; font-style: italic; }
+  pre .k { color: #FF7A1A; }
+  pre .s { color: #34D399; }
+  pre .n { color: #60A5FA; }
+
+  .copy-btn {
+    background: #101828;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    float: right;
+    margin-top: -6px;
+  }
+  .copy-btn:hover { background: #FF6900; }
+  .copy-btn.copied { background: #00A63E; }
+
+  .order-card {
+    background: linear-gradient(135deg, #101828 0%, #1F2937 100%);
+    color: #F3F4F6;
+    padding: 24px 28px;
+    border-radius: 14px;
+    margin-top: 24px;
+  }
+  .order-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #FFF3E8; }
+  .order-card ol { padding-left: 20px; color: #D1D5DB; }
+  .order-card li { padding: 4px 0; font-size: 14px; }
+
+  .warn {
+    background: #FFFBEB;
+    border-left: 4px solid #F59E0B;
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #92400E;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="meta">Collectr · Claude Code Prompts</div>
+    <h1>Theme System · <span class="accent">Task Blocks</span></h1>
+    <p style="margin-top:10px; color:#374151; max-width:700px;">
+      Paste-ready prompts for Claude Code (CLI). Five blocks, sequential. Each has an explicit acceptance criterion so you can verify before moving on.
+    </p>
+  </header>
+
+  <div class="order-card">
+    <h3>Execution Order</h3>
+    <ol>
+      <li><strong>Block 1</strong> — Create token files (no UI changes yet)</li>
+      <li><strong>Block 2</strong> — ThemeProvider + useTheme hook (infra)</li>
+      <li><strong>Block 3</strong> — Wire into _layout.tsx + conditional StatusBar</li>
+      <li><strong>Block 4</strong> — Settings screen Appearance row</li>
+      <li><strong>Block 5</strong> — Refactor 4 hot-spot screens (shops / search / card[id] / index)</li>
+    </ol>
+    <p style="margin-top:14px; font-size:13px; color:#9CA3AF;">
+      After Block 4 you have a working theme toggle, defaults to light, persists. Block 5 is the long refactor — can be split across days.
+    </p>
+  </div>
+
+  <div class="warn">
+    <strong>Read this first.</strong> All blocks assume you're on a feature branch (e.g. <code>feat/theme-system</code>). Don't commit directly to <code>main</code>. After each block, run <code>npm run start</code> and smoke-test before the next.
+  </div>
+
+  <!-- BLOCK 1 -->
+  <h2>Block 1 · Color Token File</h2>
+  <p class="lead">Single source of truth. No React, no hooks — just typed exports.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">1</span>Create <code>constants/colors.ts</code></div>
+      <span class="pill infra">Infra</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: every screen will read from this file. No more inline hex.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block1')">Copy</button>
+      <pre id="block1"><span class="c">// Task: Create constants/colors.ts with the Collectr Brand Book v1.0 palette.</span>
+
+Create a new file at <span class="s">constants/colors.ts</span> with these exact contents:
+
+<span class="k">export type</span> ColorTokens = {
+  brand: { primary: <span class="k">string</span>; primaryHover: <span class="k">string</span>; primaryTint: <span class="k">string</span> };
+  surface: { base: <span class="k">string</span>; subtle: <span class="k">string</span>; muted: <span class="k">string</span>; elevated: <span class="k">string</span> };
+  text: { primary: <span class="k">string</span>; secondary: <span class="k">string</span>; tertiary: <span class="k">string</span>; disabled: <span class="k">string</span>; inverse: <span class="k">string</span> };
+  border: { default: <span class="k">string</span>; strong: <span class="k">string</span> };
+  success: { base: <span class="k">string</span>; tint: <span class="k">string</span> };
+  danger: { base: <span class="k">string</span>; tint: <span class="k">string</span> };
+  warning: { base: <span class="k">string</span>; tint: <span class="k">string</span> };
+  info: { base: <span class="k">string</span>; tint: <span class="k">string</span> };
+  overlay: { light: <span class="k">string</span>; medium: <span class="k">string</span>; strong: <span class="k">string</span> };
+};
+
+<span class="k">export const</span> <span class="n">lightColors</span>: ColorTokens = {
+  brand: { primary: <span class="s">'#FF6900'</span>, primaryHover: <span class="s">'#E55A00'</span>, primaryTint: <span class="s">'#FFF3E8'</span> },
+  surface: { base: <span class="s">'#FFFFFF'</span>, subtle: <span class="s">'#F9FAFB'</span>, muted: <span class="s">'#F3F4F6'</span>, elevated: <span class="s">'#FFFFFF'</span> },
+  text: { primary: <span class="s">'#101828'</span>, secondary: <span class="s">'#374151'</span>, tertiary: <span class="s">'#6B7280'</span>, disabled: <span class="s">'#9CA3AF'</span>, inverse: <span class="s">'#FFFFFF'</span> },
+  border: { default: <span class="s">'#E5E7EB'</span>, strong: <span class="s">'#D1D5DB'</span> },
+  success: { base: <span class="s">'#00A63E'</span>, tint: <span class="s">'#ECFDF5'</span> },
+  danger:  { base: <span class="s">'#E7000B'</span>, tint: <span class="s">'#FEF2F2'</span> },
+  warning: { base: <span class="s">'#F59E0B'</span>, tint: <span class="s">'#FFFBEB'</span> },
+  info:    { base: <span class="s">'#3B82F6'</span>, tint: <span class="s">'#EFF6FF'</span> },
+  overlay: { light: <span class="s">'rgba(0,0,0,0.4)'</span>, medium: <span class="s">'rgba(0,0,0,0.5)'</span>, strong: <span class="s">'rgba(0,0,0,0.6)'</span> },
+};
+
+<span class="k">export const</span> <span class="n">darkColors</span>: ColorTokens = {
+  brand: { primary: <span class="s">'#FF7A1A'</span>, primaryHover: <span class="s">'#FF8F3D'</span>, primaryTint: <span class="s">'#2A1808'</span> },
+  surface: { base: <span class="s">'#0F1115'</span>, subtle: <span class="s">'#15181F'</span>, muted: <span class="s">'#1C2029'</span>, elevated: <span class="s">'#252A35'</span> },
+  text: { primary: <span class="s">'#F3F4F6'</span>, secondary: <span class="s">'#D1D5DB'</span>, tertiary: <span class="s">'#9CA3AF'</span>, disabled: <span class="s">'#6B7280'</span>, inverse: <span class="s">'#101828'</span> },
+  border: { default: <span class="s">'#2A2F3A'</span>, strong: <span class="s">'#3A4150'</span> },
+  success: { base: <span class="s">'#34D399'</span>, tint: <span class="s">'#052E1B'</span> },
+  danger:  { base: <span class="s">'#F87171'</span>, tint: <span class="s">'#3A0F0F'</span> },
+  warning: { base: <span class="s">'#FBBF24'</span>, tint: <span class="s">'#382A06'</span> },
+  info:    { base: <span class="s">'#60A5FA'</span>, tint: <span class="s">'#0F2440'</span> },
+  overlay: { light: <span class="s">'rgba(0,0,0,0.6)'</span>, medium: <span class="s">'rgba(0,0,0,0.75)'</span>, strong: <span class="s">'rgba(0,0,0,0.85)'</span> },
+};
+
+<span class="k">export type</span> ThemeMode = <span class="s">'light'</span> | <span class="s">'dark'</span>;
+
+<span class="c">// AsyncStorage key for persistence</span>
+<span class="k">export const</span> <span class="n">THEME_STORAGE_KEY</span> = <span class="s">'theme_mode_v1'</span>;
+
+Then verify with:
+  - <span class="s">npx tsc --noEmit</span> (must pass)
+  - grep -c <span class="s">"#FF6900"</span> constants/colors.ts  (should be 1)
+  - cat constants/colors.ts | wc -l  (should be ~40 lines)
+
+Do NOT touch any other file in this block.</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li><code>constants/colors.ts</code> exists, exports <code>lightColors</code>, <code>darkColors</code>, <code>ColorTokens</code>, <code>ThemeMode</code>, <code>THEME_STORAGE_KEY</code></li>
+        <li><code>npx tsc --noEmit</code> passes</li>
+        <li>No other files modified</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 2 -->
+  <h2>Block 2 · ThemeProvider + Hook</h2>
+  <p class="lead">React context + persistence. Default is light. AsyncStorage already in your stack (you use it for Supabase session).</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">2</span>Create <code>theme/ThemeProvider.tsx</code> + <code>theme/useTheme.ts</code></div>
+      <span class="pill infra">Infra</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: gives every screen a single hook to read colors + change mode.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block2')">Copy</button>
+      <pre id="block2"><span class="c">// Task: Create the theme provider + hook.</span>
+<span class="c">// Reads from constants/colors.ts. Persists choice via AsyncStorage.</span>
+<span class="c">// Defaults to 'light' on first launch (no stored value).</span>
+
+Create <span class="s">theme/ThemeProvider.tsx</span>:
+
+<span class="k">import</span> React, { createContext, useContext, useEffect, useState, useCallback } <span class="k">from</span> <span class="s">'react'</span>;
+<span class="k">import</span> AsyncStorage <span class="k">from</span> <span class="s">'@react-native-async-storage/async-storage'</span>;
+<span class="k">import</span> { lightColors, darkColors, type ColorTokens, type ThemeMode, THEME_STORAGE_KEY } <span class="k">from</span> <span class="s">'@/constants/colors'</span>;
+
+<span class="k">type</span> ThemeContextValue = {
+  mode: ThemeMode;
+  colors: ColorTokens;
+  setMode: (m: ThemeMode) => Promise&lt;<span class="k">void</span>&gt;;
+  isReady: <span class="k">boolean</span>;
+};
+
+<span class="k">const</span> ThemeContext = createContext&lt;ThemeContextValue | <span class="k">null</span>&gt;(<span class="k">null</span>);
+
+<span class="k">export function</span> <span class="n">ThemeProvider</span>({ children }: { children: React.ReactNode }) {
+  <span class="k">const</span> [mode, setModeState] = useState&lt;ThemeMode&gt;(<span class="s">'light'</span>);
+  <span class="k">const</span> [isReady, setIsReady] = useState(<span class="k">false</span>);
+
+  useEffect(() => {
+    (<span class="k">async</span> () => {
+      <span class="k">try</span> {
+        <span class="k">const</span> stored = <span class="k">await</span> AsyncStorage.getItem(THEME_STORAGE_KEY);
+        <span class="k">if</span> (stored === <span class="s">'dark'</span> || stored === <span class="s">'light'</span>) setModeState(stored);
+      } <span class="k">catch</span> {}
+      <span class="k">finally</span> { setIsReady(<span class="k">true</span>); }
+    })();
+  }, []);
+
+  <span class="k">const</span> setMode = useCallback(<span class="k">async</span> (m: ThemeMode) => {
+    setModeState(m);
+    <span class="k">try</span> { <span class="k">await</span> AsyncStorage.setItem(THEME_STORAGE_KEY, m); } <span class="k">catch</span> {}
+  }, []);
+
+  <span class="k">const</span> colors = mode === <span class="s">'dark'</span> ? darkColors : lightColors;
+
+  <span class="k">return</span> (
+    &lt;ThemeContext.Provider value={{ mode, colors, setMode, isReady }}&gt;
+      {children}
+    &lt;/ThemeContext.Provider&gt;
+  );
+}
+
+<span class="k">export function</span> <span class="n">useTheme</span>() {
+  <span class="k">const</span> ctx = useContext(ThemeContext);
+  <span class="k">if</span> (!ctx) <span class="k">throw new</span> Error(<span class="s">'useTheme must be used inside ThemeProvider'</span>);
+  <span class="k">return</span> ctx;
+}
+
+Then verify with:
+  - <span class="s">npx tsc --noEmit</span> (must pass)
+  - File exists at exactly <span class="s">theme/ThemeProvider.tsx</span>
+  - Exports <span class="n">ThemeProvider</span> and <span class="n">useTheme</span>
+
+Do NOT wire into _layout.tsx yet. That's Block 3.</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li><code>theme/ThemeProvider.tsx</code> exists with both exports</li>
+        <li>TypeScript clean</li>
+        <li>Uses <code>@react-native-async-storage/async-storage</code> (already in your deps)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 3 -->
+  <h2>Block 3 · Wire Into _layout.tsx</h2>
+  <p class="lead">Wrap the app, make StatusBar conditional. Hide splash only after theme is ready (prevents flash).</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">3</span>Modify <code>app/_layout.tsx</code></div>
+      <span class="pill infra">Infra</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: theme must wrap before anything renders. StatusBar style flips with mode.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block3')">Copy</button>
+      <pre id="block3"><span class="c">// Task: Wire ThemeProvider into app/_layout.tsx.</span>
+
+Make these changes to <span class="s">app/_layout.tsx</span>:
+
+1. Add import at the top alongside other imports:
+   <span class="k">import</span> { ThemeProvider, useTheme } <span class="k">from</span> <span class="s">'@/theme/ThemeProvider'</span>;
+
+2. Wrap the existing root return inside &lt;ThemeProvider&gt;...&lt;/ThemeProvider&gt;.
+   - ThemeProvider should be the OUTERMOST wrapper (above SafeAreaProvider, GestureHandlerRootView, etc.)
+   - Everything else stays untouched
+
+3. Move the existing &lt;StatusBar style="dark" /&gt; into a small internal component that
+   uses useTheme(). Replace the hardcoded "dark" with:
+   &lt;StatusBar style={mode === <span class="s">'dark'</span> ? <span class="s">'light'</span> : <span class="s">'dark'</span>} /&gt;
+
+4. Hold the splash screen until theme is ready:
+   - Inside the inner component, read <span class="n">isReady</span> from useTheme()
+   - Combine with existing splash-min-ms logic: only hide splash when BOTH (timer elapsed) AND (isReady)
+
+5. Do NOT change SIGNED_OUT handler, cache clearing, or any other existing logic.
+
+After changes:
+  - <span class="s">npx tsc --noEmit</span> must pass
+  - <span class="s">npm run start</span> — app boots, no white flash, StatusBar visible
+  - Set theme manually via AsyncStorage in a temp console.log to verify dark mode works
+    (will properly test via Settings UI in Block 4)
+
+Print a diff of the file before and after so I can review.</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li>Root tree wrapped in <code>&lt;ThemeProvider&gt;</code></li>
+        <li>StatusBar style derives from <code>useTheme().mode</code></li>
+        <li>Splash hide gated on <code>isReady</code> AND existing min-ms</li>
+        <li>SIGNED_OUT + cache clear logic unchanged</li>
+        <li>App boots without crash</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 4 -->
+  <h2>Block 4 · Settings Appearance Row</h2>
+  <p class="lead">User-facing toggle. Three options to be future-proof: Light · Dark · System (System optional for v1).</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">4</span>Add Appearance row to <code>app/(tabs)/settings.tsx</code></div>
+      <span class="pill ui">UI</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: actual user-facing toggle. Light is checked by default for new users.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block4')">Copy</button>
+      <pre id="block4"><span class="c">// Task: Add Appearance section to Settings.</span>
+
+In <span class="s">app/(tabs)/settings.tsx</span>:
+
+1. Import useTheme:
+   <span class="k">import</span> { useTheme } <span class="k">from</span> <span class="s">'@/theme/ThemeProvider'</span>;
+
+2. Inside the component:
+   <span class="k">const</span> { mode, setMode, colors } = useTheme();
+
+3. Add a new "Appearance" section just below the user profile section
+   (above Notifications / Privacy / whatever exists). Pattern:
+
+   &lt;View style={[styles.section, { backgroundColor: colors.surface.base, borderColor: colors.border.default }]}&gt;
+     &lt;Text style={[styles.sectionTitle, { color: colors.text.tertiary }]}&gt;Appearance&lt;/Text&gt;
+
+     {([
+       { key: <span class="s">'light'</span>, label: <span class="s">'Light'</span>, hint: <span class="s">'Bright surfaces, dark text'</span> },
+       { key: <span class="s">'dark'</span>,  label: <span class="s">'Dark'</span>,  hint: <span class="s">'Reduced glare, easier at night'</span> },
+     ] <span class="k">as const</span>).map(opt =&gt; (
+       &lt;TouchableOpacity
+         key={opt.key}
+         onPress={() =&gt; setMode(opt.key)}
+         style={[styles.row, { borderBottomColor: colors.border.default }]}
+       &gt;
+         &lt;View style={{ flex: 1 }}&gt;
+           &lt;Text style={{ color: colors.text.primary, fontSize: 16, fontWeight: <span class="s">'600'</span> }}&gt;{opt.label}&lt;/Text&gt;
+           &lt;Text style={{ color: colors.text.tertiary, fontSize: 13, marginTop: 2 }}&gt;{opt.hint}&lt;/Text&gt;
+         &lt;/View&gt;
+         {mode === opt.key &amp;&amp; (
+           &lt;View style={{
+             width: 22, height: 22, borderRadius: 11,
+             backgroundColor: colors.brand.primary,
+             alignItems: <span class="s">'center'</span>, justifyContent: <span class="s">'center'</span>,
+           }}&gt;
+             &lt;Text style={{ color: colors.text.inverse, fontSize: 14, fontWeight: <span class="s">'700'</span> }}&gt;✓&lt;/Text&gt;
+           &lt;/View&gt;
+         )}
+       &lt;/TouchableOpacity&gt;
+     ))}
+   &lt;/View&gt;
+
+4. If styles.section / styles.row / styles.sectionTitle don't exist, add reasonable
+   StyleSheet entries (no hardcoded colors — use props from `colors` above).
+
+5. Do NOT refactor the rest of settings.tsx in this block. Other rows can stay
+   with their existing hardcoded colors — that's Block 5+.
+
+After changes:
+  - <span class="s">npx tsc --noEmit</span> passes
+  - <span class="s">npm run start</span> — open Settings tab, see Appearance section
+  - Tap Dark → StatusBar flips, the Appearance section itself recolors
+  - Tap Light → flips back
+  - Kill app, reopen → choice persists
+  - Sign out + sign in → choice persists (it's per-device, not per-user)
+
+Print the diff for review.</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li>Settings has visible Appearance section with two options + check mark on active</li>
+        <li>Tap → mode flips immediately, StatusBar updates</li>
+        <li>Persists across app restart</li>
+        <li>Default Light for new users (verified by clearing storage or fresh install)</li>
+        <li>Other Settings rows untouched</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 5 -->
+  <h2>Block 5 · Refactor Hot-Spot Screens</h2>
+  <p class="lead">Now the long part: replace inline hex with <code>colors.*</code>. Start with the 4 highest-density screens. This block is the template — repeat per file.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">5</span>Refactor <code>app/(tabs)/shops.tsx</code> (and repeat for 3 more)</div>
+      <span class="pill refactor">Refactor</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: shops.tsx has 132 inline color refs — highest density. After this, search.tsx, card/[id].tsx, then index.tsx.</div>
+
+      <div class="label">Paste into Claude Code (one file at a time)</div>
+      <button class="copy-btn" onclick="copy(this, 'block5')">Copy</button>
+      <pre id="block5"><span class="c">// Task: Refactor app/(tabs)/shops.tsx to use the theme tokens instead of inline hex.</span>
+<span class="c">// Mapping rules (apply identically across the file):</span>
+
+Read constants/colors.ts and theme/ThemeProvider.tsx for context.
+
+Mapping table — replace EVERY occurrence in app/(tabs)/shops.tsx:
+
+  <span class="s">'#FFFFFF'</span> | <span class="s">'#fff'</span> | <span class="s">'white'</span>           → colors.surface.base
+  <span class="s">'#F9FAFB'</span>                              → colors.surface.subtle
+  <span class="s">'#F3F4F6'</span>                              → colors.surface.muted
+  <span class="s">'#101828'</span>                              → colors.text.primary
+  <span class="s">'#374151'</span>                              → colors.text.secondary
+  <span class="s">'#6B7280'</span>                              → colors.text.tertiary
+  <span class="s">'#9CA3AF'</span> | <span class="s">'#C4C9D4'</span>                   → colors.text.disabled
+  <span class="s">'#E5E7EB'</span>                              → colors.border.default
+  <span class="s">'#D1D5DB'</span>                              → colors.border.strong
+  <span class="s">'#FF6900'</span>                              → colors.brand.primary
+  <span class="s">'#FFF3E8'</span> | <span class="s">'#FFF3EB'</span>                   → colors.brand.primaryTint
+  <span class="s">'#00A63E'</span>                              → colors.success.base
+  <span class="s">'#E7000B'</span> | <span class="s">'#EF4444'</span>                   → colors.danger.base
+  <span class="s">'#F59E0B'</span>                              → colors.warning.base
+  <span class="s">'#3B82F6'</span>                              → colors.info.base
+  <span class="s">'#FEF2F2'</span>                              → colors.danger.tint
+  <span class="s">'#ECFDF5'</span>                              → colors.success.tint
+  <span class="s">'#EFF6FF'</span>                              → colors.info.tint
+  rgba(0,0,0,0.4)                       → colors.overlay.light
+  rgba(0,0,0,0.5) | 0.45 | 0.55         → colors.overlay.medium
+  rgba(0,0,0,0.6)                       → colors.overlay.strong
+
+Step 1. Import the hook and call it inside the component:
+  <span class="k">import</span> { useTheme } <span class="k">from</span> <span class="s">'@/theme/ThemeProvider'</span>;
+  <span class="k">const</span> { colors } = useTheme();
+
+Step 2. StyleSheet that references colors won't work at module scope. Convert:
+  - Move dynamic styles inline on the JSX (e.g. style={{ backgroundColor: colors.surface.base }})
+  - OR convert StyleSheet to useMemo(() =&gt; StyleSheet.create({ ... }), [colors])
+
+Step 3. KEEP these colors literal (do NOT replace):
+  - <span class="s">'#B40000'</span> / rgba(180,0,0,...) — JP flag, data color not theme
+  - rgba(124,58,237,...) — purple grading filter, data color
+  - rgba(255,255,255,0.65|0.85|0.92) — banner overlays, leave for now (Block 6)
+
+Step 4. Verify:
+  - grep -E <span class="s">"#[0-9a-fA-F]{3,8}"</span> app/(tabs)/shops.tsx
+    Only #B40000 (or rgba flag color) should remain.
+  - <span class="s">npx tsc --noEmit</span> passes
+  - <span class="s">npm run start</span> → open Shops tab → toggle dark/light → all UI follows
+
+Step 5. After shops.tsx is done and verified, apply the same recipe to:
+  - app/(tabs)/search.tsx
+  - app/card/[id].tsx
+  - app/(tabs)/index.tsx
+  Treat each as a separate run so you can review diffs.
+
+If any hex doesn't have a clear mapping above, STOP and ask before guessing.</pre>
+
+      <div class="label">Acceptance (per file)</div>
+      <ul class="ac">
+        <li>Inline hex count drops to ~0 (only data colors like JP flag remain)</li>
+        <li>TypeScript clean</li>
+        <li>Light mode visually identical to before (regression test)</li>
+        <li>Dark mode renders without unreadable text or invisible borders</li>
+        <li>Diff reviewed and committed per-file (4 commits total)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>What's Left After Block 5</h2>
+  <p class="lead">Once 4 hot spots are done, ~80% of visible surface is themed. The rest is mechanical.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title">Follow-up · long tail</div>
+      <span class="pill refactor">Refactor</span>
+    </div>
+    <div class="task-body">
+      <ul class="ac">
+        <li>Refactor: <code>listing-upload.tsx</code>, <code>portfolio.tsx</code>, <code>merchant-registration.tsx</code>, <code>merchant/[id].tsx</code>, <code>my-listings.tsx</code>, <code>admin.tsx</code> (same recipe)</li>
+        <li>Refactor: <code>app/login.tsx</code>, <code>app/register.tsx</code>, <code>app/verify-otp.tsx</code> (auth screens — important since these set first impression)</li>
+        <li>Refactor: <code>components/*.tsx</code> (shared UI — biggest leverage)</li>
+        <li>Add lint rule: forbid <code>#[0-9a-fA-F]&#123;3,8&#125;</code> in JSX style blocks</li>
+        <li>Add "Follow system" option to Settings (read <code>Appearance.getColorScheme()</code>) — v1.1</li>
+        <li>Add CHANGELOG entry: "Dark mode (opt-in via Settings → Appearance)"</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:48px; padding:20px; background:#fff; border:1px solid #E5E7EB; border-radius:12px;">
+    <strong style="color:#FF6900;">Ship gate for this feature:</strong>
+    <ol style="margin-top:10px; padding-left:20px; color:#374151; font-size:14px;">
+      <li>Blocks 1–4 done → working toggle, ships now</li>
+      <li>Block 5 (4 hot-spot screens) → dark mode visually correct on main flows</li>
+      <li>Auth screens themed → first impression consistent</li>
+      <li>Components themed → no leaked light-mode pixels</li>
+    </ol>
+    <p style="margin-top:10px; font-size:13px; color:#6B7280;">
+      You can ship after step 2 if Apple DUNS arrives. Steps 3–4 can ship in 1.0.1.
+    </p>
+  </div>
+
+</div>
+
+<script>
+function copy(btn, id) {
+  const el = document.getElementById(id);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+</script>
+</body>
+</html>

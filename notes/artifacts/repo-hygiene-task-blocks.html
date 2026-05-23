@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Collectr · Repo Hygiene · Claude Code Task Blocks</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #F9FAFB;
+    color: #101828;
+    padding: 32px 24px 96px;
+    line-height: 1.55;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  header { border-bottom: 1px solid #E5E7EB; padding-bottom: 24px; margin-bottom: 24px; }
+  .meta { color: #6B7280; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  h1 { font-size: 32px; font-weight: 700; }
+  h1 .accent { color: #E7000B; }
+  h2 { font-size: 22px; font-weight: 600; margin-top: 48px; margin-bottom: 8px; }
+  h2::before { content: ""; display: inline-block; width: 4px; height: 20px; background: #E7000B; margin-right: 12px; vertical-align: -4px; border-radius: 2px; }
+  p { color: #374151; margin-bottom: 10px; }
+  .lead { color: #6B7280; font-size: 14px; margin-bottom: 16px; max-width: 700px; }
+
+  .alert {
+    background: #FEF2F2;
+    border-left: 4px solid #E7000B;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #7F1D1D;
+    margin-bottom: 24px;
+  }
+  .alert strong { color: #E7000B; }
+
+  .task {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 14px;
+    margin-top: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .task-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #FAFBFC;
+  }
+  .task-title { font-size: 15px; font-weight: 600; }
+  .task-num {
+    background: #FEF2F2;
+    color: #E7000B;
+    font-weight: 700;
+    font-size: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+  }
+  .pill {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .pill.safe { background: #ECFDF5; color: #047857; }
+  .pill.plan { background: #EFF6FF; color: #1D4ED8; }
+  .pill.exec { background: #FFFBEB; color: #B45309; }
+  .pill.danger { background: #FEF2F2; color: #B91C1C; }
+
+  .task-body { padding: 22px; }
+  .why { font-size: 13px; color: #6B7280; margin-bottom: 14px; }
+  .label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6B7280; margin-top: 14px; margin-bottom: 6px; }
+  .ac { padding-left: 0; list-style: none; }
+  .ac li { padding: 4px 0; padding-left: 22px; position: relative; font-size: 14px; color: #374151; }
+  .ac li::before { content: "□"; position: absolute; left: 0; color: #9CA3AF; font-size: 16px; line-height: 14px; }
+
+  pre {
+    background: #0F1115;
+    color: #F3F4F6;
+    padding: 18px 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin-top: 8px;
+    border: 1px solid #2A2F3A;
+    white-space: pre;
+  }
+  pre .c { color: #6B7280; font-style: italic; }
+  pre .k { color: #FF7A1A; }
+  pre .s { color: #34D399; }
+  pre .n { color: #60A5FA; }
+  pre .w { color: #FBBF24; }
+
+  .copy-btn {
+    background: #101828;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    float: right;
+    margin-top: -6px;
+  }
+  .copy-btn:hover { background: #E7000B; }
+  .copy-btn.copied { background: #00A63E; }
+
+  .order-card {
+    background: linear-gradient(135deg, #101828 0%, #1F2937 100%);
+    color: #F3F4F6;
+    padding: 24px 28px;
+    border-radius: 14px;
+    margin-top: 24px;
+  }
+  .order-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: #FEF2F2; }
+  .order-card ol { padding-left: 20px; color: #D1D5DB; }
+  .order-card li { padding: 4px 0; font-size: 14px; }
+
+  .checkpoint {
+    background: #FFFBEB;
+    border-left: 4px solid #F59E0B;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #92400E;
+    margin: 16px 0;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #E5E7EB; }
+  th { background: #F3F4F6; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #6B7280; }
+  td code { background: #F3F4F6; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="meta">Collectr · Repo Hygiene · Claude Code Prompts</div>
+    <h1>Save the <span class="accent">Repo</span> First</h1>
+    <p style="margin-top:10px; color:#374151; max-width:700px;">
+      Sequential task blocks for a focused Claude Code session. Goal: 157 uncommitted files → logical commits → clean working tree. No feature work this session.
+    </p>
+  </header>
+
+  <div class="alert">
+    <strong>State recap</strong> · main checkout on <code>feat/theme-system</code> (0 commits ahead of main, name-only branch)
+    · 109 untracked, 27 deleted, 21 modified · worktree PR #1 base is 5/7 snapshot (18 days stale)
+    · No stashes, no backups · <strong>Single laptop failure = total loss.</strong>
+  </div>
+
+  <div class="order-card">
+    <h3>Session Plan</h3>
+    <ol>
+      <li><strong>Block 1</strong> — SAFETY: backup everything before any git op</li>
+      <li><strong>Block 2</strong> — INVENTORY: categorize 157 files, output plan.md (read-only)</li>
+      <li><strong>Checkpoint</strong> — User + Claude (whiteboard) review plan.md, approve per group</li>
+      <li><strong>Block 3</strong> — EXECUTE: commit one group at a time, stop after each</li>
+      <li><strong>Block 4</strong> — RECONCILE: handle worktree PR #1 (rebase / cherry-pick / retire)</li>
+      <li><strong>Block 5</strong> — VERIFY: clean tree, pushed to remote, repo state sane</li>
+    </ol>
+    <p style="margin-top:14px; font-size:13px; color:#9CA3AF;">
+      Expected duration: 2-3 hours. Do this in one focused session, not split across days — leaving the repo half-organized is worse than current state.
+    </p>
+  </div>
+
+  <!-- BLOCK 1 -->
+  <h2>Block 1 · SAFETY · Backup Before Anything</h2>
+  <p class="lead">Before <em>any</em> git operation, snapshot the working tree to disk so a destructive mistake is recoverable.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">1</span>Tarball snapshot of working tree</div>
+      <span class="pill safe">Safe</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: 157 uncommitted files = single failure away from total loss. A tar is a 30-second insurance policy.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block1')">Copy</button>
+      <pre id="block1"><span class="c">// Task: Snapshot the working tree before any repo hygiene operations.</span>
+<span class="c">// Read-only. No git operations. No file modifications inside the repo.</span>
+
+Run these commands and report output:
+
+1. Confirm current state:
+   git -C /Users/alvin/collectr status --short | wc -l
+   git -C /Users/alvin/collectr branch --show-current
+   git -C /Users/alvin/collectr rev-parse HEAD
+
+2. Create timestamped tarball OUTSIDE the repo:
+   <span class="k">BACKUP_DIR</span>=<span class="s">"$HOME/collectr-backups"</span>
+   mkdir -p <span class="s">"$BACKUP_DIR"</span>
+   <span class="k">TS</span>=$(date +%Y%m%d-%H%M%S)
+   <span class="k">BACKUP_FILE</span>=<span class="s">"$BACKUP_DIR/collectr-pre-hygiene-$TS.tar.gz"</span>
+
+   <span class="c"># Exclude node_modules + build artifacts but include EVERYTHING else</span>
+   <span class="c"># including .git/ (full history) and uncommitted working tree</span>
+   tar --exclude=<span class="s">'node_modules'</span> \
+       --exclude=<span class="s">'.expo'</span> \
+       --exclude=<span class="s">'ios/build'</span> \
+       --exclude=<span class="s">'android/build'</span> \
+       --exclude=<span class="s">'android/.gradle'</span> \
+       --exclude=<span class="s">'dist'</span> \
+       -czf <span class="s">"$BACKUP_FILE"</span> \
+       -C /Users/alvin collectr
+
+3. Verify tarball:
+   ls -lh <span class="s">"$BACKUP_FILE"</span>
+   <span class="c"># expect: 50-300MB depending on assets</span>
+   tar -tzf <span class="s">"$BACKUP_FILE"</span> | head -20
+   tar -tzf <span class="s">"$BACKUP_FILE"</span> | wc -l
+   <span class="c"># expect: thousands of files</span>
+
+4. Echo the BACKUP_FILE path back so I can record it.
+
+Do NOT touch the repo. Do NOT run any git command that mutates state.
+If tarball creation fails (disk space, permissions), STOP and report.</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li>Tarball exists at <code>~/collectr-backups/collectr-pre-hygiene-YYYYMMDD-HHMMSS.tar.gz</code></li>
+        <li>Tarball &gt; 10MB (sanity — too small means tar failed)</li>
+        <li>File count &gt; 500 (sanity — too few means exclusion patterns too broad)</li>
+        <li>git status unchanged before vs after</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 2 -->
+  <h2>Block 2 · INVENTORY · Generate plan.md</h2>
+  <p class="lead">Read-only inventory pass. Categorize every file by domain + propose a commit group + action. No git ops yet.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">2</span>Categorize 157 files, write <code>notes/repo-hygiene-plan.md</code></div>
+      <span class="pill plan">Plan</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: making per-file decisions in a terminal = mistake-prone. Writing the plan first = lets the user (and the whiteboard) review before commits land.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block2')">Copy</button>
+      <pre id="block2"><span class="c">// Task: Inventory the 157 uncommitted files and propose a commit plan.</span>
+<span class="c">// WRITE plan.md ONLY. Do NOT run git add, git commit, or any mutation.</span>
+
+1. List every uncommitted file with status:
+   git -C /Users/alvin/collectr status --short > /tmp/status.txt
+
+2. Categorize files by top-level directory + intent. Read 3-5 sample files
+   per category to understand scope. Pay extra attention to:
+   - app/(tabs)/*.tsx     <span class="c"># are tabs being restructured? what's deleted vs added?</span>
+   - contexts/            <span class="c"># product.md says React Context layer — what's the design?</span>
+   - locales/             <span class="c"># product.md says i18n — what languages, what's the loader?</span>
+   - supabase/            <span class="c"># SQL migration file — what does it migrate?</span>
+   - components/          <span class="c"># Expo template deletions + new components</span>
+   - assets/              <span class="c"># Chinese-named icon files deleted, what replaced them?</span>
+
+3. Write <span class="s">notes/repo-hygiene-plan.md</span> with this exact structure:
+
+   # Repo Hygiene Plan · 2026-05-23
+
+   ## Snapshot
+   - Total dirty files: N
+   - Untracked: N · Modified: N · Deleted: N
+   - Backup: ~/collectr-backups/collectr-pre-hygiene-TS.tar.gz
+
+   ## Commit Groups (proposed order)
+
+   ### Group 1 · chore: cleanup Expo template stubs
+   **Files (N):**
+   - D components/themed-text.tsx
+   - D components/themed-view.tsx
+   - D hooks/use-color-scheme.ts
+   - D hooks/use-color-scheme.web.ts
+   - D hooks/use-theme-color.ts
+   - D constants/theme.ts
+   - D components/ui/* (list each)
+   **Rationale:** Expo CLI scaffolding never wired into app. Safe deletion.
+   **Action:** git add -A those paths → commit with message
+     "chore: remove unused Expo template stubs"
+
+   ### Group 2 · chore: gitignore (if applicable)
+   **Files:** anything that should never have been tracked (logs, .DS_Store, etc.)
+   **Action:** add to .gitignore, git rm --cached if tracked
+
+   ### Group 3 · docs: project documentation + specs
+   **Files:** product.md, MERCHANT_SPEC.md, CODE_REVIEW_*.md, FIXES_*.md,
+   APP_STORE_CHECKLIST.md, DATA_MANAGER_REPORT.md, notes/, journal/
+   **Rationale:** Standalone docs, no code dependency
+   **Action:** Commit "docs: add product spec, checklists, session notes"
+
+   ### Group 4 · feat(merchant): merchant profiles + edit-shop
+   **Files:** app/edit-shop.tsx, app/admin.tsx, lib/merchant-*.ts, ...
+   **Rationale:** Single feature, internally coherent
+   **Action:** Commit "feat(merchant): merchant profiles, admin panel, edit-shop"
+
+   ### Group 5 · feat(auth): passwordless auth overhaul
+   **Files:** app/login.tsx, app/register.tsx, app/verify-otp.tsx, ...
+   **Rationale:** Matches security-review-and-auth-overhaul.md scope
+   **Action:** Commit "feat(auth): phone OTP + Apple Sign In passwordless"
+
+   ### Group 6 · feat(contexts): React Context layer
+   **Files:** contexts/*
+   **Rationale:** Foundational infra used by other features
+   <span class="w">IMPORTANT:</span> if Group 4 or 5 imports from contexts/, contexts/ MUST commit first.
+   **Action:** Commit "feat(contexts): app-wide context providers"
+
+   ### Group 7 · feat(i18n): locales + translation loader
+   **Files:** locales/*
+   **Action:** Commit "feat(i18n): translation files + loader"
+
+   ### Group 8 · feat(db): admin RPCs SQL migration
+   **Files:** supabase/migrations/20260514_admin_rpcs_and_role_PATCHED.sql
+   **Action:** Commit "feat(db): admin RPCs and super_admin role"
+
+   ### Group 9 · feat(brand): brand assets + marketing dirs
+   **Files:** brand/, decks/, growth/, app-store/, legal/, list.png, porfolio.png,
+   pokemon_box_images/, ov-01.jpg ~ ov-10.jpg
+   **Rationale:** Asset-heavy, no runtime code. Consider whether to commit
+   pokemon_box_images/ (LFS candidate?) or move out of repo.
+   <span class="w">FLAG:</span> Confirm with user before committing — large binary assets
+   inflate repo permanently.
+   **Action:** TBD — flag for review
+
+   ### Group 10 · ... (continue until all 157 files accounted for)
+
+   ## Files NOT to commit (gitignore candidates)
+   - .DS_Store, *.log, etc.
+
+   ## Open questions for whiteboard review
+   - Group 9: commit pokemon_box_images/ to git, move to assets CDN, or Git LFS?
+   - Are any 'modified' files conflicting changes vs intended progression?
+   - Does any group span the same files as worktree PR #1 (collision risk)?
+
+4. After writing plan.md, report:
+   - file path of plan.md
+   - total groups proposed
+   - any group flagged for user review
+
+Do NOT run git add, git commit, git rm.
+The ONLY mutation allowed in this block is writing notes/repo-hygiene-plan.md.</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li><code>notes/repo-hygiene-plan.md</code> created (and yes, this file itself goes into Group 3 eventually)</li>
+        <li>Every one of the 157 files appears in exactly one group</li>
+        <li>Groups ordered by dependency (infra before consumers)</li>
+        <li>Flagged groups marked clearly</li>
+        <li>Zero git mutations</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- CHECKPOINT -->
+  <h2>Checkpoint · Whiteboard Review</h2>
+  <div class="checkpoint">
+    <strong>STOP.</strong> Before Block 3, paste <code>notes/repo-hygiene-plan.md</code> back to the whiteboard (or summarize: N groups, which are flagged, total file count). We review together, you approve each group, then Claude Code executes Block 3 group-by-group.
+    <br><br>
+    Why this matters: a bad commit grouping is hard to undo without rewriting history. 10 minutes of review here saves an hour of <code>git rebase -i</code> later.
+  </div>
+
+  <!-- BLOCK 3 -->
+  <h2>Block 3 · EXECUTE · Commit Group by Group</h2>
+  <p class="lead">One group per Claude Code invocation. After each, verify tree state before moving on.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">3</span>Commit Group N (repeat per group)</div>
+      <span class="pill exec">Execute</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: group-by-group execution = atomic commits, easy review, easy rollback if a group is wrong.</div>
+
+      <div class="label">Paste into Claude Code (parameterize N per call)</div>
+      <button class="copy-btn" onclick="copy(this, 'block3')">Copy</button>
+      <pre id="block3"><span class="c">// Task: Commit Group N from notes/repo-hygiene-plan.md.</span>
+<span class="c">// Approved for execution by user. Do not deviate from plan.md.</span>
+
+1. Pre-flight check:
+   git -C /Users/alvin/collectr status --short | wc -l
+   <span class="c"># record current dirty count for delta verification</span>
+
+2. Read Group N from notes/repo-hygiene-plan.md.
+   Verify each listed file matches current git status.
+   If ANY listed file is missing or has unexpected status, STOP and report.
+
+3. Stage exactly the files in Group N:
+   git -C /Users/alvin/collectr add &lt;file1&gt; &lt;file2&gt; ...
+   <span class="c"># For deletions, use git rm or git add -A for the specific path</span>
+
+4. Verify staged set:
+   git -C /Users/alvin/collectr diff --cached --stat
+   <span class="c"># expect: only the Group N files</span>
+
+5. Commit with the exact message from plan.md:
+   git -C /Users/alvin/collectr commit -m <span class="s">"&lt;message from plan&gt;"</span>
+
+6. Post-flight verification:
+   git -C /Users/alvin/collectr status --short | wc -l
+   <span class="c"># expect: previous dirty count minus Group N file count</span>
+   git -C /Users/alvin/collectr log --oneline -1
+   <span class="c"># confirm commit message correct</span>
+
+7. Report:
+   - commit SHA
+   - files committed (count)
+   - new dirty file count
+   - any unexpected behavior
+
+STOP after each group. Do NOT proceed to the next group without confirmation.
+If at any point the dirty count delta doesn't match the group size, STOP and
+DO NOT touch the working tree further — report and we debug.</pre>
+
+      <div class="checkpoint" style="margin-top:14px;">
+        <strong>Per-group checkpoint.</strong> After each commit, you paste back the post-flight output. I verify it matches plan.md before approving the next group.
+      </div>
+
+      <div class="label">Acceptance (per group)</div>
+      <ul class="ac">
+        <li>Commit created with exact message from plan.md</li>
+        <li>Files committed = files listed in group (no more, no less)</li>
+        <li>Dirty count decreased by group size</li>
+        <li>HEAD on <code>feat/theme-system</code> (or whatever working branch was decided)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 4 -->
+  <h2>Block 4 · RECONCILE · Worktree PR #1</h2>
+  <p class="lead">After main checkout has clean history, decide what happens to PR #1 (worktree branch, based on 5/7 snapshot).</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">4</span>Diagnose PR #1 collision with newly-committed work</div>
+      <span class="pill danger">Risk</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: PR #1 has real security work (env hygiene, pokemontcg-proxy, CLAUDE.md). If those overlap with Group N commits, naive merge will conflict or revert.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block4')">Copy</button>
+      <pre id="block4"><span class="c">// Task: Diagnose what's in PR #1 (worktree branch) and how it relates to the</span>
+<span class="c">// newly-committed groups on feat/theme-system. Read-only analysis.</span>
+
+1. Identify the worktree branch and base:
+   git -C /Users/alvin/collectr worktree list
+   <span class="c"># note the worktree path and branch name (e.g. claude/dazzling-poincare-...)</span>
+
+2. List commits unique to worktree branch (vs main):
+   git -C /Users/alvin/collectr log --oneline main..&lt;worktree-branch&gt;
+
+3. List files changed in worktree branch:
+   git -C /Users/alvin/collectr diff --name-status main..&lt;worktree-branch&gt;
+
+4. Identify collisions: which files in worktree diff also appear in any Group N commit?
+   For each potential collision:
+   - is the worktree change a strict subset of the new commit? (safe — drop from worktree)
+   - is it net-new content not in the new commit? (cherry-pick candidate)
+   - is it conflicting content? (manual merge required)
+
+5. Write decision matrix to notes/pr-1-reconciliation.md:
+
+   # PR #1 Reconciliation · 2026-05-23
+
+   ## Worktree branch
+   - Name: claude/dazzling-...
+   - Base: SHA from 5/7
+   - Unique commits: N
+
+   ## File overlap with new main commits
+   | File | In Group | In PR #1 | Verdict |
+   |------|----------|----------|---------|
+   | constants/colors.ts | (none — not yet committed) | yes | ABANDON PR #1 version (Block 5 of theme work supersedes) |
+   | .env.example | Group 5? Group 3? | yes | CHERRY-PICK if not in new commit |
+   | supabase/functions/pokemontcg-proxy/ | Group 8? | yes | CHERRY-PICK — net new |
+   | CLAUDE.md | Group 3 (docs) | yes | KEEP NEW VERSION, abandon PR #1 version |
+   ...
+
+   ## Recommended action
+   One of:
+   - REBASE: rebase worktree onto new HEAD of feat/theme-system, resolve conflicts
+   - CHERRY-PICK: take specific commits from worktree, then close PR #1
+   - ABANDON: PR #1 wholesale superseded by new commits, close without merging
+   - SPLIT: keep some PR #1 commits, abandon others
+
+6. Report the decision matrix. STOP. Do NOT execute any merge/rebase/cherry-pick.
+   User + whiteboard decide which path.
+
+Do NOT modify any branch in this block.</pre>
+
+      <div class="checkpoint" style="margin-top:14px;">
+        <strong>Whiteboard call.</strong> Once Claude Code writes the matrix, paste it back. We decide rebase / cherry-pick / abandon together. The decision affects whether prior session's "security work done" is real or imaginary.
+      </div>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li><code>notes/pr-1-reconciliation.md</code> exists with full decision matrix</li>
+        <li>Every file in PR #1 diff is classified (KEEP / ABANDON / CHERRY-PICK / CONFLICT)</li>
+        <li>Recommendation given but not executed</li>
+        <li>No branches modified</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- BLOCK 5 -->
+  <h2>Block 5 · VERIFY · End State</h2>
+  <p class="lead">Final sanity pass. Clean tree, sane history, pushed to remote, repo can survive a laptop death.</p>
+
+  <div class="task">
+    <div class="task-head">
+      <div class="task-title"><span class="task-num">5</span>Verify, push, document</div>
+      <span class="pill safe">Safe</span>
+    </div>
+    <div class="task-body">
+      <div class="why">Why: an uncommitted improvement = no improvement. Push to remote + verify clean state = real backup achieved.</div>
+
+      <div class="label">Paste into Claude Code</div>
+      <button class="copy-btn" onclick="copy(this, 'block5')">Copy</button>
+      <pre id="block5"><span class="c">// Task: Final verification + push to remote.</span>
+
+1. Clean working tree check:
+   git -C /Users/alvin/collectr status
+   <span class="c"># expect: "nothing to commit, working tree clean"</span>
+   <span class="c"># if NOT clean, STOP — there are uncommitted files outside the plan</span>
+
+2. Log summary:
+   git -C /Users/alvin/collectr log --oneline main..HEAD
+   <span class="c"># list every new commit on the working branch</span>
+
+3. Determine target branch strategy:
+   - If feat/theme-system was renamed/redirected, confirm current branch name
+   - If working branch should merge to main, confirm:
+       git -C /Users/alvin/collectr log --oneline -10
+       git -C /Users/alvin/collectr diff --stat main..HEAD | tail -5
+
+4. Push:
+   git -C /Users/alvin/collectr push -u origin HEAD
+   <span class="c"># if push rejected, do NOT force-push without confirmation</span>
+
+5. Verify remote:
+   git -C /Users/alvin/collectr ls-remote origin | head -10
+   git -C /Users/alvin/collectr branch -vv
+
+6. Append to journal/2026-05.md (or create):
+   # 2026-05-23 · Repo Hygiene Session
+   - 157 dirty files → N atomic commits on &lt;branch&gt;
+   - Backup: ~/collectr-backups/collectr-pre-hygiene-TS.tar.gz
+   - PR #1 reconciled via &lt;rebase|cherry-pick|abandon&gt;
+   - Next: theme work resumes on clean base
+
+7. Report final state:
+   - branch name + HEAD SHA
+   - commit count this session
+   - remote push status
+   - working tree clean (y/n)</pre>
+
+      <div class="label">Acceptance</div>
+      <ul class="ac">
+        <li><code>git status</code> reports clean working tree</li>
+        <li>Branch pushed to origin with upstream tracking set</li>
+        <li>Journal entry appended</li>
+        <li>PR #1 status decided and reflected in remote (closed / rebased / cherry-picked)</li>
+        <li>Backup tarball preserved (do not delete for at least 7 days)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>What Resumes After This Session</h2>
+
+  <table>
+    <thead>
+      <tr><th>Track</th><th>Status before</th><th>Status after hygiene</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Theme work (Block 1-5)</td>
+        <td>Blocked — base is broken</td>
+        <td>Can resume on clean base. Brand book + task blocks already drafted.</td>
+      </tr>
+      <tr>
+        <td>App Store launch checklist</td>
+        <td>Blocked — no commit-able artifacts</td>
+        <td>Can run release tag, eas build with confidence</td>
+      </tr>
+      <tr>
+        <td>DUNS waiting period</td>
+        <td>External — unchanged</td>
+        <td>External — unchanged. But internal work no longer hostage to it.</td>
+      </tr>
+      <tr>
+        <td>Daily journal scheduled task</td>
+        <td>Writes to uncommitted file</td>
+        <td>Writes to tracked file, commits visible in CI</td>
+      </tr>
+      <tr>
+        <td>Investor / merchant decks</td>
+        <td>Uncommitted in decks/</td>
+        <td>Tracked, versioned, reviewable</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:48px; padding:20px; background:#fff; border:1px solid #E5E7EB; border-radius:12px;">
+    <strong style="color:#E7000B;">Session ground rules:</strong>
+    <ol style="margin-top:10px; padding-left:20px; color:#374151; font-size:14px;">
+      <li>No feature work. No theme refactor. No new components. Hygiene only.</li>
+      <li>Backup before any git op. No exceptions.</li>
+      <li>Plan in writing before committing. plan.md is the contract.</li>
+      <li>One group per Claude Code call. Stop and verify between each.</li>
+      <li>If anything looks wrong, STOP. Don't improvise.</li>
+      <li>Worktree decisions go through whiteboard, not auto-resolve.</li>
+    </ol>
+  </div>
+
+  <div style="text-align:center; margin-top:40px; color:#9CA3AF; font-size:12px;">
+    Repo Hygiene · v1.0 · 2026-05-23 · 5 blocks · ~2-3 hour session
+  </div>
+
+</div>
+
+<script>
+function copy(btn, id) {
+  const el = document.getElementById(id);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+</script>
+</body>
+</html>
