@@ -1,14 +1,16 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# Scraped data (large files, already uploaded to Supabase)
+data/artofpkm-promo-map.json
+# Secrets
+SUPABASE_SERVICE_ROLE_KEY
 # dependencies
 node_modules/
-
 # Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
-
 # Native
 .kotlin/
 *.orig.*
@@ -17,27 +19,31 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
 # Metro
 .metro-health-check*
-
 # debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
-
 # macOS
 .DS_Store
 *.pem
-
 # local env files
+.env
 .env*.local
-
 # typescript
 *.tsbuildinfo
-
 app-example
-
 # generated native folders
 /ios
 /android
+# Added 2026-05-23 during repo hygiene
+pokemon_box_images/
+outputs/
+build/
+.claude/
+ov-*.jpg
+ov2-*.jpg
+*.bak
+*.swp
+start-expo.command
