@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { SUPPORTED_LANGUAGES } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
@@ -81,6 +82,7 @@ export default function SettingsScreen() {
 
   const [deletingAccount, setDeletingAccount] = useState(false);
   const { language, setLanguage } = useLanguage();
+  const { mode, setMode } = useTheme();
   const [showLangModal, setShowLangModal] = useState(false);
   const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === language);
 
@@ -219,6 +221,25 @@ export default function SettingsScreen() {
             </View>
           </Pressable>
         </Modal>
+
+        <View style={styles.divider} />
+
+        {/* ── 外觀 / Appearance ── */}
+        <Text style={styles.sectionLabel}>外觀 / Appearance</Text>
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setMode(mode === 'dark' ? 'light' : 'dark')}
+          >
+            <View style={styles.rowIconWrap}>
+              <Text style={{ fontSize: 22 }}>{mode === 'dark' ? '🌙' : '☀️'}</Text>
+            </View>
+            <View style={styles.rowBody}>
+              <Text style={styles.rowText}>{mode === 'dark' ? '深色 / Dark' : '淺色 / Light'}</Text>
+            </View>
+            <Text style={styles.arrowText}>›</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.divider} />
 

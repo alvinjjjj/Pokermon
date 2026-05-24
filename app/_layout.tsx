@@ -7,10 +7,17 @@ import { LanguageProvider } from '../contexts/LanguageContext';
 import { clearArtofpkmCaches } from '../lib/artofpkm';
 import { clearJpImageCaches } from '../lib/jpImages';
 import { supabase } from '../lib/supabase';
+import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 
 // Minimum splash display time (ms) so the brand always shows, even when
 // Supabase resolves the session in <100 ms (cached locally).
 const SPLASH_MIN_MS = 3000;
+
+function ThemedStatusBar() {
+  const { mode } = useTheme();
+  // Status-bar icons (clock, signal, battery): dark on light bg, light on dark bg
+  return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
+}
 
 export default function RootLayout() {
   const [session, setSession] = useState<any>(undefined);
@@ -67,12 +74,11 @@ export default function RootLayout() {
   }
 
   return (
+    <ThemeProvider>
     <LanguageProvider>
     <CurrencyProvider>
-      {/* Dark status-bar icons (clock, signal, battery) — the app uses a
-          light background so the iOS default "light" content would render
-          white-on-white and be unreadable. */}
-      <StatusBar style="dark" />
+      {/* Status-bar icons derive from theme mode (see ThemedStatusBar). */}
+      <ThemedStatusBar />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="card/[id]" />
@@ -102,5 +108,6 @@ export default function RootLayout() {
       </Stack>
     </CurrencyProvider>
     </LanguageProvider>
+    </ThemeProvider>
   );
 }
