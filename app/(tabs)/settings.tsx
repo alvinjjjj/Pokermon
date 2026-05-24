@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { SUPPORTED_LANGUAGES } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
+import { type ColorTokens } from '../../constants/colors';
 import { useTheme } from '../../theme/ThemeProvider';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
@@ -82,7 +83,8 @@ export default function SettingsScreen() {
 
   const [deletingAccount, setDeletingAccount] = useState(false);
   const { language, setLanguage } = useLanguage();
-  const { mode, setMode } = useTheme();
+  const { mode, setMode, colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [showLangModal, setShowLangModal] = useState(false);
   const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === language);
 
@@ -360,6 +362,8 @@ function SettingsRow({
 }: {
   icon: ImageSourcePropType; label: string; sub?: string; onPress?: () => void; labelColor?: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <Pressable
       style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -371,7 +375,7 @@ function SettingsRow({
           <View style={styles.rowIconWrap}>
             <Image
               source={icon}
-              style={[styles.rowIconImg, { tintColor: pressed ? '#FF6900' : '#6B7280' }]}
+              style={[styles.rowIconImg, { tintColor: pressed ? colors.brand.orange : colors.text.secondary }]}
             />
           </View>
           <View style={styles.rowBody}>
@@ -380,7 +384,7 @@ function SettingsRow({
             </Text>
             {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
           </View>
-          {onPress && <Text style={[styles.arrowText, pressed && { color: '#FF6900' }]}>›</Text>}
+          {onPress && <Text style={[styles.arrowText, pressed && { color: colors.brand.orange }]}>›</Text>}
         </>
       )}
     </Pressable>
@@ -388,57 +392,60 @@ function SettingsRow({
 }
 
 function Sep() {
-  return <View style={styles.separator} />;
+  const { colors } = useTheme();
+  return <View style={{ height: 0.5, backgroundColor: colors.border.default, marginLeft: 58 }} />;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
 
-  titleSection: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, backgroundColor: '#fff' },
-  title: { fontSize: 26, fontWeight: '800', color: '#101828' },
+    titleSection: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, backgroundColor: colors.surface.card },
+    title: { fontSize: 26, fontWeight: '800', color: colors.text.primary },
 
-  profileCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    paddingHorizontal: 16, paddingVertical: 20, backgroundColor: '#fff',
-  },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  avatarImg: { width: 64, height: 64, borderRadius: 32 },
-  avatarText: { fontSize: 32 },
-  profileInfo: { flex: 1 },
-  profileName: { fontSize: 18, fontWeight: '700', color: '#101828', marginBottom: 3 },
-  profileEmail: { fontSize: 13, color: '#9CA3AF' },
+    profileCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 16,
+      paddingHorizontal: 16, paddingVertical: 20, backgroundColor: colors.surface.card,
+    },
+    avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    avatarImg: { width: 64, height: 64, borderRadius: 32 },
+    avatarText: { fontSize: 32 },
+    profileInfo: { flex: 1 },
+    profileName: { fontSize: 18, fontWeight: '700', color: colors.text.primary, marginBottom: 3 },
+    profileEmail: { fontSize: 13, color: colors.text.tertiary },
 
-  divider: { height: 8, backgroundColor: '#F3F4F6' },
-  sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#9CA3AF',
-    paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8,
-    backgroundColor: '#fff', textTransform: 'uppercase', letterSpacing: 0.8,
-  },
-  section: { backgroundColor: '#fff' },
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, gap: 14 },
-  rowPressed: { backgroundColor: '#FFF3E8' },
-  rowIconWrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  rowIconImg: { width: 20, height: 20, resizeMode: 'contain' },
-  rowBody: { flex: 1 },
-  rowText: { fontSize: 16, color: '#101828' },
-  rowSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  arrowText: { fontSize: 20, color: '#C7C7CC' },
-  versionText: { fontSize: 14, color: '#9CA3AF', fontWeight: '500' },
-  separator: { height: 0.5, backgroundColor: '#F3F4F6', marginLeft: 58 },
-  logoutText: { color: '#FF6900', fontWeight: '600', flex: 1 },
-  deleteText: { color: '#E7000B', flex: 1 },
-  // Language modal
-  langOverlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  langSheet:       { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 20, paddingBottom: 40, paddingHorizontal: 0 },
-  langSheetTitle:  { fontSize: 13, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.8, textAlign: 'center', marginBottom: 12 },
-  langOption:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, gap: 14 },
-  langOptionBorder:{ borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  langFlag:        { fontSize: 24 },
-  langLabel:       { flex: 1, fontSize: 16, color: '#101828' },
-  langLabelActive: { color: '#FF6900', fontWeight: '700' },
-  langCheck:       { fontSize: 18, color: '#FF6900', fontWeight: '700' },
-  langCancel:      { marginTop: 8, marginHorizontal: 16, backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  langCancelText:  { fontSize: 16, color: '#6B7280', fontWeight: '600' },
-});
+    divider: { height: 8, backgroundColor: colors.surface.section },
+    sectionLabel: {
+      fontSize: 11, fontWeight: '700', color: colors.text.tertiary,
+      paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8,
+      backgroundColor: colors.surface.card, textTransform: 'uppercase', letterSpacing: 0.8,
+    },
+    section: { backgroundColor: colors.surface.card },
+    row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, gap: 14 },
+    rowPressed: { backgroundColor: colors.brand.peach },
+    rowIconWrap: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+    rowIconImg: { width: 20, height: 20, resizeMode: 'contain' },
+    rowBody: { flex: 1 },
+    rowText: { fontSize: 16, color: colors.text.primary },
+    rowSub: { fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
+    arrowText: { fontSize: 20, color: colors.text.tertiary },
+    versionText: { fontSize: 14, color: colors.text.tertiary, fontWeight: '500' },
+    separator: { height: 0.5, backgroundColor: colors.border.default, marginLeft: 58 },
+    logoutText: { color: colors.brand.orange, fontWeight: '600', flex: 1 },
+    deleteText: { color: colors.state.down, flex: 1 },
+    // Language modal
+    langOverlay:     { flex: 1, backgroundColor: colors.overlay.medium, justifyContent: 'flex-end' },
+    langSheet:       { backgroundColor: colors.surface.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 20, paddingBottom: 40, paddingHorizontal: 0 },
+    langSheetTitle:  { fontSize: 13, fontWeight: '700', color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.8, textAlign: 'center', marginBottom: 12 },
+    langOption:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, gap: 14 },
+    langOptionBorder:{ borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    langFlag:        { fontSize: 24 },
+    langLabel:       { flex: 1, fontSize: 16, color: colors.text.primary },
+    langLabelActive: { color: colors.brand.orange, fontWeight: '700' },
+    langCheck:       { fontSize: 18, color: colors.brand.orange, fontWeight: '700' },
+    langCancel:      { marginTop: 8, marginHorizontal: 16, backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+    langCancelText:  { fontSize: 16, color: colors.text.secondary, fontWeight: '600' },
+  });
+}
