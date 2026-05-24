@@ -1,8 +1,8 @@
-# Welcome to your Expo app 👋
+# HKCardColl mobile app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo / React Native client for HKCardColl. See [CLAUDE.md](CLAUDE.md) for full project context.
 
-## Get started
+## Setup
 
 1. Install dependencies
 
@@ -10,10 +10,32 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Configure environment
 
    ```bash
-   npx expo start
+   cp .env.example .env
+   ```
+
+   Fill in values from **Supabase Dashboard → Settings → API**:
+   - `EXPO_PUBLIC_SUPABASE_URL` — Project URL
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — `anon` `public` key（**not** `service_role`）
+
+3. Deploy the `pokemontcg-proxy` edge function (one-time, server side)
+
+   ```bash
+   # Requires: brew install supabase/tap/supabase
+   supabase login
+   supabase link --project-ref vudqydqzrlgetcdegfvc
+   supabase secrets set POKEMONTCG_API_KEY=<key from https://dev.pokemontcg.io/>
+   supabase functions deploy pokemontcg-proxy
+   ```
+
+   Without this, the home / search / portfolio tabs will fail to fetch card data.
+
+4. Start the app
+
+   ```bash
+   npm run start
    ```
 
 In the output, you'll find options to open the app in a
