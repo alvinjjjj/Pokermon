@@ -534,7 +534,14 @@ export default function HomeScreen() {
         if (pptEnFallback.length > 0) {
           hotEnCards = pptEnFallback
             .map(pptCardToMarket)
-            .filter(c => (c._jtcgPrice?.psa10 ?? c._jtcgPrice?.market ?? 0) * 3 >= PSA10_MIN_USD)
+            .filter(c => {
+              // Mirror the upstream pokemontcg.io path's filter exactly:
+              // psa10 used as-is when present; market multiplied ×3 as PSA10 proxy.
+              const psa10 = c._jtcgPrice?.psa10 ?? 0;
+              const mkt   = c._jtcgPrice?.market ?? 0;
+              const est   = psa10 > 0 ? psa10 : mkt * 3;
+              return est >= PSA10_MIN_USD;
+            })
             .slice(0, 10);
           if (__DEV__) console.log(`[Home] EN rail fallback: pokemontcg.io empty, using ${hotEnCards.length} PPT cards`);
         }
