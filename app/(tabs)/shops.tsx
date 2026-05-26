@@ -1,5 +1,5 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchArtofpkmImages } from '../../lib/artofpkm';
 import { useTranslation } from 'react-i18next';
 import {
@@ -22,6 +22,7 @@ import Header from '../../components/Header';
 import { SkeletonGrid, SkeletonRow } from '../../components/SkeletonCard';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = (SCREEN_W - 48) / 2;
@@ -107,6 +108,8 @@ const DISTRICT_REGION: Record<string, string> = {
   '大埔': '新界', '沙田': '新界', '西貢': '新界', '離島': '離島',
 };
 
+// Semantic condition-badge fills (Raw=gray, PSA 9=blue, PSA 10=amber).
+// Same hue in both themes — these communicate grade, not surface.
 const CONDITION_COLOR: Record<string, string> = {
   'Raw':    '#6B7280',
   'PSA 9':  '#3B82F6',
@@ -119,8 +122,8 @@ const PAGE_SIZE = 20;
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ShopsScreen() {
-  // Hotfix: status bar visible in dark mode. Phase 4d full migration upcoming.
   const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
   const [mainTab, setMainTab] = useState<MainTab>('marketplace');
@@ -334,7 +337,7 @@ export default function ShopsScreen() {
         </View>
         <View style={styles.certBadge}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Image source={require('../../assets/icons/Certification.png')} style={{ width: 12, height: 12, tintColor: '#FF6900' }} />
+            <Image source={require('../../assets/icons/Certification.png')} style={{ width: 12, height: 12, tintColor: colors.brand.orange }} />
             <Text style={styles.certBadgeText}>{t('shops.certifiedMerchant')}</Text>
           </View>
         </View>
@@ -357,7 +360,7 @@ export default function ShopsScreen() {
         <View style={styles.certActions}>
           <TouchableOpacity style={styles.certContactBtn} onPress={() => openContact(m)} activeOpacity={0.8}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Image source={require('../../assets/icons/message.png')} style={{ width: 15, height: 15, tintColor: '#374151', resizeMode: 'contain' }} />
+              <Image source={require('../../assets/icons/message.png')} style={{ width: 15, height: 15, tintColor: colors.text.primary, resizeMode: 'contain' }} />
               <Text style={styles.certContactBtnText}>{t('shops.contact')}</Text>
             </View>
           </TouchableOpacity>
@@ -400,13 +403,13 @@ export default function ShopsScreen() {
   const renderMerchantsTab = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={merchantsRefreshing} onRefresh={() => loadMerchants(true)} tintColor="#FF6900" />}
+      refreshControl={<RefreshControl refreshing={merchantsRefreshing} onRefresh={() => loadMerchants(true)} tintColor={colors.brand.orange} />}
     >
       {/* Search + filter */}
       <View style={styles.mSearchWrap}>
         <View style={styles.searchBar}>
           <Image source={require('../../assets/icons/search.png')} style={styles.searchIcon} />
-          <TextInput style={styles.searchInput} placeholder={t('shops.searchMerchants')} placeholderTextColor="#9CA3AF" value={mSearch} onChangeText={setMSearch} />
+          <TextInput style={styles.searchInput} placeholder={t('shops.searchMerchants')} placeholderTextColor={colors.text.tertiary} value={mSearch} onChangeText={setMSearch} />
           {mSearch.length > 0 && <TouchableOpacity onPress={() => setMSearch('')}><Text style={styles.searchClear}>✕</Text></TouchableOpacity>}
         </View>
       </View>
@@ -581,7 +584,7 @@ export default function ShopsScreen() {
       <View style={styles.lSearchWrap}>
         <View style={styles.searchBar}>
           <Image source={require('../../assets/icons/search.png')} style={styles.searchIcon} />
-          <TextInput style={styles.searchInput} placeholder={t('shops.searchCards')} placeholderTextColor="#9CA3AF" value={lSearch} onChangeText={setLSearch} />
+          <TextInput style={styles.searchInput} placeholder={t('shops.searchCards')} placeholderTextColor={colors.text.tertiary} value={lSearch} onChangeText={setLSearch} />
           {lSearch.length > 0 && <TouchableOpacity onPress={() => setLSearch('')}><Text style={styles.searchClear}>✕</Text></TouchableOpacity>}
         </View>
         <TouchableOpacity style={styles.sortBtn} onPress={() => setShowSortModal(true)}>
@@ -651,12 +654,12 @@ export default function ShopsScreen() {
           columnWrapperStyle={styles.lRow}
           contentContainerStyle={styles.lListContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={listingsRefreshing} onRefresh={() => resetAndLoadListings(true)} tintColor="#FF6900" />}
+          refreshControl={<RefreshControl refreshing={listingsRefreshing} onRefresh={() => resetAndLoadListings(true)} tintColor={colors.brand.orange} />}
           onEndReached={loadMoreListings}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
             loadingMore
-              ? <View style={styles.loadMoreWrap}><ActivityIndicator color="#FF6900" /></View>
+              ? <View style={styles.loadMoreWrap}><ActivityIndicator color={colors.brand.orange} /></View>
               : !hasMore && listings.length > 0
                 ? <Text style={styles.noMoreText}>{t('shops.allShown')}</Text>
                 : null
@@ -718,20 +721,20 @@ export default function ShopsScreen() {
   // ── Main Render ────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
+    <SafeAreaView style={styles.safe}>
       <Header />
 
       {/* Sub-tab bar */}
       <View style={styles.subTabBar}>
         <TouchableOpacity style={[styles.subTab, mainTab === 'marketplace' && styles.subTabActive]} onPress={() => setMainTab('marketplace')}>
           <View style={styles.subTabContent}>
-            <Image source={require('../../assets/icons/service list.png')} style={[styles.subTabIcon, { tintColor: mainTab === 'marketplace' ? '#FF6900' : '#9CA3AF' }]} />
+            <Image source={require('../../assets/icons/service list.png')} style={[styles.subTabIcon, { tintColor: mainTab === 'marketplace' ? colors.brand.orange : colors.text.tertiary }]} />
             <Text style={[styles.subTabText, mainTab === 'marketplace' && styles.subTabTextActive]}>{t('shops.marketplace')}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.subTab, mainTab === 'merchants' && styles.subTabActive]} onPress={() => setMainTab('merchants')}>
           <View style={styles.subTabContent}>
-            <Image source={require('../../assets/icons/shops.png')} style={[styles.subTabIcon, { tintColor: mainTab === 'merchants' ? '#FF6900' : '#9CA3AF' }]} />
+            <Image source={require('../../assets/icons/shops.png')} style={[styles.subTabIcon, { tintColor: mainTab === 'merchants' ? colors.brand.orange : colors.text.tertiary }]} />
             <Text style={[styles.subTabText, mainTab === 'merchants' && styles.subTabTextActive]}>{t('shops.merchants')}</Text>
           </View>
         </TouchableOpacity>
@@ -748,6 +751,8 @@ export default function ShopsScreen() {
 // ── ListingCard component (extracted so useState hook works correctly) ─────────
 
 function ListingCard({ item, artofpkmMap }: { item: Listing; artofpkmMap: Record<string, string> }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t }  = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
@@ -762,7 +767,7 @@ function ListingCard({ item, artofpkmMap }: { item: Listing; artofpkmMap: Record
   const imgUri = imgFailed ? (urls[1] ?? urls[2] ?? null) : (urls[0] ?? null);
 
   const sellerName = item.merchant_profiles?.shop_name_zh ?? item.merchant_profiles?.display_name ?? t('shops.unknownSeller');
-  const condColor  = CONDITION_COLOR[item.condition] ?? '#9CA3AF';
+  const condColor  = CONDITION_COLOR[item.condition] ?? colors.text.tertiary;
 
   return (
     <TouchableOpacity
@@ -777,13 +782,14 @@ function ListingCard({ item, artofpkmMap }: { item: Listing; artofpkmMap: Record
         {imgUri
           ? <Image source={{ uri: imgUri }} style={styles.lCardImg} resizeMode="contain"
               onError={() => setImgFailed(true)} />
-          : <View style={styles.lCardImgPlaceholder}><Image source={require('../../assets/icons/portfolio.png')} style={{ width: 36, height: 36, tintColor: '#D1D5DB', resizeMode: 'contain' }} /></View>
+          : <View style={styles.lCardImgPlaceholder}><Image source={require('../../assets/icons/portfolio.png')} style={{ width: 36, height: 36, tintColor: colors.border.strong, resizeMode: 'contain' }} /></View>
         }
         <View style={[styles.lCondBadge, { backgroundColor: condColor }]}>
           <Text style={styles.lCondBadgeText}>{item.condition}</Text>
         </View>
         {item.seller_type === 'certified_merchant' && (
           <View style={styles.lCertBadge}>
+            {/* tintColor '#fff' kept raw — always-white on Card Orange brand fill */}
             <Image source={require('../../assets/icons/Certification.png')} style={{ width: 14, height: 14, tintColor: '#fff' }} />
           </View>
         )}
@@ -810,7 +816,7 @@ function ListingCard({ item, artofpkmMap }: { item: Listing; artofpkmMap: Record
         onPress={() => router.push(`/listing/${item.id}` as any)}
         activeOpacity={0.8}
       >
-        <Text style={[styles.lContactBtnText, { color: condColor === '#6B7280' ? '#374151' : condColor }]}>
+        <Text style={[styles.lContactBtnText, { color: condColor === '#6B7280' ? colors.text.primary : condColor }]}>
           {t('shops.viewListings')}
         </Text>
       </TouchableOpacity>
@@ -820,189 +826,205 @@ function ListingCard({ item, artofpkmMap }: { item: Listing; artofpkmMap: Record
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F3F4F6' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
 
-  // Sub-tab bar
-  subTabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
-  subTab: { flex: 1, paddingVertical: 13, alignItems: 'center', borderBottomWidth: 2.5, borderBottomColor: 'transparent' },
-  subTabActive: { borderBottomColor: '#FF6900' },
-  subTabContent: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  subTabIcon: { width: 16, height: 16, resizeMode: 'contain' },
-  subTabText: { fontSize: 15, fontWeight: '600', color: '#9CA3AF' },
-  subTabTextActive: { color: '#FF6900', fontWeight: '800' },
+    // Sub-tab bar
+    subTabBar: { flexDirection: 'row', backgroundColor: colors.surface.card, borderBottomWidth: 1, borderBottomColor: colors.border.default },
+    subTab: { flex: 1, paddingVertical: 13, alignItems: 'center', borderBottomWidth: 2.5, borderBottomColor: 'transparent' },
+    subTabActive: { borderBottomColor: colors.brand.orange },
+    subTabContent: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    subTabIcon: { width: 16, height: 16, resizeMode: 'contain' },
+    subTabText: { fontSize: 15, fontWeight: '600', color: colors.text.tertiary },
+    subTabTextActive: { color: colors.brand.orange, fontWeight: '800' },
 
-  // Shared
-  loadingWrap: { paddingVertical: 60, alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#9CA3AF' },
-  emptyWrap: { paddingVertical: 60, alignItems: 'center', gap: 8 },
-  emptyIcon: { fontSize: 40 },
-  emptyIconImg: { width: 40, height: 40, tintColor: '#D1D5DB', resizeMode: 'contain' },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#374151' },
-  emptySub: { fontSize: 14, color: '#9CA3AF' },
-  emptyReset: { fontSize: 14, color: '#FF6900', fontWeight: '600', marginTop: 8 },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  searchIcon: { width: 16, height: 16, resizeMode: 'contain', tintColor: '#9CA3AF' },
-  searchInput: { flex: 1, fontSize: 15, color: '#101828' },
-  searchClear: { fontSize: 13, color: '#9CA3AF' },
-  filterRow: { backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  filterScroll: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  chipActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  chipText: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  chipTextActive: { color: '#fff' },
-  chipDivider: { width: 1, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
-  clearFilters: { fontSize: 13, color: '#FF6900', fontWeight: '600' },
+    // Shared
+    loadingWrap: { paddingVertical: 60, alignItems: 'center', gap: 12 },
+    loadingText: { fontSize: 14, color: colors.text.tertiary },
+    emptyWrap: { paddingVertical: 60, alignItems: 'center', gap: 8 },
+    emptyIcon: { fontSize: 40 },
+    emptyIconImg: { width: 40, height: 40, tintColor: colors.border.strong, resizeMode: 'contain' },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    emptySub: { fontSize: 14, color: colors.text.tertiary },
+    emptyReset: { fontSize: 14, color: colors.brand.orange, fontWeight: '600', marginTop: 8 },
+    searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface.section, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+    searchIcon: { width: 16, height: 16, resizeMode: 'contain', tintColor: colors.text.tertiary },
+    searchInput: { flex: 1, fontSize: 15, color: colors.text.primary },
+    searchClear: { fontSize: 13, color: colors.text.tertiary },
+    filterRow: { backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    filterScroll: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.surface.section, borderWidth: 1, borderColor: colors.border.default },
+    chipActive: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    chipText: { fontSize: 12, fontWeight: '600', color: colors.text.secondary },
+    // chipTextActive '#fff' kept raw — always-white on Card Orange brand fill
+    chipTextActive: { color: '#fff' },
+    chipDivider: { width: 1, backgroundColor: colors.border.default, marginHorizontal: 4 },
+    clearFilters: { fontSize: 13, color: colors.brand.orange, fontWeight: '600' },
 
-  // Merchants tab
-  mSearchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fff', gap: 10, borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
+    // Merchants tab
+    mSearchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surface.card, gap: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
 
-  sellerCTAWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
-  sellerCTA: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 14, gap: 12, borderWidth: 1, borderColor: '#FFD4B2' },
-  sellerCTALeft: { flex: 1, gap: 2 },
-  sellerCTATitle: { fontSize: 14, fontWeight: '700', color: '#101828' },
-  sellerCTASub: { fontSize: 12, color: '#6B7280' },
-  sellerCTABtn: { backgroundColor: '#FF6900', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
-  sellerCTABtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    sellerCTAWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
+    sellerCTA: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface.card, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 14, gap: 12, borderWidth: 1, borderColor: colors.brand.peach },
+    sellerCTALeft: { flex: 1, gap: 2 },
+    sellerCTATitle: { fontSize: 14, fontWeight: '700', color: colors.text.primary },
+    sellerCTASub: { fontSize: 12, color: colors.text.secondary },
+    sellerCTABtn: { backgroundColor: colors.brand.orange, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
+    // sellerCTABtnText '#fff' kept raw — always-white on Card Orange
+    sellerCTABtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  bannerWrap: { padding: 16 },
-  banner: { backgroundColor: '#FF6900', borderRadius: 20, padding: 20, gap: 12 },
-  bannerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  bannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 20 },
-  bannerBtnRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  bannerBtnIndividual: { flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', gap: 2 },
-  bannerBtnIndividualText: { fontSize: 14, fontWeight: '700', color: '#FF6900' },
-  bannerBtnMerchant: { flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', gap: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
-  bannerBtnMerchantText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  bannerBtnSubText: { fontSize: 10, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
-  bannerBtnSubTextDark: { fontSize: 10, color: 'rgba(255,105,0,0.75)', fontWeight: '500' },
+    bannerWrap: { padding: 16 },
+    banner: { backgroundColor: colors.brand.orange, borderRadius: 20, padding: 20, gap: 12 },
+    // banner text colors stay raw — they sit on Card Orange fill in both modes
+    bannerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+    bannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 20 },
+    bannerBtnRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    // bannerBtnIndividual is a white card on orange — keep raw bg/text
+    bannerBtnIndividual: { flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', gap: 2 },
+    bannerBtnIndividualText: { fontSize: 14, fontWeight: '700', color: colors.brand.orange },
+    bannerBtnMerchant: { flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', gap: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
+    bannerBtnMerchantText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    bannerBtnSubText: { fontSize: 10, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+    // bannerBtnSubTextDark sits on the white #fff button (always-white above) — keep raw orange-tint
+    bannerBtnSubTextDark: { fontSize: 10, color: 'rgba(255,105,0,0.75)', fontWeight: '500' },
 
-  statsRow: { flexDirection: 'row', backgroundColor: '#fff', marginBottom: 8, paddingVertical: 16, paddingHorizontal: 24 },
-  statItem: { flex: 1, alignItems: 'center', gap: 2 },
-  statNum: { fontSize: 22, fontWeight: '800', color: '#101828' },
-  statLabel: { fontSize: 12, color: '#6B7280' },
-  statDivider: { width: 1, backgroundColor: '#E5E7EB', marginVertical: 4 },
+    statsRow: { flexDirection: 'row', backgroundColor: colors.surface.card, marginBottom: 8, paddingVertical: 16, paddingHorizontal: 24 },
+    statItem: { flex: 1, alignItems: 'center', gap: 2 },
+    statNum: { fontSize: 22, fontWeight: '800', color: colors.text.primary },
+    statLabel: { fontSize: 12, color: colors.text.secondary },
+    statDivider: { width: 1, backgroundColor: colors.border.default, marginVertical: 4 },
 
-  section: { backgroundColor: '#fff', marginBottom: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#101828' },
-  sectionCount: { fontSize: 13, color: '#9CA3AF' },
+    section: { backgroundColor: colors.surface.card, marginBottom: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: colors.text.primary },
+    sectionCount: { fontSize: 13, color: colors.text.tertiary },
 
-  certCard: { backgroundColor: '#FAFAFA', borderRadius: 20, marginBottom: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB' },
-  certBanner: { width: '100%', height: 120, position: 'relative' },
-  certBannerImg: { width: '100%', height: '100%' },
-  certBannerPlaceholder: { backgroundColor: '#FFF3E8', alignItems: 'center', justifyContent: 'center' },
-  certBannerPlaceholderText: { fontSize: 40 },
-  certLogoWrap: { position: 'absolute', bottom: -24, left: 16, borderRadius: 16, borderWidth: 3, borderColor: '#fff', overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
-  certLogoImg: { width: 56, height: 56 },
-  certLogoPlaceholder: { backgroundColor: '#FF6900', alignItems: 'center', justifyContent: 'center' },
-  certLogoPlaceholderText: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  certBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  certBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  certInfo: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16, gap: 6 },
-  certName: { fontSize: 18, fontWeight: '800', color: '#101828' },
-  certNameEn: { fontSize: 13, color: '#6B7280', marginTop: -4 },
-  certMeta: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  certMetaChip: { backgroundColor: '#F3F4F6', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  storeChip: { backgroundColor: '#FFF3E8' },
-  certMetaText: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
-  storeChipText: { color: '#FF6900' },
-  certDesc: { fontSize: 13, color: '#374151', lineHeight: 20 },
-  payRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  payChip: { backgroundColor: '#EFF6FF', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  payChipText: { fontSize: 11, color: '#3B82F6', fontWeight: '500' },
-  certActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  certContactBtn: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
-  certContactBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  certViewBtn: { flex: 2, backgroundColor: '#FF6900', borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
-  certViewBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    certCard: { backgroundColor: colors.surface.section, borderRadius: 20, marginBottom: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default },
+    certBanner: { width: '100%', height: 120, position: 'relative' },
+    certBannerImg: { width: '100%', height: '100%' },
+    certBannerPlaceholder: { backgroundColor: colors.brand.peach, alignItems: 'center', justifyContent: 'center' },
+    certBannerPlaceholderText: { fontSize: 40 },
+    // certLogoWrap: shadowColor '#000' kept (shadow convention); borderColor uses card surface so it reads on card edge
+    certLogoWrap: { position: 'absolute', bottom: -24, left: 16, borderRadius: 16, borderWidth: 3, borderColor: colors.surface.card, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+    certLogoImg: { width: 56, height: 56 },
+    certLogoPlaceholder: { backgroundColor: colors.brand.orange, alignItems: 'center', justifyContent: 'center' },
+    // certLogoPlaceholderText '#fff' kept raw — on Card Orange fill
+    certLogoPlaceholderText: { fontSize: 22, fontWeight: '800', color: '#fff' },
+    // certBadge: dark scrim on banner image — works against any photo, keep raw
+    certBadge: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    certBadgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+    certInfo: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 16, gap: 6 },
+    certName: { fontSize: 18, fontWeight: '800', color: colors.text.primary },
+    certNameEn: { fontSize: 13, color: colors.text.secondary, marginTop: -4 },
+    certMeta: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    certMetaChip: { backgroundColor: colors.surface.section, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    storeChip: { backgroundColor: colors.brand.peach },
+    certMetaText: { fontSize: 12, color: colors.text.secondary, fontWeight: '500' },
+    storeChipText: { color: colors.brand.orange },
+    certDesc: { fontSize: 13, color: colors.text.primary, lineHeight: 20 },
+    payRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    // payChip: semantic info-tinted (payment methods) — same hue across modes
+    payChip: { backgroundColor: '#EFF6FF', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+    payChipText: { fontSize: 11, color: '#3B82F6', fontWeight: '500' },
+    certActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+    certContactBtn: { flex: 1, backgroundColor: colors.surface.section, borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
+    certContactBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
+    certViewBtn: { flex: 2, backgroundColor: colors.brand.orange, borderRadius: 14, paddingVertical: 11, alignItems: 'center' },
+    // certViewBtnText '#fff' kept raw — on Card Orange
+    certViewBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  indList: {},
-  indRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6', gap: 12 },
-  indAvatar: { position: 'relative', width: 48, height: 48 },
-  indAvatarImg: { width: 48, height: 48, borderRadius: 24 },
-  indAvatarPlaceholder: { backgroundColor: '#E5E7EB', borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  indAvatarLetter: { fontSize: 20, fontWeight: '700', color: '#6B7280' },
-  indBadgeDot: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: '#22C55E', borderWidth: 2, borderColor: '#fff' },
-  indBody: { flex: 1, gap: 3 },
-  indTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  indName: { fontSize: 15, fontWeight: '700', color: '#101828' },
-  indSellerBadge: { backgroundColor: '#F3F4F6', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  indSellerBadgeText: { fontSize: 11, color: '#6B7280', fontWeight: '500' },
-  indMeta: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  indMetaText: { fontSize: 12, color: '#9CA3AF' },
-  indPayText: { fontSize: 12, color: '#6B7280' },
-  indArrow: { fontSize: 22, color: '#D1D5DB', fontWeight: '300' },
+    indList: {},
+    indRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: colors.border.default, gap: 12 },
+    indAvatar: { position: 'relative', width: 48, height: 48 },
+    indAvatarImg: { width: 48, height: 48, borderRadius: 24 },
+    indAvatarPlaceholder: { backgroundColor: colors.border.default, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+    indAvatarLetter: { fontSize: 20, fontWeight: '700', color: colors.text.secondary },
+    // indBadgeDot: semantic online/active indicator (green) — same hue in both modes; ring uses card surface
+    indBadgeDot: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: '#22C55E', borderWidth: 2, borderColor: colors.surface.card },
+    indBody: { flex: 1, gap: 3 },
+    indTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    indName: { fontSize: 15, fontWeight: '700', color: colors.text.primary },
+    indSellerBadge: { backgroundColor: colors.surface.section, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+    indSellerBadgeText: { fontSize: 11, color: colors.text.secondary, fontWeight: '500' },
+    indMeta: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+    indMetaText: { fontSize: 12, color: colors.text.tertiary },
+    indPayText: { fontSize: 12, color: colors.text.secondary },
+    indArrow: { fontSize: 22, color: colors.border.strong, fontWeight: '300' },
 
-  ctaWrap: { padding: 16 },
-  ctaCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, gap: 10, borderWidth: 0.5, borderColor: '#E5E7EB' },
-  ctaTitle: { fontSize: 17, fontWeight: '800', color: '#101828' },
-  ctaSub: { fontSize: 13, color: '#6B7280', lineHeight: 20 },
-  ctaBtnRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  ctaBtnPrimary: { flex: 1, backgroundColor: '#FF6900', borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
-  ctaBtnPrimaryText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  ctaBtnSecondary: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  ctaBtnSecondaryText: { fontSize: 13, fontWeight: '600', color: '#374151' },
+    ctaWrap: { padding: 16 },
+    ctaCard: { backgroundColor: colors.surface.card, borderRadius: 20, padding: 20, gap: 10, borderWidth: 0.5, borderColor: colors.border.default },
+    ctaTitle: { fontSize: 17, fontWeight: '800', color: colors.text.primary },
+    ctaSub: { fontSize: 13, color: colors.text.secondary, lineHeight: 20 },
+    ctaBtnRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    ctaBtnPrimary: { flex: 1, backgroundColor: colors.brand.orange, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
+    // ctaBtnPrimaryText '#fff' kept raw — on Card Orange
+    ctaBtnPrimaryText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    ctaBtnSecondary: { flex: 1, backgroundColor: colors.surface.section, borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    ctaBtnSecondaryText: { fontSize: 13, fontWeight: '600', color: colors.text.primary },
 
-  // Marketplace tab
-  lSearchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fff', gap: 10, borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  sortBtn: { backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#E5E7EB' },
-  sortBtnText: { fontSize: 12, fontWeight: '600', color: '#374151' },
-  lStatsBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fff', marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  lStatsText: { fontSize: 13, color: '#6B7280' },
-  lStatsNum: { fontWeight: '700', color: '#101828' },
-  lRow: { gap: 12, marginBottom: 12 },
-  lListContent: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 100 },
-  lCard: { width: CARD_W, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB', flexDirection: 'column', justifyContent: 'space-between' },
-  lCardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: '#F9FAFB', position: 'relative' },
-  lCardImg: { width: '100%', height: '100%' },
-  lCardImgPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  lCardImgEmoji: { fontSize: 40 },
-  lCondBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  lCondBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-  lCertBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: '#FF6900', borderRadius: 10, padding: 4 },
-  lCertBadgeText: { fontSize: 12 },
-  lCardInfo: { padding: 10, gap: 3, flex: 1 },
-  lCardName: { fontSize: 13, fontWeight: '700', color: '#101828', lineHeight: 18 },
-  lCardSet: { fontSize: 11, color: '#9CA3AF' },
-  lCardLang: { fontSize: 11, color: '#6B7280' },
-  lPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  lPrice: { fontSize: 15, fontWeight: '800', color: '#FF6900' },
-  lNegoBadge: { backgroundColor: '#F3F4F6', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
-  lNegoBadgeText: { fontSize: 10, color: '#6B7280' },
-  lSellerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 5 },
-  lSellerAvatar: { width: 18, height: 18, borderRadius: 9 },
-  lSellerAvatarPlaceholder: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center' },
-  lSellerAvatarLetter: { fontSize: 8, fontWeight: '700', color: '#6B7280' },
-  lSellerName: { fontSize: 11, color: '#6B7280', flex: 1 },
-  lSellerDistrict: { fontSize: 10, color: '#9CA3AF' },
-  lContactBtn: { marginHorizontal: 10, marginBottom: 10, backgroundColor: '#FFF3E8', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  lContactBtnText: { fontSize: 12, fontWeight: '700', color: '#FF6900' },
-  loadMoreWrap: { paddingVertical: 20, alignItems: 'center' },
-  noMoreText: { textAlign: 'center', fontSize: 13, color: '#9CA3AF', paddingVertical: 20 },
+    // Marketplace tab
+    lSearchWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surface.card, gap: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    sortBtn: { backgroundColor: colors.surface.section, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: colors.border.default },
+    sortBtnText: { fontSize: 12, fontWeight: '600', color: colors.text.primary },
+    lStatsBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.surface.card, marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    lStatsText: { fontSize: 13, color: colors.text.secondary },
+    lStatsNum: { fontWeight: '700', color: colors.text.primary },
+    lRow: { gap: 12, marginBottom: 12 },
+    lListContent: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 100 },
+    lCard: { width: CARD_W, backgroundColor: colors.surface.card, borderRadius: 18, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default, flexDirection: 'column', justifyContent: 'space-between' },
+    lCardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: colors.surface.section, position: 'relative' },
+    lCardImg: { width: '100%', height: '100%' },
+    lCardImgPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    lCardImgEmoji: { fontSize: 40 },
+    // lCondBadge bg is set inline from CONDITION_COLOR; text stays white on those semantic fills
+    lCondBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    lCondBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+    lCertBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: colors.brand.orange, borderRadius: 10, padding: 4 },
+    lCertBadgeText: { fontSize: 12 },
+    lCardInfo: { padding: 10, gap: 3, flex: 1 },
+    lCardName: { fontSize: 13, fontWeight: '700', color: colors.text.primary, lineHeight: 18 },
+    lCardSet: { fontSize: 11, color: colors.text.tertiary },
+    lCardLang: { fontSize: 11, color: colors.text.secondary },
+    lPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+    lPrice: { fontSize: 15, fontWeight: '800', color: colors.brand.orange },
+    lNegoBadge: { backgroundColor: colors.surface.section, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+    lNegoBadgeText: { fontSize: 10, color: colors.text.secondary },
+    lSellerRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 5 },
+    lSellerAvatar: { width: 18, height: 18, borderRadius: 9 },
+    lSellerAvatarPlaceholder: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.border.default, alignItems: 'center', justifyContent: 'center' },
+    lSellerAvatarLetter: { fontSize: 8, fontWeight: '700', color: colors.text.secondary },
+    lSellerName: { fontSize: 11, color: colors.text.secondary, flex: 1 },
+    lSellerDistrict: { fontSize: 10, color: colors.text.tertiary },
+    lContactBtn: { marginHorizontal: 10, marginBottom: 10, backgroundColor: colors.brand.peach, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
+    lContactBtnText: { fontSize: 12, fontWeight: '700', color: colors.brand.orange },
+    loadMoreWrap: { paddingVertical: 20, alignItems: 'center' },
+    noMoreText: { textAlign: 'center', fontSize: 13, color: colors.text.tertiary, paddingVertical: 20 },
 
-  // Error state
-  errorWrap: { paddingVertical: 60, alignItems: 'center', gap: 8, paddingHorizontal: 40 },
-  errorEmoji: { fontSize: 44 },
-  errorTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  errorSub: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
-  errorRetryBtn: { marginTop: 8, backgroundColor: '#FF6900', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 10 },
-  errorRetryText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    // Error state
+    errorWrap: { paddingVertical: 60, alignItems: 'center', gap: 8, paddingHorizontal: 40 },
+    errorEmoji: { fontSize: 44 },
+    errorTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    errorSub: { fontSize: 13, color: colors.text.tertiary, textAlign: 'center' },
+    errorRetryBtn: { marginTop: 8, backgroundColor: colors.brand.orange, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 10 },
+    // errorRetryText '#fff' kept raw — on Card Orange
+    errorRetryText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  // Modals
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  districtSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingBottom: 40, maxHeight: '75%' },
-  sheetHandle: { width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 8 },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#101828', paddingVertical: 14, textAlign: 'center' },
-  districtRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  districtRowActive: { backgroundColor: '#FFF3E8', marginHorizontal: -16, paddingHorizontal: 16 },
-  districtRowText: { fontSize: 15, color: '#374151' },
-  districtRowTextActive: { color: '#FF6900', fontWeight: '700' },
-  districtCheck: { fontSize: 16, color: '#FF6900', fontWeight: '700' },
-  sortSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingBottom: 40 },
-  sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  sortRowActive: { backgroundColor: '#FFF3E8', marginHorizontal: -16, paddingHorizontal: 16 },
-  sortRowText: { fontSize: 16, color: '#374151' },
-  sortRowTextActive: { color: '#FF6900', fontWeight: '700' },
-  sortCheck: { fontSize: 18, color: '#FF6900', fontWeight: '700' },
-});
+    // Modals
+    modalOverlay: { flex: 1, backgroundColor: colors.overlay.medium, justifyContent: 'flex-end' },
+    districtSheet: { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingBottom: 40, maxHeight: '75%' },
+    sheetHandle: { width: 40, height: 4, backgroundColor: colors.border.default, borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 8 },
+    sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.text.primary, paddingVertical: 14, textAlign: 'center' },
+    districtRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    districtRowActive: { backgroundColor: colors.brand.peach, marginHorizontal: -16, paddingHorizontal: 16 },
+    districtRowText: { fontSize: 15, color: colors.text.primary },
+    districtRowTextActive: { color: colors.brand.orange, fontWeight: '700' },
+    districtCheck: { fontSize: 16, color: colors.brand.orange, fontWeight: '700' },
+    sortSheet: { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingBottom: 40 },
+    sortRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    sortRowActive: { backgroundColor: colors.brand.peach, marginHorizontal: -16, paddingHorizontal: 16 },
+    sortRowText: { fontSize: 16, color: colors.text.primary },
+    sortRowTextActive: { color: colors.brand.orange, fontWeight: '700' },
+    sortCheck: { fontSize: 18, color: colors.brand.orange, fontWeight: '700' },
+  });
+}
