@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Dimensions, FlatList, Image, KeyboardAvoidingView, Modal, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
@@ -15,7 +15,7 @@ const CARD_W  = (WIDTH - 48) / 2;   // same as search grid
 const PSA10_MIN_USD = 385;           // ≈ HK$3,000 at 7.8
 const periods = ['1D', '7D', '1M', '3M', '6M', 'MAX'];
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { fetchHotCards, fetchHotEnCards, getMarketMovers, pptPriceCompat, PPTCard } from '../../lib/pokeprice';
+import { fetchHotCards, fetchHotEnCards, getHotCacheTimestamp, getMarketMovers, pptPriceCompat, PPTCard } from '../../lib/pokeprice';
 import { fetchLowestPrices, LowestListing } from '../../lib/lowestPrices';
 import { fetchHiresJPImages } from '../../lib/jpImages';
 
@@ -331,6 +331,11 @@ export default function HomeScreen() {
   const [topCards, setTopCards] = useState<MarketCard[]>([]);
   const [hotCards, setHotCards] = useState<MarketCard[]>([]);
   const [hotEnCards, setHotEnCards] = useState<MarketCard[]>([]);
+  // Freshness chip below 「今日熱門（日版）」title. `fetched_at` is read from
+  // Supabase card_price_cache row keyed by current HOT_CACHE_KEY (v9). Re-read
+  // on every Home tab focus so the relative-time string stays honest across
+  // app sessions even when the JS bundle is still warm.
+  const [hotFreshness, setHotFreshness] = useState<Date | null>(null);
   const [showPSAModal, setShowPSAModal] = useState(false);
   const [selectedCard, setSelectedCard] = useState<MarketCard | null>(null);
   const [selectedPSA, setSelectedPSA] = useState('10');
@@ -355,6 +360,25 @@ export default function HomeScreen() {
   useFocusEffect(useCallback(() => {
     if (cards.length) setChartData(groupByPeriod(cards, period));
   }, [period, cards]));
+
+  // Read the JP HOT cache's fetched_at on mount for the freshness chip.
+  // Cheap one-shot Supabase read; the row is created by fetchHotCards. If
+  // the row doesn't exist yet (first ever launch), the chip simply hides.
+  useEffect(() => {
+    getHotCacheTimestamp('jp').then(setHotFreshness);
+  }, []);
+
+  // Format a Date as a relative-time string in Chinese, e.g. "3 小時前".
+  // Sub-minute → 「啱啱」, sub-hour → minutes, sub-day → hours, else days.
+  const formatRelative = (date: Date): string => {
+    const ms = Date.now() - date.getTime();
+    const mins = Math.floor(ms / 60000);
+    if (mins < 1) return '啱啱';
+    if (mins < 60) return `${mins} 分鐘前`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} 小時前`;
+    return `${Math.floor(hrs / 24)} 日前`;
+  };
 
   const fetchPortfolio = async () => {
     setLoading(true);
@@ -811,6 +835,14 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>{t('home.todayHotJP')}</Text>
             <Text style={styles.sectionSub}>{t('home.hotSub')}</Text>
           </View>
+          {/* Freshness chip — reassures the user the rail is alive (rotation
+              can look slow on thin JP-grail markets even with a healthy 6h
+              cache refresh; see Fix A / Fix A-2 commits). */}
+          {hotFreshness && (
+            <Text style={styles.hotFreshness}>
+              資料更新於 {formatRelative(hotFreshness)}
+            </Text>
+          )}
           {!marketLoaded ? (
             <View style={styles.sectionLoading}>
               <ActivityIndicator color={colors.brand.orange} size="small" />
@@ -1090,6 +1122,7 @@ function makeStyles(colors: ColorTokens) {
     sectionHeader:       { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 10 },
     sectionTitle:        { fontSize: 17, fontWeight: '800', color: colors.text.primary },
     sectionSub:          { fontSize: 11, color: colors.text.tertiary },
+    hotFreshness:        { fontSize: 11, color: colors.text.tertiary, paddingHorizontal: 16, marginBottom: 8, marginTop: -4, letterSpacing: 0.3 },
     sectionLoading:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 20 },
     sectionLoadingText:  { fontSize: 13, color: colors.text.tertiary },
     cardRow:             { paddingHorizontal: 16, gap: 12, paddingBottom: 4, alignItems: 'stretch' },

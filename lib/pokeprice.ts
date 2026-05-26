@@ -832,3 +832,31 @@ export function pptPriceCompat(card: PPTCard): {
     psa10:  card.price.psa10,
   };
 }
+
+/**
+ * Return the `fetched_at` timestamp of the most recent Supabase HOT cache row
+ * for the requested rail. Used by the Home tab freshness chip ("資料更新於 N 分鐘前").
+ *
+ * Returns null when:
+ *   - the row doesn't exist yet (first ever launch on a clean cache),
+ *   - the Supabase query errors,
+ *   - the row exists but `fetched_at` is malformed.
+ *
+ * Reads only — no cache-key bump or refetch side effect.
+ */
+export async function getHotCacheTimestamp(
+  rail: 'jp' | 'en'
+): Promise<Date | null> {
+  const cacheKey = rail === 'jp' ? HOT_CACHE_KEY : HOT_EN_CACHE_KEY;
+  try {
+    const { data, error } = await supabase
+      .from('card_price_cache')
+      .select('fetched_at')
+      .eq('cache_key', cacheKey)
+      .single();
+    if (error || !data?.fetched_at) return null;
+    return new Date(data.fetched_at as string);
+  } catch {
+    return null;
+  }
+}
