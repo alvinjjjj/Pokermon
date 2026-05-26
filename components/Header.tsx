@@ -60,7 +60,7 @@ function Header() {
   return (
     <View>
       <View style={styles.row1}>
-        <LogoLockup height={32} />
+        <LogoLockup />
       </View>
       <View style={styles.row2}>
 
