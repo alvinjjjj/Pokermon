@@ -1,15 +1,19 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { type ColorTokens } from '../constants/colors';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
 
 const CURRENCIES = ['HKD', 'USD', 'JPY', 'CNY'] as const;
 
 function Header() {
   const { currency, setCurrency } = useCurrency();
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [showDropdown, setShowDropdown]     = useState(false);
   const [unreadCount, setUnreadCount]       = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -129,31 +133,35 @@ function Header() {
 
 export default Header;
 
-const styles = StyleSheet.create({
-  row1: { alignItems: 'center', paddingVertical: 8, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  // Logo.png is 4:1 aspect ratio (2560×640). Height 32 → width 128.
-  logoImg: { height: 32, width: 128 },
-  row2: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  hkdBtn: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  hkdText: { fontSize: 13, color: '#101828' },
-  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  iconWrap: { position: 'relative' },
-  icon: { width: 20, height: 20, tintColor: '#101828' },
-  badge: {
-    position: 'absolute', top: -6, right: -8,
-    backgroundColor: '#FF6900', borderRadius: 10,
-    minWidth: 18, height: 18, paddingHorizontal: 4,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#fff',
-  },
-  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', lineHeight: 12 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    row1: { alignItems: 'center', paddingVertical: 8, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    // Logo.png is 4:1 aspect ratio (2560×640). Height 32 → width 128.
+    logoImg: { height: 32, width: 128 },
+    row2: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    hkdBtn: { borderWidth: 1, borderColor: colors.border.default, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+    hkdText: { fontSize: 13, color: colors.text.primary },
+    iconRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    iconWrap: { position: 'relative' },
+    icon: { width: 20, height: 20, tintColor: colors.text.primary },
+    badge: {
+      position: 'absolute', top: -6, right: -8,
+      backgroundColor: colors.brand.orange, borderRadius: 10,
+      minWidth: 18, height: 18, paddingHorizontal: 4,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: colors.surface.card,
+    },
+    // badgeText stays raw '#fff' — always-white on orange brand fill across both modes
+    badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', lineHeight: 12 },
 
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', paddingTop: 110, paddingHorizontal: 16 },
-  dropdown: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
-  dropdownTitle: { fontSize: 13, fontWeight: '600', color: '#9CA3AF', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 0.5, borderTopColor: '#F3F4F6' },
-  dropdownItemActive: { backgroundColor: '#FFF3EB' },
-  dropdownText: { fontSize: 15, color: '#101828' },
-  dropdownTextActive: { color: '#FF6900', fontWeight: '600' },
-  checkmark: { fontSize: 16, color: '#FF6900', fontWeight: '700' },
-});
+    overlay: { flex: 1, backgroundColor: colors.overlay.light, justifyContent: 'flex-start', paddingTop: 110, paddingHorizontal: 16 },
+    // shadowColor '#000' kept (shadow convention)
+    dropdown: { backgroundColor: colors.surface.elevated, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+    dropdownTitle: { fontSize: 13, fontWeight: '600', color: colors.text.tertiary, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 },
+    dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 0.5, borderTopColor: colors.border.default },
+    dropdownItemActive: { backgroundColor: colors.brand.peach },
+    dropdownText: { fontSize: 15, color: colors.text.primary },
+    dropdownTextActive: { color: colors.brand.orange, fontWeight: '600' },
+    checkmark: { fontSize: 16, color: colors.brand.orange, fontWeight: '700' },
+  });
+}
