@@ -6,6 +6,7 @@ import { type ColorTokens } from '../constants/colors';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../theme/ThemeProvider';
+import { LogoLockup } from './LogoLockup';
 
 const CURRENCIES = ['HKD', 'USD', 'JPY', 'CNY'] as const;
 
@@ -59,11 +60,7 @@ function Header() {
   return (
     <View>
       <View style={styles.row1}>
-        <Image
-          source={require('../assets/images/Logo.png')}
-          style={styles.logoImg}
-          resizeMode="contain"
-        />
+        <LogoLockup height={32} />
       </View>
       <View style={styles.row2}>
 
