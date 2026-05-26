@@ -1,23 +1,25 @@
 import { Tabs } from 'expo-router';
 import { Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   return (
     <Tabs screenOptions={{
         tabBarShowLabel: true,
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: '#fff',
+        backgroundColor: colors.surface.card,
         borderTopWidth: 0.5,
-        borderTopColor: '#E5E7EB',
+        borderTopColor: colors.border.default,
         paddingBottom: 28,
         paddingTop: 10,
         height: 90,
       },
-      tabBarActiveTintColor: '#FF6900',
-      tabBarInactiveTintColor: '#9CA3AF',
+      tabBarActiveTintColor: colors.brand.orange,
+      tabBarInactiveTintColor: colors.text.tertiary,
       tabBarLabelStyle: { fontSize: 10, marginTop: 3 },
     }}>
       <Tabs.Screen name="index" options={{

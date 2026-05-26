@@ -524,6 +524,22 @@ export default function HomeScreen() {
         if (__DEV__) console.warn('[Home] EN hot fetch failed:', e);
       }
 
+      // Fallback: if pokemontcg.io returned 0 cards (rate-limit, network, or
+      // the "Scarlet & Violet" series query no longer matches anything when
+      // the current era set name drifts), build hotEnCards directly from PPT
+      // EN data. Means the rail still populates even when pokemontcg.io is
+      // unavailable — at the cost of less-reliable PPT thumbnails.
+      if (hotEnCards.length === 0) {
+        const pptEnFallback = await fetchHotEnCards(30).catch(() => [] as PPTCard[]);
+        if (pptEnFallback.length > 0) {
+          hotEnCards = pptEnFallback
+            .map(pptCardToMarket)
+            .filter(c => (c._jtcgPrice?.psa10 ?? c._jtcgPrice?.market ?? 0) * 3 >= PSA10_MIN_USD)
+            .slice(0, 10);
+          if (__DEV__) console.log(`[Home] EN rail fallback: pokemontcg.io empty, using ${hotEnCards.length} PPT cards`);
+        }
+      }
+
       // ── Step 6: HK 平台最低價（Supabase listings）──────────────────────
       const allIds = [...topCards, ...hotCards, ...hotEnCards].map(c => c.id).filter(Boolean);
       if (allIds.length) fetchLowestPrices(allIds).then(setLowestPrices);
