@@ -4,7 +4,7 @@ import { Image as ExpoImage } from 'expo-image';
 // import TextRecognition, { TextRecognitionScript } from '@react-native-ml-kit/text-recognition';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,7 +25,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
+import { PSAGradeBadge } from '../../components/PSAGradeBadge';
 import { SkeletonGrid } from '../../components/SkeletonCard';
+import { type ColorTokens } from '../../constants/colors';
 import { JP_SERIES, POKEMON_TCG_API_KEY, POKEMON_TCG_BASE_URL } from '../../constants/config';
 import { BOOSTER_SETS, BoosterSet } from '../../constants/boosterBoxes';
 import { BoxPrices, getBoxPricesMap } from '../../lib/boosterPrices';
@@ -35,6 +37,7 @@ import { fetchHotCards, fetchHotEnCards, getCardPrice as getPPTCardPrice, pptPri
 import { supabase } from '../../lib/supabase';
 import { fetchLowestPrices, LowestListing } from '../../lib/lowestPrices';
 import { fetchHiresJPImages, hasReliableImage } from '../../lib/jpImages';
+import { useTheme } from '../../theme/ThemeProvider';
 
 
 const { width } = Dimensions.get('window');
@@ -118,6 +121,8 @@ export default function SearchScreen() {
   const { convert, currency, rate } = useCurrency();
   const router = useRouter();
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { q: incomingQuery } = useLocalSearchParams<{ q?: string }>();
 
   const CATEGORIES = CATEGORY_KEYS.map(k => ({ key: k, label: k === 'all' ? t('search.catAll') : k }));
@@ -763,18 +768,12 @@ export default function SearchScreen() {
           <Text style={styles.cardSet}  numberOfLines={1}>{item.set.name}</Text>
           {item.rarity && <Text style={styles.cardRarity} numberOfLines={1}>{item.rarity}</Text>}
 
-          <View style={[styles.psaRow,
-            psaLabel === 'PSA 10' ? styles.psaRowJP :
-            psaLabel === 'PSA 9'  ? styles.psaRowEN :
-            styles.psaRowRaw
-          ]}>
-            <Text style={[styles.psaRowText,
-              psaLabel === 'PSA 10' ? styles.psaRowTextJP :
-              psaLabel === 'PSA 9'  ? styles.psaRowTextEN :
-              styles.psaRowTextRaw
-            ]}>
-              {psaLabel}
-            </Text>
+          {/* Vol.03 §A.3: outline-pattern badge replaces fill-pattern psaRow */}
+          <View style={{ marginBottom: 6 }}>
+            <PSAGradeBadge
+              grade={psaLabel === 'PSA 10' ? '10' : psaLabel === 'PSA 9' ? '9' : 'raw'}
+              size="sm"
+            />
           </View>
 
           <Text style={[styles.cardPrice, isEstimate && styles.cardPriceEstimate]}>
@@ -965,7 +964,7 @@ export default function SearchScreen() {
               <View style={styles.boxPriceSep} />
               <View style={styles.boxPriceItem}>
                 <Text style={styles.boxPriceLabel}>{t('search.boxPrice')}</Text>
-                <Text style={[styles.boxPriceValue, { color: '#FF6900' }]} numberOfLines={1} adjustsFontSizeToFit>{boxPrice}</Text>
+                <Text style={[styles.boxPriceValue, { color: colors.brand.orange }]} numberOfLines={1} adjustsFontSizeToFit>{boxPrice}</Text>
               </View>
             </View>
           )}
@@ -1008,7 +1007,7 @@ export default function SearchScreen() {
       <View style={styles.searchWrap}>
         {mode === 'cards' && (
           <TouchableOpacity style={styles.cameraBtn} onPress={openCameraScanner}>
-            <Image source={require('../../assets/icons/camera.png')} style={{ width: 20, height: 20, tintColor: '#6B7280' }} />
+            <Image source={require('../../assets/icons/camera.png')} style={{ width: 20, height: 20, tintColor: colors.text.secondary }} />
           </TouchableOpacity>
         )}
         <View style={styles.searchBox}>
@@ -1017,7 +1016,7 @@ export default function SearchScreen() {
             <TextInput
               style={styles.searchInput}
               placeholder={t('search.searchPlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={query}
               onChangeText={handleSearch}
               autoCorrect={false}
@@ -1026,7 +1025,7 @@ export default function SearchScreen() {
             <TextInput
               style={styles.searchInput}
               placeholder={t('search.boxSearchPlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={boxQuery}
               onChangeText={setBoxQuery}
               autoCorrect={false}
@@ -1114,8 +1113,8 @@ export default function SearchScreen() {
             ListFooterComponent={() => (
               <View style={{ alignItems: 'center', paddingVertical: 20, paddingBottom: 100 }}>
                 {hasMoreResults
-                  ? <ActivityIndicator size="small" color="#9CA3AF" />
-                  : <Text style={{ fontSize: 13, color: '#9CA3AF' }}>{t('search.allShown')}</Text>}
+                  ? <ActivityIndicator size="small" color={colors.text.tertiary} />
+                  : <Text style={{ fontSize: 13, color: colors.text.tertiary }}>{t('search.allShown')}</Text>}
               </View>
             )}
           />
@@ -1212,7 +1211,7 @@ export default function SearchScreen() {
                   value={scanResult}
                   onChangeText={setScanResult}
                   placeholder={t('search.scanResultPlaceholder')}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.text.tertiary}
                 />
                 {scanResult.trim().length === 0 && (
                   <Text style={styles.scanHint}>
@@ -1299,7 +1298,7 @@ export default function SearchScreen() {
               <TextInput
                 style={styles.customPriceInput}
                 placeholder={t('search.customPricePlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
                 keyboardType="decimal-pad"
                 value={customPrice}
                 onChangeText={setCustomPrice}
@@ -1445,7 +1444,7 @@ export default function SearchScreen() {
               <TextInput
                 style={styles.customPriceInput}
                 placeholder={t('search.customPricePlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
                 keyboardType="decimal-pad"
                 value={boxCustomPrice}
                 onChangeText={setBoxCustomPrice}
@@ -1521,148 +1520,159 @@ export default function SearchScreen() {
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  safe:                    { flex: 1, backgroundColor: '#F9FAFB' },
-  searchWrap:              { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cameraBtn:               { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  cameraBtnText:           { fontSize: 20 },
-  searchBox:               { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  scanPreviewImg:          { width: '100%', height: 200, borderRadius: 12, marginBottom: 14 },
-  scanLoadingWrap:         { alignItems: 'center', paddingVertical: 20, gap: 10 },
-  scanLoadingText:         { fontSize: 15, color: '#6B7280' },
-  scanLabel:               { fontSize: 13, color: '#9CA3AF', marginBottom: 6 },
-  scanInput:               { backgroundColor: '#F9FAFB', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: '#101828', borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 8 },
-  scanHint:                { fontSize: 12, color: '#F59E0B', marginBottom: 16 },
-  searchIcon:              { fontSize: 16 },
-  searchIconImg:           { width: 16, height: 16, tintColor: '#9CA3AF', resizeMode: 'contain' },
-  searchInput:             { flex: 1, fontSize: 15, color: '#101828' },
-  clearBtn:                { fontSize: 14, color: '#9CA3AF', paddingHorizontal: 4 },
-  filterWrap:              { backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  filterRow:               { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
-  langBtn:                 { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  langBtnActive:           { backgroundColor: '#101828', borderColor: '#101828' },
-  langText:                { fontSize: 13, color: '#6B7280' },
-  langTextActive:          { color: '#fff', fontWeight: '600' },
-  catBtn:                  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  catBtnActive:            { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  catText:                 { fontSize: 13, color: '#6B7280' },
-  catTextActive:           { color: '#fff', fontWeight: '600' },
-  psaBtn:                  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#fff' },
-  psaBtnActive:            { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  psaText:                 { fontSize: 13, color: '#6B7280' },
-  psaTextActive:           { color: '#fff', fontWeight: '600' },
-  emptyWrap:               { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 60 },
-  loadingText:             { fontSize: 15, color: '#9CA3AF', marginTop: 8 },
-  hotLoadingText:          { fontSize: 12, color: '#9CA3AF' },
-  // Mode toggle
-  modeToggleWrap:          { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, gap: 8, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  modeBtn:                 { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: '#F3F4F6', alignItems: 'center' },
-  modeBtnActive:           { backgroundColor: '#FF6900' },
-  modeBtnText:             { fontSize: 14, fontWeight: '600', color: '#6B7280' },
-  modeBtnTextActive:       { color: '#fff' },
-  // Booster box list
-  boxListHeader:           { marginBottom: 8, paddingHorizontal: 4 },
-  boxListTitle:            { fontSize: 17, fontWeight: '800', color: '#101828' },
-  boxListSub:              { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  boxImageArea:            { alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  boxPackImage:            { width: '100%', height: '100%' },   // primary — fills full area
-  boxLogoImage:            { width: '75%', height: '60%' },     // fallback logo — centred
-  boxBigEmoji:             { fontSize: 48 },
-  boxPriceRow:             { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4, minHeight: 36 },
-  boxPriceItem:            { flex: 1, alignItems: 'center', overflow: 'hidden' },
-  boxPriceLabel:           { fontSize: 9, color: '#9CA3AF', fontWeight: '500', marginBottom: 1 },
-  boxPriceValue:           { fontSize: 13, fontWeight: '800', color: '#101828', marginBottom: 2 },
-  boxPriceSep:             { width: 1, height: 24, backgroundColor: '#E5E7EB' },
-  boxRetailHint:           { fontSize: 9, color: '#C4C9D4', marginTop: 4 },
-  // Box modal
-  boxModalHeader:          { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  boxModalImage:           { width: 90, height: 90, borderRadius: 10, backgroundColor: '#fff' },
-  boxModalInfo:            { flex: 1 },
-  boxConditionLabel:       { fontSize: 14, fontWeight: '700', color: '#101828', marginBottom: 10 },
-  customPriceWrap:         { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
-  customPriceLabel:        { fontSize: 14, fontWeight: '700', color: '#101828', marginBottom: 3 },
-  customPriceHint:         { fontSize: 11, color: '#9CA3AF', marginBottom: 10 },
-  customPriceInput:        { backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, color: '#101828', borderWidth: 1.5, borderColor: '#E5E7EB' },
-  customPricePreview:      { fontSize: 12, color: '#FF6900', fontWeight: '600', marginTop: 8 },
-  // Quantity stepper
-  qtyWrap:                 { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F9FAFB', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
-  qtyLabel:                { fontSize: 14, fontWeight: '700', color: '#101828' },
-  qtyRow:                  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  qtyBtn:                  { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' },
-  qtyBtnDisabled:          { opacity: 0.35 },
-  qtyBtnText:              { fontSize: 20, fontWeight: '700', color: '#101828', lineHeight: 22 },
-  qtyValueInput:           { width: 56, height: 36, textAlign: 'center', fontSize: 16, fontWeight: '700', color: '#101828', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1.5, borderColor: '#E5E7EB', paddingVertical: 0 },
-  emptyEmoji:              { fontSize: 48 },
-  emptyTitle:              { fontSize: 18, fontWeight: '700', color: '#101828' },
-  emptySub:                { fontSize: 14, color: '#9CA3AF' },
-  hotHeader:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  hotTitle:                { fontSize: 16, fontWeight: '800', color: '#101828' },
-  grid:                    { padding: 16 },
-  gridRow:                 { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  sectionHeader:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, marginBottom: 12, marginTop: 4 },
-  sectionHeaderJP:         { backgroundColor: '#EEF2FF' },
-  sectionHeaderEN:         { backgroundColor: '#FFF3EB' },
-  sectionHeaderText:       { fontSize: 15, fontWeight: '700', color: '#101828' },
-  sectionCount:            { fontSize: 12, color: '#9CA3AF' },
-  card:                    { width: CARD_W, backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB', flexDirection: 'column' },
-  cardImage:               { width: '100%', height: CARD_W * 1.4, backgroundColor: '#F9FAFB' },
-  cardImagePlaceholder:    { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
-  cardImagePlaceholderText:{ fontSize: 11, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 8 },
-  langBadge:               { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  langBadgeEN:             { backgroundColor: 'rgba(0,0,0,0.55)' },
-  langBadgeJP:             { backgroundColor: 'rgba(180,0,0,0.75)' },
-  langBadgeText:           { fontSize: 10, color: '#fff', fontWeight: '700' },
-  liveTag:                 { position: 'absolute', top: 8, right: 8, backgroundColor: '#00A63E', borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
-  liveTagText:             { fontSize: 9, color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
-  cardBody:                { padding: 10, paddingBottom: 4, flex: 1 },
-  cardName:                { fontSize: 13, fontWeight: '700', color: '#101828', marginBottom: 2 },
-  cardSet:                 { fontSize: 11, color: '#6B7280', marginBottom: 2 },
-  cardRarity:              { fontSize: 11, color: '#3B82F6', fontWeight: '500', marginBottom: 4 },
-  psaRow:                  { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, marginBottom: 6, alignSelf: 'flex-start' },
-  psaRowJP:                { backgroundColor: '#FFF3E8' },
-  psaRowEN:                { backgroundColor: '#F3F4F6' },
-  psaRowRaw:               { backgroundColor: '#FFF7ED' },
-  psaRowText:              { fontSize: 11, fontWeight: '600' },
-  psaRowTextJP:            { color: '#FF6900' },
-  psaRowTextEN:            { color: '#6B7280' },
-  psaRowTextRaw:           { color: '#FF6900' },
-  cardPrice:               { fontSize: 15, fontWeight: '800', color: '#101828', marginBottom: 4 },
-  cardPriceEstimate:       { color: '#6B7280', fontSize: 13 },
-  change30Row:             { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  change30Text:            { fontSize: 11, fontWeight: '700' },
-  change30Up:              { color: '#00A63E' },
-  change30Down:            { color: '#E7000B' },
-  change30Label:           { fontSize: 10, color: '#9CA3AF' },
-  merchantBtn:             { backgroundColor: '#ECFDF5', marginHorizontal: 10, marginBottom: 6, borderRadius: 8, paddingVertical: 7, alignItems: 'center', borderWidth: 1, borderColor: '#A7F3D0' },
-  merchantBtnText:         { fontSize: 11, fontWeight: '700', color: '#065F46' },
-  addBtn:                  { backgroundColor: '#FF6900', marginHorizontal: 10, marginBottom: 10, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  addBtnAdded:             { backgroundColor: '#00A63E' },
-  addBtnText:              { fontSize: 14, fontWeight: '700', color: '#fff' },
-  modalOverlay:            { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  // Inside the KeyboardAvoidingView the ScrollView needs flexGrow so the card sticks to the bottom
-  modalScrollContent:      { flexGrow: 1, justifyContent: 'flex-end' },
-  modalCard:               { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  modalTitle:              { fontSize: 20, fontWeight: '800', color: '#101828', marginBottom: 4 },
-  modalSub:                { fontSize: 14, color: '#6B7280', marginBottom: 12 },
-  modalJpHint:             { backgroundColor: '#EEF2FF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 },
-  modalJpHintText:         { fontSize: 13, color: '#4F46E5', fontWeight: '600' },
-  pricePreviewRow:         { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  pricePreviewBox:         { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  pricePreviewBoxActive:   { backgroundColor: '#FFF3E8', borderColor: '#FF6900' },
-  pricePreviewGrade:       { fontSize: 11, color: '#9CA3AF', fontWeight: '600', marginBottom: 4 },
-  pricePreviewGradeActive: { color: '#FF6900' },
-  pricePreviewAmount:      { fontSize: 13, fontWeight: '800', color: '#101828' },
-  pricePreviewAmountActive:{ color: '#FF6900' },
-  liveSmall:               { fontSize: 9, color: '#00A63E', fontWeight: '800', marginTop: 2 },
-  psaGrid:                 { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  psaGridBtn:              { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center' },
-  psaGridBtnActive:        { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  psaGridText:             { fontSize: 15, color: '#6B7280', fontWeight: '500' },
-  psaGridTextActive:       { color: '#fff', fontWeight: '700' },
-  ebayLinkBtn:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF2FF', borderRadius: 12, paddingVertical: 11, marginBottom: 18, borderWidth: 1, borderColor: '#C7D2FE' },
-  ebayLinkText:            { fontSize: 14, fontWeight: '700', color: '#4F46E5' },
-  confirmBtn:              { backgroundColor: '#FF6900', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
-  confirmBtnText:          { fontSize: 16, fontWeight: '700', color: '#fff' },
-  cancelBtn:               { alignItems: 'center', paddingVertical: 12 },
-  cancelBtnText:           { fontSize: 15, color: '#9CA3AF' },
-});
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:                    { flex: 1, backgroundColor: colors.surface.section },
+    searchWrap:              { backgroundColor: colors.surface.card, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: colors.border.default, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    cameraBtn:               { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border.default },
+    cameraBtnText:           { fontSize: 20 },
+    searchBox:               { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface.section, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+    scanPreviewImg:          { width: '100%', height: 200, borderRadius: 12, marginBottom: 14 },
+    scanLoadingWrap:         { alignItems: 'center', paddingVertical: 20, gap: 10 },
+    scanLoadingText:         { fontSize: 15, color: colors.text.secondary },
+    scanLabel:               { fontSize: 13, color: colors.text.tertiary, marginBottom: 6 },
+    scanInput:               { backgroundColor: colors.surface.section, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: colors.text.primary, borderWidth: 1, borderColor: colors.border.default, marginBottom: 8 },
+    // Vol.03: amber removed — scan hint uses brand.orange instead
+    scanHint:                { fontSize: 12, color: colors.brand.orange, marginBottom: 16 },
+    searchIcon:              { fontSize: 16 },
+    searchIconImg:           { width: 16, height: 16, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    searchInput:             { flex: 1, fontSize: 15, color: colors.text.primary },
+    clearBtn:                { fontSize: 14, color: colors.text.tertiary, paddingHorizontal: 4 },
+    filterWrap:              { backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    filterRow:               { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
+    langBtn:                 { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border.default, backgroundColor: colors.surface.card },
+    langBtnActive:           { backgroundColor: colors.text.primary, borderColor: colors.text.primary },
+    langText:                { fontSize: 13, color: colors.text.secondary },
+    langTextActive:          { color: colors.text.inverse, fontWeight: '600' },
+    catBtn:                  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border.default, backgroundColor: colors.surface.card },
+    catBtnActive:            { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    catText:                 { fontSize: 13, color: colors.text.secondary },
+    catTextActive:           { color: colors.text.inverse, fontWeight: '600' },
+    psaBtn:                  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: colors.border.default, backgroundColor: colors.surface.card },
+    psaBtnActive:            { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    psaText:                 { fontSize: 13, color: colors.text.secondary },
+    psaTextActive:           { color: colors.text.inverse, fontWeight: '600' },
+    emptyWrap:               { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 60 },
+    loadingText:             { fontSize: 15, color: colors.text.tertiary, marginTop: 8 },
+    hotLoadingText:          { fontSize: 12, color: colors.text.tertiary },
+    // Mode toggle
+    modeToggleWrap:          { flexDirection: 'row', backgroundColor: colors.surface.card, paddingHorizontal: 16, paddingVertical: 8, gap: 8, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    modeBtn:                 { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.surface.section, alignItems: 'center' },
+    modeBtnActive:           { backgroundColor: colors.brand.orange },
+    modeBtnText:             { fontSize: 14, fontWeight: '600', color: colors.text.secondary },
+    modeBtnTextActive:       { color: colors.text.inverse },
+    // Booster box list
+    boxListHeader:           { marginBottom: 8, paddingHorizontal: 4 },
+    boxListTitle:            { fontSize: 17, fontWeight: '800', color: colors.text.primary },
+    boxListSub:              { fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
+    boxImageArea:            { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface.card },
+    boxPackImage:            { width: '100%', height: '100%' },
+    boxLogoImage:            { width: '75%', height: '60%' },
+    boxBigEmoji:             { fontSize: 48 },
+    boxPriceRow:             { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4, minHeight: 36 },
+    boxPriceItem:            { flex: 1, alignItems: 'center', overflow: 'hidden' },
+    boxPriceLabel:           { fontSize: 9, color: colors.text.tertiary, fontWeight: '500', marginBottom: 1 },
+    boxPriceValue:           { fontSize: 13, fontWeight: '800', color: colors.text.primary, marginBottom: 2 },
+    boxPriceSep:             { width: 1, height: 24, backgroundColor: colors.border.default },
+    boxRetailHint:           { fontSize: 9, color: colors.text.tertiary, marginTop: 4 },
+    // Box modal
+    boxModalHeader:          { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    boxModalImage:           { width: 90, height: 90, borderRadius: 10, backgroundColor: colors.surface.card },
+    boxModalInfo:            { flex: 1 },
+    boxConditionLabel:       { fontSize: 14, fontWeight: '700', color: colors.text.primary, marginBottom: 10 },
+    customPriceWrap:         { backgroundColor: colors.surface.section, borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: colors.border.default },
+    customPriceLabel:        { fontSize: 14, fontWeight: '700', color: colors.text.primary, marginBottom: 3 },
+    customPriceHint:         { fontSize: 11, color: colors.text.tertiary, marginBottom: 10 },
+    customPriceInput:        { backgroundColor: colors.surface.card, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, color: colors.text.primary, borderWidth: 1.5, borderColor: colors.border.default },
+    customPricePreview:      { fontSize: 12, color: colors.brand.orange, fontWeight: '600', marginTop: 8 },
+    // Quantity stepper
+    qtyWrap:                 { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface.section, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16, borderWidth: 1, borderColor: colors.border.default },
+    qtyLabel:                { fontSize: 14, fontWeight: '700', color: colors.text.primary },
+    qtyRow:                  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    qtyBtn:                  { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.surface.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.border.default },
+    qtyBtnDisabled:          { opacity: 0.35 },
+    qtyBtnText:              { fontSize: 20, fontWeight: '700', color: colors.text.primary, lineHeight: 22 },
+    qtyValueInput:           { width: 56, height: 36, textAlign: 'center', fontSize: 16, fontWeight: '700', color: colors.text.primary, backgroundColor: colors.surface.card, borderRadius: 10, borderWidth: 1.5, borderColor: colors.border.default, paddingVertical: 0 },
+    emptyEmoji:              { fontSize: 48 },
+    emptyTitle:              { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    emptySub:                { fontSize: 14, color: colors.text.tertiary },
+    hotHeader:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    hotTitle:                { fontSize: 16, fontWeight: '800', color: colors.text.primary },
+    grid:                    { padding: 16 },
+    gridRow:                 { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+    sectionHeader:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, marginBottom: 12, marginTop: 4 },
+    // sectionHeaderJP/EN: info-tinted backgrounds kept raw — no canonical 'info-bg-tint' token (same as merchantBtn green pattern)
+    sectionHeaderJP:         { backgroundColor: '#EEF2FF' },
+    sectionHeaderEN:         { backgroundColor: colors.brand.peach },
+    sectionHeaderText:       { fontSize: 15, fontWeight: '700', color: colors.text.primary },
+    sectionCount:            { fontSize: 12, color: colors.text.tertiary },
+    card:                    { width: CARD_W, backgroundColor: colors.surface.card, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default, flexDirection: 'column' },
+    cardImage:               { width: '100%', height: CARD_W * 1.4, backgroundColor: colors.surface.section },
+    cardImagePlaceholder:    { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface.section },
+    cardImagePlaceholderText:{ fontSize: 11, color: colors.text.tertiary, textAlign: 'center', paddingHorizontal: 8 },
+    langBadge:               { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+    langBadgeEN:             { backgroundColor: 'rgba(0,0,0,0.55)' },
+    langBadgeJP:             { backgroundColor: 'rgba(180,0,0,0.75)' },
+    // langBadgeText stays raw '#fff' — always-white on dark JP/EN badge bg
+    langBadgeText:           { fontSize: 10, color: '#fff', fontWeight: '700' },
+    // liveTag stays raw #00A63E success-bright — semantic LIVE indicator (same as Home)
+    liveTag:                 { position: 'absolute', top: 8, right: 8, backgroundColor: '#00A63E', borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2 },
+    liveTagText:             { fontSize: 9, color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
+    cardBody:                { padding: 10, paddingBottom: 4, flex: 1 },
+    cardName:                { fontSize: 13, fontWeight: '700', color: colors.text.primary, marginBottom: 2 },
+    cardSet:                 { fontSize: 11, color: colors.text.secondary, marginBottom: 2 },
+    cardRarity:              { fontSize: 11, color: colors.state.info, fontWeight: '500', marginBottom: 4 },
+    // psaRow / psaRowJP / psaRowEN / psaRowRaw: NOT used for PSA badge anymore (replaced
+    // with <PSAGradeBadge /> Phase 3 component, Vol.03 outline-pattern). Retained for
+    // OTHER uses in this file (JP packs/box info pills at lines ~957, ~1406).
+    psaRow:                  { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, marginBottom: 6, alignSelf: 'flex-start' },
+    psaRowJP:                { backgroundColor: colors.brand.peach },
+    psaRowEN:                { backgroundColor: colors.surface.section },
+    psaRowRaw:               { backgroundColor: colors.brand.peach },
+    psaRowText:              { fontSize: 11, fontWeight: '600' },
+    psaRowTextJP:            { color: colors.brand.orange },
+    psaRowTextEN:            { color: colors.text.secondary },
+    psaRowTextRaw:           { color: colors.brand.orange },
+    cardPrice:               { fontSize: 15, fontWeight: '800', color: colors.text.primary, marginBottom: 4 },
+    cardPriceEstimate:       { color: colors.text.secondary, fontSize: 13 },
+    change30Row:             { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+    change30Text:            { fontSize: 11, fontWeight: '700' },
+    // Vol.03 D2: Sage Strong / Brick (replaces iOS green / pure red)
+    change30Up:              { color: colors.state.upStrong },
+    change30Down:            { color: colors.state.down },
+    change30Label:           { fontSize: 10, color: colors.text.tertiary },
+    // merchantBtn green-tint cluster kept raw (no 'success-tint bg' token, same as Home)
+    merchantBtn:             { backgroundColor: '#ECFDF5', marginHorizontal: 10, marginBottom: 6, borderRadius: 8, paddingVertical: 7, alignItems: 'center', borderWidth: 1, borderColor: '#A7F3D0' },
+    merchantBtnText:         { fontSize: 11, fontWeight: '700', color: '#065F46' },
+    addBtn:                  { backgroundColor: colors.brand.orange, marginHorizontal: 10, marginBottom: 10, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
+    addBtnAdded:             { backgroundColor: colors.state.upStrong },
+    addBtnText:              { fontSize: 14, fontWeight: '700', color: colors.text.inverse },
+    modalOverlay:            { flex: 1, backgroundColor: colors.overlay.medium, justifyContent: 'flex-end' },
+    modalScrollContent:      { flexGrow: 1, justifyContent: 'flex-end' },
+    modalCard:               { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle:               { fontSize: 20, fontWeight: '800', color: colors.text.primary, marginBottom: 4 },
+    modalSub:                { fontSize: 14, color: colors.text.secondary, marginBottom: 12 },
+    // modalJpHint / ebayLinkBtn info-tinted backgrounds: kept raw (no canonical info-bg-tint token)
+    modalJpHint:             { backgroundColor: '#EEF2FF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12 },
+    modalJpHintText:         { fontSize: 13, color: colors.state.info, fontWeight: '600' },
+    pricePreviewRow:         { flexDirection: 'row', gap: 8, marginBottom: 20 },
+    pricePreviewBox:         { flex: 1, backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    pricePreviewBoxActive:   { backgroundColor: colors.brand.peach, borderColor: colors.brand.orange },
+    pricePreviewGrade:       { fontSize: 11, color: colors.text.tertiary, fontWeight: '600', marginBottom: 4 },
+    pricePreviewGradeActive: { color: colors.brand.orange },
+    pricePreviewAmount:      { fontSize: 13, fontWeight: '800', color: colors.text.primary },
+    pricePreviewAmountActive:{ color: colors.brand.orange },
+    liveSmall:               { fontSize: 9, color: colors.state.upStrong, fontWeight: '800', marginTop: 2 },
+    psaGrid:                 { flexDirection: 'row', gap: 12, marginBottom: 24 },
+    psaGridBtn:              { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border.default, backgroundColor: colors.surface.section, alignItems: 'center' },
+    psaGridBtnActive:        { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    psaGridText:             { fontSize: 15, color: colors.text.secondary, fontWeight: '500' },
+    psaGridTextActive:       { color: colors.text.inverse, fontWeight: '700' },
+    ebayLinkBtn:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF2FF', borderRadius: 12, paddingVertical: 11, marginBottom: 18, borderWidth: 1, borderColor: '#C7D2FE' },
+    ebayLinkText:            { fontSize: 14, fontWeight: '700', color: colors.state.info },
+    confirmBtn:              { backgroundColor: colors.brand.orange, borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
+    confirmBtnText:          { fontSize: 16, fontWeight: '700', color: colors.text.inverse },
+    cancelBtn:               { alignItems: 'center', paddingVertical: 12 },
+    cancelBtnText:           { fontSize: 15, color: colors.text.tertiary },
+  });
+}
