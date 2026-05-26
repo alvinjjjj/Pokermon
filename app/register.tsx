@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 /**
  * Passwordless phone OTP registration.
@@ -25,6 +27,8 @@ import { supabase } from '../lib/supabase';
  * UX framing; the backend treats them identically.
  */
 export default function RegisterScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t }  = useTranslation();
 
@@ -77,7 +81,7 @@ export default function RegisterScreen() {
             <TextInput
               style={styles.input}
               placeholder="91234567"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -99,6 +103,7 @@ export default function RegisterScreen() {
             accessibilityLabel={t('login.sendCode')}
           >
             {loading
+              // '#fff' kept raw — always-white on Card Orange
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.registerBtnText}>{t('register.registerBtn')}</Text>}
           </TouchableOpacity>
@@ -119,24 +124,27 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe:      { flex: 1, backgroundColor: '#fff' },
-  container: { paddingHorizontal: 24, paddingBottom: 40 },
-  logoImg:   { height: 40, width: 160, alignSelf: 'center', marginTop: 16, marginBottom: 32 },
-  title:     { fontSize: 28, fontWeight: '800', color: '#101828', marginBottom: 6 },
-  sub:       { fontSize: 15, color: '#9CA3AF', marginBottom: 32 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:      { flex: 1, backgroundColor: colors.surface.card },
+    container: { paddingHorizontal: 24, paddingBottom: 40 },
+    logoImg:   { height: 40, width: 160, alignSelf: 'center', marginTop: 16, marginBottom: 32 },
+    title:     { fontSize: 28, fontWeight: '800', color: colors.text.primary, marginBottom: 6 },
+    sub:       { fontSize: 15, color: colors.text.tertiary, marginBottom: 32 },
 
-  label:           { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 10 },
-  inputBox:        { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 8 },
-  inputBoxActive:  { borderColor: '#FF6900' },
-  countryCode:     { fontSize: 15, fontWeight: '600', color: '#6B7280', marginRight: 8 },
-  input:           { flex: 1, fontSize: 15, color: '#101828' },
-  helperText:      { fontSize: 12, color: '#9CA3AF', marginBottom: 20 },
+    label:           { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 10 },
+    inputBox:        { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border.default, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 8 },
+    inputBoxActive:  { borderColor: colors.brand.orange },
+    countryCode:     { fontSize: 15, fontWeight: '600', color: colors.text.secondary, marginRight: 8 },
+    input:           { flex: 1, fontSize: 15, color: colors.text.primary },
+    helperText:      { fontSize: 12, color: colors.text.tertiary, marginBottom: 20 },
 
-  registerBtn:     { backgroundColor: '#FF6900', borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginTop: 12, marginBottom: 24 },
-  registerBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
+    registerBtn:     { backgroundColor: colors.brand.orange, borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginTop: 12, marginBottom: 24 },
+    // '#fff' kept raw — always-white on Card Orange
+    registerBtnText: { fontSize: 17, fontWeight: '600', color: '#fff' },
 
-  loginRow:        { flexDirection: 'row', justifyContent: 'center' },
-  loginText:       { fontSize: 14, color: '#9CA3AF' },
-  loginLink:       { fontSize: 14, color: '#FF6900', fontWeight: '700' },
-});
+    loginRow:        { flexDirection: 'row', justifyContent: 'center' },
+    loginText:       { fontSize: 14, color: colors.text.tertiary },
+    loginLink:       { fontSize: 14, color: colors.brand.orange, fontWeight: '700' },
+  });
+}

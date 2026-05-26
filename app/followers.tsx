@@ -10,7 +10,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FlatList,
@@ -23,6 +23,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Loader from '../components/Loader';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 type Row = {
   id: string;            // profile id
@@ -32,6 +34,8 @@ type Row = {
 };
 
 export default function FollowersScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t }  = useTranslation();
   const params = useLocalSearchParams<{ userId?: string }>();
@@ -162,7 +166,7 @@ export default function FollowersScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-          <Ionicons name="chevron-back" size={26} color="#101828" />
+          <Ionicons name="chevron-back" size={26} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>{t('profile.followers')}</Text>
         <View style={{ width: 26 }} />
@@ -188,45 +192,48 @@ export default function FollowersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-  },
-  backBtn: { padding: 4 },
-  title: { fontSize: 16, fontWeight: '700', color: '#101828' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { fontSize: 14, color: '#9CA3AF' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.card },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border.default,
+    },
+    backBtn: { padding: 4 },
+    title: { fontSize: 16, fontWeight: '700', color: colors.text.primary },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    emptyTitle: { fontSize: 14, color: colors.text.tertiary },
 
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-  },
-  avatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarIcon: { width: 24, height: 24, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  info: { flex: 1, minWidth: 0 },
-  username: { fontSize: 14, fontWeight: '600', color: '#101828' },
-  bio: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 12,
+    },
+    avatar: {
+      width: 48, height: 48, borderRadius: 24,
+      backgroundColor: colors.surface.section,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarIcon: { width: 24, height: 24, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    info: { flex: 1, minWidth: 0 },
+    username: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
+    bio: { fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
 
-  followBtn: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 8, backgroundColor: '#FF6900',
-    minWidth: 80, alignItems: 'center',
-  },
-  followingBtn: { backgroundColor: '#F3F4F6' },
-  followText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  followingText: { color: '#374151' },
-});
+    followBtn: {
+      paddingHorizontal: 14, paddingVertical: 7,
+      borderRadius: 8, backgroundColor: colors.brand.orange,
+      minWidth: 80, alignItems: 'center',
+    },
+    followingBtn: { backgroundColor: colors.surface.section },
+    // '#fff' kept raw — always-white on Card Orange
+    followText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+    followingText: { color: colors.text.primary },
+  });
+}

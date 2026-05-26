@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,9 +8,36 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 export default function TermsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
+
+  // Sub-components live inside so they close over themed `styles`.
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+
+  const Para = ({ children, style }: { children: React.ReactNode; style?: object }) => (
+    <Text style={[styles.para, style]}>{children}</Text>
+  );
+
+  const BulletList = ({ items }: { items: string[] }) => (
+    <View style={styles.bulletList}>
+      {items.map((item, i) => (
+        <View key={i} style={styles.bulletRow}>
+          <Text style={styles.bullet}>•</Text>
+          <Text style={styles.bulletText}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -185,62 +213,36 @@ export default function TermsScreen() {
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Para({ children, style }: { children: React.ReactNode; style?: object }) {
-  return <Text style={[styles.para, style]}>{children}</Text>;
-}
-
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <View style={styles.bulletList}>
-      {items.map((item, i) => (
-        <View key={i} style={styles.bulletRow}>
-          <Text style={styles.bullet}>•</Text>
-          <Text style={styles.bulletText}>{item}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB',
-  },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
 
-  content: { paddingHorizontal: 20, paddingTop: 20 },
-  lastUpdated: { fontSize: 12, color: '#9CA3AF', marginBottom: 16 },
-  intro: { fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 24 },
+    content: { paddingHorizontal: 20, paddingTop: 20 },
+    lastUpdated: { fontSize: 12, color: colors.text.tertiary, marginBottom: 16 },
+    intro: { fontSize: 14, color: colors.text.primary, lineHeight: 22, marginBottom: 24 },
 
-  section: { marginBottom: 24 },
-  sectionTitle: {
-    fontSize: 16, fontWeight: '700', color: '#101828',
-    marginBottom: 10, paddingBottom: 8,
-    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-  },
-  para: { fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 10 },
-  contactText: { color: '#FF6900', fontWeight: '600' },
+    section: { marginBottom: 24 },
+    sectionTitle: {
+      fontSize: 16, fontWeight: '700', color: colors.text.primary,
+      marginBottom: 10, paddingBottom: 8,
+      borderBottomWidth: 1, borderBottomColor: colors.border.default,
+    },
+    para: { fontSize: 14, color: colors.text.primary, lineHeight: 22, marginBottom: 10 },
+    contactText: { color: colors.brand.orange, fontWeight: '600' },
 
-  bulletList: { marginBottom: 10, gap: 6 },
-  bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  bullet: { fontSize: 14, color: '#FF6900', lineHeight: 22, width: 12 },
-  bulletText: { flex: 1, fontSize: 14, color: '#374151', lineHeight: 22 },
-});
+    bulletList: { marginBottom: 10, gap: 6 },
+    bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+    bullet: { fontSize: 14, color: colors.brand.orange, lineHeight: 22, width: 12 },
+    bulletText: { flex: 1, fontSize: 14, color: colors.text.primary, lineHeight: 22 },
+  });
+}

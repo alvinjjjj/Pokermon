@@ -1,7 +1,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,6 +34,8 @@ WebBrowser.maybeCompleteAuthSession();
 type LoginStep = 'choose' | 'phone';
 
 export default function LoginScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t }  = useTranslation();
 
@@ -119,8 +123,10 @@ export default function LoginScreen() {
               <TouchableOpacity style={[styles.socialBtn, styles.primaryBtn]} onPress={() => setStep('phone')}>
                 <Image
                   source={require('../assets/icons/message.png')}
+                  // '#fff' kept raw — always-white on Card Orange
                   style={[styles.socialIcon, { tintColor: '#fff' }]}
                 />
+                {/* '#fff' kept raw — always-white on Card Orange */}
                 <Text style={[styles.socialText, { color: '#fff' }]}>{t('login.phoneLogin')}</Text>
               </TouchableOpacity>
 
@@ -154,7 +160,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="91234567"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.text.tertiary}
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
@@ -175,6 +181,7 @@ export default function LoginScreen() {
                     accessibilityLabel={t('login.sendCode')}
                   >
                     {loading
+                      // '#fff' kept raw — always-white on Card Orange
                       ? <ActivityIndicator color="#fff" />
                       : <Text style={styles.loginBtnText}>{t('login.sendCode')}</Text>}
                   </TouchableOpacity>
@@ -196,40 +203,43 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe:        { flex: 1, backgroundColor: '#fff' },
-  container:   { paddingHorizontal: 24, paddingBottom: 40 },
-  // Logo.png is 4:1 — height 40 → width 160, centered with top padding for visual balance
-  logoImg:     { height: 40, width: 160, alignSelf: 'center', marginTop: 16, marginBottom: 32 },
-  title:       { fontSize: 28, fontWeight: '800', color: '#101828', marginBottom: 6 },
-  sub:         { fontSize: 15, color: '#9CA3AF', marginBottom: 32 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:        { flex: 1, backgroundColor: colors.surface.card },
+    container:   { paddingHorizontal: 24, paddingBottom: 40 },
+    // Logo.png is 4:1 — height 40 → width 160, centered with top padding for visual balance
+    logoImg:     { height: 40, width: 160, alignSelf: 'center', marginTop: 16, marginBottom: 32 },
+    title:       { fontSize: 28, fontWeight: '800', color: colors.text.primary, marginBottom: 6 },
+    sub:         { fontSize: 15, color: colors.text.tertiary, marginBottom: 32 },
 
-  // Buttons
-  socialBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FF6900', borderRadius: 12, paddingVertical: 16, marginBottom: 14, gap: 12 },
-  primaryBtn:  { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  socialIcon:  { width: 22, height: 22, resizeMode: 'contain' },
-  socialText:  { fontSize: 16, fontWeight: '600', color: '#101828' },
+    // Buttons
+    socialBtn:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.brand.orange, borderRadius: 12, paddingVertical: 16, marginBottom: 14, gap: 12 },
+    primaryBtn:  { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    socialIcon:  { width: 22, height: 22, resizeMode: 'contain' },
+    socialText:  { fontSize: 16, fontWeight: '600', color: colors.text.primary },
 
-  // Divider
-  dividerRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 8, marginBottom: 14 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { fontSize: 13, color: '#9CA3AF' },
+    // Divider
+    dividerRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 8, marginBottom: 14 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: colors.border.default },
+    dividerText: { fontSize: 13, color: colors.text.tertiary },
 
-  // Phone step
-  backBtn:        { marginBottom: 20 },
-  backText:       { fontSize: 15, color: '#FF6900', fontWeight: '600' },
-  label:          { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 10 },
-  inputBox:       { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 8 },
-  inputBoxActive: { borderColor: '#FF6900' },
-  countryCode:    { fontSize: 15, fontWeight: '600', color: '#6B7280', marginRight: 8 },
-  input:          { flex: 1, fontSize: 15, color: '#101828' },
-  helperText:     { fontSize: 12, color: '#9CA3AF', marginBottom: 20 },
+    // Phone step
+    backBtn:        { marginBottom: 20 },
+    backText:       { fontSize: 15, color: colors.brand.orange, fontWeight: '600' },
+    label:          { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 10 },
+    inputBox:       { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border.default, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 8 },
+    inputBoxActive: { borderColor: colors.brand.orange },
+    countryCode:    { fontSize: 15, fontWeight: '600', color: colors.text.secondary, marginRight: 8 },
+    input:          { flex: 1, fontSize: 15, color: colors.text.primary },
+    helperText:     { fontSize: 12, color: colors.text.tertiary, marginBottom: 20 },
 
-  loginBtn:       { backgroundColor: '#FF6900', borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginBottom: 24 },
-  loginBtnText:   { fontSize: 17, fontWeight: '600', color: '#fff' },
+    loginBtn:       { backgroundColor: colors.brand.orange, borderRadius: 50, paddingVertical: 18, alignItems: 'center', marginBottom: 24 },
+    // '#fff' kept raw — always-white on Card Orange
+    loginBtnText:   { fontSize: 17, fontWeight: '600', color: '#fff' },
 
-  // Register link
-  registerRow:    { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  registerText:   { fontSize: 14, color: '#9CA3AF' },
-  registerLink:   { fontSize: 14, color: '#FF6900', fontWeight: '700' },
-});
+    // Register link
+    registerRow:    { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
+    registerText:   { fontSize: 14, color: colors.text.tertiary },
+    registerLink:   { fontSize: 14, color: colors.brand.orange, fontWeight: '700' },
+  });
+}

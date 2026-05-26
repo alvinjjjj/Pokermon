@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 /**
  * Phone OTP verification.
@@ -29,6 +31,8 @@ const OTP_LENGTH      = 6;
 const RESEND_COOLDOWN = 30; // seconds
 
 export default function VerifyOtpScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router  = useRouter();
   const { t }   = useTranslation();
   const params  = useLocalSearchParams<{ phone?: string; type?: string }>();
@@ -197,6 +201,7 @@ export default function VerifyOtpScreen() {
             disabled={verifying || code.some(d => !d)}
           >
             {verifying
+              // '#fff' kept raw — always-white on Card Orange
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.verifyBtnText}>{t('verifyOtp.verifyBtn')}</Text>
             }
@@ -225,43 +230,46 @@ export default function VerifyOtpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: '#fff' },
-  content: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:    { flex: 1, backgroundColor: colors.surface.card },
+    content: { flex: 1, paddingHorizontal: 24, paddingTop: 16 },
 
-  backBtn:  { marginBottom: 16 },
-  backText: { fontSize: 15, color: '#FF6900', fontWeight: '600' },
+    backBtn:  { marginBottom: 16 },
+    backText: { fontSize: 15, color: colors.brand.orange, fontWeight: '600' },
 
-  title: { fontSize: 26, fontWeight: '800', color: '#101828', marginTop: 24, marginBottom: 10 },
-  sub:   { fontSize: 15, color: '#6B7280', lineHeight: 22, marginBottom: 32 },
+    title: { fontSize: 26, fontWeight: '800', color: colors.text.primary, marginTop: 24, marginBottom: 10 },
+    sub:   { fontSize: 15, color: colors.text.secondary, lineHeight: 22, marginBottom: 32 },
 
-  boxRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  box: {
-    width: 48, height: 56,
-    borderWidth: 1.5, borderColor: '#E5E7EB',
-    borderRadius: 12,
-    textAlign: 'center',
-    fontSize: 24, fontWeight: '700',
-    color: '#101828',
-  },
-  boxFilled: { borderColor: '#FF6900', backgroundColor: '#FFF8F2' },
-  boxError:  { borderColor: '#DC2626', backgroundColor: '#FEF2F2' },
+    boxRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+    box: {
+      width: 48, height: 56,
+      borderWidth: 1.5, borderColor: colors.border.default,
+      borderRadius: 12,
+      textAlign: 'center',
+      fontSize: 24, fontWeight: '700',
+      color: colors.text.primary,
+    },
+    boxFilled: { borderColor: colors.brand.orange, backgroundColor: colors.brand.peach },
+    boxError:  { borderColor: colors.state.down, backgroundColor: colors.state.down + '22' },
 
-  hint:  { fontSize: 13, color: '#9CA3AF', textAlign: 'center', marginBottom: 24 },
-  error: { fontSize: 13, color: '#DC2626', textAlign: 'center', marginBottom: 24, fontWeight: '600' },
+    hint:  { fontSize: 13, color: colors.text.tertiary, textAlign: 'center', marginBottom: 24 },
+    error: { fontSize: 13, color: colors.state.down, textAlign: 'center', marginBottom: 24, fontWeight: '600' },
 
-  verifyBtn: {
-    backgroundColor: '#FF6900', borderRadius: 50,
-    paddingVertical: 18, alignItems: 'center',
-    marginBottom: 24,
-  },
-  btnDisabled:     { opacity: 0.5 },
-  verifyBtnText:   { fontSize: 17, fontWeight: '600', color: '#fff' },
+    verifyBtn: {
+      backgroundColor: colors.brand.orange, borderRadius: 50,
+      paddingVertical: 18, alignItems: 'center',
+      marginBottom: 24,
+    },
+    btnDisabled:     { opacity: 0.5 },
+    // '#fff' kept raw — always-white on Card Orange
+    verifyBtnText:   { fontSize: 17, fontWeight: '600', color: '#fff' },
 
-  resendRow: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
-  },
-  resendText:         { fontSize: 14, color: '#9CA3AF' },
-  resendLink:         { fontSize: 14, color: '#FF6900', fontWeight: '700' },
-  resendLinkDisabled: { color: '#D1D5DB' },
-});
+    resendRow: {
+      flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
+    },
+    resendText:         { fontSize: 14, color: colors.text.tertiary },
+    resendLink:         { fontSize: 14, color: colors.brand.orange, fontWeight: '700' },
+    resendLinkDisabled: { color: colors.border.strong },
+  });
+}
