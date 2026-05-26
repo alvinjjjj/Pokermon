@@ -1,7 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Header from '../../../components/Header';
+import { useTheme } from '../../../theme/ThemeProvider';
+import { type ColorTokens } from '../../../constants/colors';
 import {
   ActivityIndicator,
   Dimensions,
@@ -228,6 +230,7 @@ function PriceChart({
   rate: number;
   symbol: string;
 }) {
+  const { colors } = useTheme();
   // Helper: format a USD value in the user's currency. Compact "k" notation
   // above 1,000; full number below.
   const fmt = (usd: number) => {
@@ -248,7 +251,10 @@ function PriceChart({
   const maxV = Math.max(...data.map(d => d.value));
   const minV = Math.min(...data.map(d => d.value));
   const range = maxV - minV || 1;
-  const color = positive ? '#00A63E' : '#E7000B';
+  // Vol.03 D3: chart main line uses text.primary (Ink/Paper) — neutral, no up/down signaling.
+  // `positive` still drives the area-fill gradient tint (Sage / Brick) so the band still reads.
+  const lineColor = colors.text.primary;
+  const tintColor = positive ? colors.state.upStrong : colors.state.down;
 
   const getY = (v: number) => padT + (1 - (v - minV) / range) * (h - padT - padB);
   const getX = (i: number) =>
@@ -305,17 +311,17 @@ function PriceChart({
       <Svg width={w} height={h} style={{ position: 'absolute' }}>
         <Defs>
           <LinearGradient id="cgrad" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={color} stopOpacity="0.18" />
-            <Stop offset="1" stopColor={color} stopOpacity="0" />
+            <Stop offset="0" stopColor={tintColor} stopOpacity="0.18" />
+            <Stop offset="1" stopColor={tintColor} stopOpacity="0" />
           </LinearGradient>
         </Defs>
 
         {yLabels.map((val, i) => (
           <Line key={i} x1={padL} y1={getY(val)} x2={w - padR} y2={getY(val)}
-            stroke="#F3F4F6" strokeWidth="1" />
+            stroke={colors.border.default} strokeWidth="1" />
         ))}
         {yLabels.map((val, i) => (
-          <SvgText key={i} x={padL - 4} y={getY(val) + 4} fontSize="9" fill="#C4C9D4"
+          <SvgText key={i} x={padL - 4} y={getY(val) + 4} fontSize="9" fill={colors.text.tertiary}
             textAnchor="end">
             {fmt(val)}
           </SvgText>
@@ -323,7 +329,7 @@ function PriceChart({
 
         {data.map((d, i) =>
           d.label ? (
-            <SvgText key={i} x={getX(i)} y={h - 8} fontSize="9" fill="#C4C9D4"
+            <SvgText key={i} x={getX(i)} y={h - 8} fontSize="9" fill={colors.text.tertiary}
               textAnchor="middle">
               {d.label}
             </SvgText>
@@ -331,32 +337,34 @@ function PriceChart({
         )}
 
         {areaPath ? <Path d={areaPath} fill="url(#cgrad)" /> : null}
-        <Path d={linePath} stroke={color} strokeWidth="2" fill="none"
+        {/* Vol.03 D3: 1.5px line in Ink/Paper, neutral colour */}
+        <Path d={linePath} stroke={lineColor} strokeWidth="1.5" fill="none"
           strokeLinejoin="round" strokeLinecap="round" />
         {pts.map((p, i) => (
           <Circle key={i} cx={p.x} cy={p.y} r={hoverIdx === i ? 5 : 0}
-            fill="#fff" stroke={color} strokeWidth="2" />
+            fill={colors.surface.card} stroke={lineColor} strokeWidth="2" />
         ))}
         {hovered && (
           <Line x1={hovered.x} y1={padT} x2={hovered.x} y2={h - padB}
-            stroke={color} strokeWidth="1" strokeDasharray="4,3" />
+            stroke={lineColor} strokeWidth="1" strokeDasharray="4,3" />
         )}
       </Svg>
 
       {hovered && hoveredData && (
         <View style={{
           position: 'absolute', left: tooltipX, top: tooltipY,
-          width: tooltipW, backgroundColor: '#fff', borderRadius: 10,
+          width: tooltipW, backgroundColor: colors.surface.elevated, borderRadius: 10,
           paddingVertical: 5, paddingHorizontal: 10, alignItems: 'center',
+          // shadowColor '#000' kept (shadow convention)
           shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8,
           shadowOffset: { width: 0, height: 3 }, elevation: 5,
-          borderWidth: 0.5, borderColor: '#F3F4F6',
+          borderWidth: 0.5, borderColor: colors.border.default,
         }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#101828' }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text.primary }}>
             {fmt(hoveredData.value)}
           </Text>
           {hoveredData.label ? (
-            <Text style={{ fontSize: 9, color: '#9CA3AF', marginTop: 1 }}>{hoveredData.label}</Text>
+            <Text style={{ fontSize: 9, color: colors.text.tertiary, marginTop: 1 }}>{hoveredData.label}</Text>
           ) : null}
         </View>
       )}
@@ -366,6 +374,8 @@ function PriceChart({
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function CardDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id, jp_name, jp_image, jp_set, jp_number, jp_psa10, jp_psa9, jp_market } =
     useLocalSearchParams<{
       id: string;
@@ -847,7 +857,7 @@ export default function CardDetailScreen() {
             <Text style={styles.priceSummaryMain}>{psa10Usd > 0 ? convert(psa10Usd) : '-'}</Text>
             {change30 !== 0 && (
               <View style={[styles.changePill, changePositive ? styles.changePillUp : styles.changePillDown]}>
-                <Text style={[styles.changePillText, changePositive ? { color: '#00A63E' } : { color: '#E7000B' }]}>
+                <Text style={[styles.changePillText, changePositive ? { color: colors.state.upStrong } : { color: colors.state.down }]}>
                   {changePositive ? '▲' : '▼'} {Math.abs(change30).toFixed(1)}% vs30d
                 </Text>
               </View>
@@ -956,7 +966,7 @@ export default function CardDetailScreen() {
             </View>
 
             {listingsLoading ? (
-              <ActivityIndicator color="#FF6900" style={{ marginVertical: 16 }} />
+              <ActivityIndicator color={colors.brand.orange} style={{ marginVertical: 16 }} />
             ) : hkListings.length === 0 ? (
               <View style={styles.hkEmpty}>
                 <Text style={styles.hkEmptyText}>{t('cardDetail.noHkListings')}</Text>
@@ -1049,7 +1059,7 @@ export default function CardDetailScreen() {
                     )}
                     <Text style={styles.relatedENTag}>{isJP ? 'JP Raw' : 'EN Raw'}</Text>
                     {rChange !== null && (
-                      <Text style={[styles.relatedChange, rChange >= 0 ? { color: '#00A63E' } : { color: '#E7000B' }]}>
+                      <Text style={[styles.relatedChange, rChange >= 0 ? { color: colors.state.upStrong } : { color: colors.state.down }]}>
                         {rChange >= 0 ? '▲' : '▼'} {Math.abs(rChange).toFixed(1)}%
                       </Text>
                     )}
@@ -1125,7 +1135,7 @@ export default function CardDetailScreen() {
                   onChangeText={setCustomPriceText}
                   keyboardType="decimal-pad"
                   placeholder={t('cardDetail.customPricePlaceholder', { value: convert(getPSAPrice(selectedPSA).usd).replace(/[^0-9.]/g, '') })}
-                  placeholderTextColor="#C4C9D4"
+                  placeholderTextColor={colors.text.tertiary}
                   returnKeyType="done"
                   textContentType="none"
                   autoComplete="off"
@@ -1140,6 +1150,7 @@ export default function CardDetailScreen() {
                 disabled={adding}
               >
                 {adding ? (
+                  // ActivityIndicator '#fff' kept raw — on Card Orange confirm button
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.confirmText}>{t('cardDetail.confirmAdd')}</Text>
@@ -1160,123 +1171,139 @@ export default function CardDetailScreen() {
 }
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  safe:               { flex: 1, backgroundColor: '#fff' },
-  loadingWrap:        { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText:        { fontSize: 15, color: '#9CA3AF' },
-  backBtnInline:      { marginTop: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#FF6900', borderRadius: 12 },
-  backBtnInlineText:  { color: '#fff', fontWeight: '600' },
-  navBar:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
-  backBtn:            { paddingVertical: 6, paddingRight: 12 },
-  backBtnText:        { fontSize: 14, color: '#6B7280', fontWeight: '500' },
-  wishBtn:            { backgroundColor: '#F9FAFB', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: '#E5E7EB' },
-  wishBtnActive:      { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  wishBtnText:        { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  wishBtnTextActive:  { color: '#fff' },
-  heroSection:        { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#fff' },
-  psaBadge:           { backgroundColor: '#101828', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 7, marginBottom: 14 },
-  psaBadgeText:       { color: '#fff', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
-  heroName:           { fontSize: 22, fontWeight: '800', color: '#101828', textAlign: 'center' },
-  heroSet:            { fontSize: 13, color: '#FF6900', fontWeight: '600', marginTop: 3, textAlign: 'center' },
-  heroRarity:         { fontSize: 12, color: '#3B82F6', marginTop: 2, textAlign: 'center', fontWeight: '500' },
-  heroBadgeRow:       { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap', paddingHorizontal: 16 },
-  heroBadge:          { borderWidth: 1.5, borderColor: '#101828', borderRadius: 4, paddingHorizontal: 10, paddingVertical: 4 },
-  heroBadgeText:      { fontSize: 11, fontWeight: '700', color: '#101828', letterSpacing: 0.5 },
-  heroImageWrap:      { marginTop: 14, position: 'relative' },
-  heroImage:          { width: SCREEN_W * 0.58, height: SCREEN_W * 0.58 * 1.4, borderRadius: 10 },
-  langToggleRow:      { flexDirection: 'row', gap: 8, marginBottom: 12, justifyContent: 'center' },
-  langToggleBtn:      { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
-  langToggleBtnActive:{ backgroundColor: '#101828', borderColor: '#101828' },
-  langToggleText:     { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  langToggleTextActive:{ color: '#fff' },
-  jpFlag:             { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(180,0,0,0.8)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  jpFlagText:         { color: '#fff', fontSize: 10, fontWeight: '700' },
-  liveFlag:           { position: 'absolute', top: 8, right: 8, backgroundColor: '#00A63E', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  liveFlagText:       { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  priceSummary:       { marginTop: 16, alignItems: 'center', gap: 6 },
-  priceSummaryMain:   { fontSize: 28, fontWeight: '800', color: '#101828' },
-  changePill:         { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  changePillUp:       { backgroundColor: '#DCFCE7' },
-  changePillDown:     { backgroundColor: '#FEE2E2' },
-  changePillText:     { fontSize: 12, fontWeight: '700' },
-  priceRow:           { flexDirection: 'row', gap: 8, marginTop: 16, width: '100%' },
-  priceBox:           { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  priceBoxHighlight:  { backgroundColor: '#101828', borderColor: '#101828' },
-  priceBoxLabel:      { fontSize: 10, color: '#9CA3AF', fontWeight: '600', marginBottom: 4 },
-  priceBoxLabelHL:    { color: '#9CA3AF', fontSize: 10, fontWeight: '600', marginBottom: 4 },
-  priceBoxValue:      { fontSize: 13, fontWeight: '800', color: '#101828' },
-  priceBoxValueHL:    { color: '#fff', fontSize: 14, fontWeight: '800' },
-  estimateTag:        { fontSize: 9, color: '#F59E0B', fontWeight: '700', marginTop: 2 },
-  liveTag:            { fontSize: 9, color: '#00A63E', fontWeight: '700', marginTop: 2 },
-  chartSection:       { paddingHorizontal: 16, marginTop: 8 },
-  chartDisclaimer:    { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4, marginBottom: 8 },
-  chartDisclaimerEst: { fontSize: 10, color: '#F59E0B', fontWeight: '500' },
-  chartDisclaimerReal:{ fontSize: 10, color: '#00A63E', fontWeight: '600' },
-  periodRow:          { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  periodBtn:          { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 20, marginHorizontal: 2 },
-  periodActive:       { backgroundColor: '#FF6900' },
-  periodText:         { fontSize: 12, color: '#9CA3AF' },
-  periodTextActive:   { color: '#fff', fontWeight: '600' },
-  infoSection:        { paddingHorizontal: 24, marginTop: 20 },
-  sectionTitle:       { fontSize: 18, fontWeight: '800', color: '#101828', marginBottom: 12 },
-  infoGrid:           { backgroundColor: '#F9FAFB', borderRadius: 14, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB' },
-  infoRow:            { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  infoLabel:          { fontSize: 13, color: '#9CA3AF' },
-  infoValue:          { fontSize: 13, fontWeight: '600', color: '#101828', maxWidth: '60%', textAlign: 'right' },
-  // ── HK Listings ──────────────────────────────────────────────────────────────
-  hkSection:          { paddingHorizontal: 24, marginTop: 20 },
-  hkHeader:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  hkCountBadge:       { backgroundColor: '#FFF3E8', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: '#FF6900' },
-  hkCountText:        { fontSize: 11, color: '#FF6900', fontWeight: '700' },
-  hkEmpty:            { backgroundColor: '#F9FAFB', borderRadius: 14, paddingVertical: 28, alignItems: 'center', gap: 6, borderWidth: 0.5, borderColor: '#E5E7EB' },
-  hkEmptyIcon:        { fontSize: 28 },
-  hkEmptyText:        { fontSize: 14, fontWeight: '600', color: '#6B7280' },
-  hkEmptySubText:     { fontSize: 12, color: '#9CA3AF' },
-  hkRow:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  hkRowLeft:          { flex: 1, gap: 4 },
-  hkBadgeRow:         { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  hkCondBadge:        { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  hkCondMint:         { backgroundColor: '#DCFCE7' },
-  hkCondExcellent:    { backgroundColor: '#DBEAFE' },
-  hkCondOther:        { backgroundColor: '#F3F4F6' },
-  hkCondText:         { fontSize: 11, fontWeight: '700', color: '#374151' },
-  hkMerchBadge:       { backgroundColor: '#FEF3C7', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  hkMerchText:        { fontSize: 11, fontWeight: '700', color: '#92400E' },
-  hkNegoBadge:        { backgroundColor: '#EDE9FE', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  hkNegoText:         { fontSize: 11, fontWeight: '700', color: '#5B21B6' },
-  hkSellerType:       { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-  hkPrice:            { fontSize: 17, fontWeight: '800', color: '#101828' },
-  hkRowRight:         { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 12 },
-  hkChevron:          { fontSize: 22, color: '#C4C9D4', marginTop: -2 },
-  relatedSection:     { marginTop: 20, paddingHorizontal: 0 },
-  relatedCard:        { width: 120, backgroundColor: '#F9FAFB', borderRadius: 14, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB', padding: 8 },
-  relatedImg:         { width: '100%', height: 120 * 1.4, borderRadius: 8 },
-  relatedName:        { fontSize: 11, fontWeight: '600', color: '#101828', marginTop: 6, lineHeight: 14 },
-  relatedPrice:       { fontSize: 12, fontWeight: '800', color: '#FF6900', marginTop: 3 },
-  relatedChange:      { fontSize: 10, fontWeight: '600', marginTop: 1 },
-  relatedENTag:       { fontSize: 9, color: '#9CA3AF', fontWeight: '500', marginTop: 1 },
-  modalOverlay:       { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalCard:          { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  modalTitle:         { fontSize: 20, fontWeight: '800', color: '#101828', marginBottom: 4 },
-  modalSub:           { fontSize: 14, color: '#6B7280', marginBottom: 16 },
-  previewRow:         { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  previewBox:         { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  previewBoxActive:   { backgroundColor: '#FFF3E8', borderColor: '#FF6900' },
-  previewGrade:       { fontSize: 11, color: '#9CA3AF', fontWeight: '600', marginBottom: 4 },
-  previewGradeActive: { color: '#FF6900' },
-  previewAmount:      { fontSize: 13, fontWeight: '800', color: '#101828' },
-  previewAmountActive:{ color: '#FF6900' },
-  psaGrid:            { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  customPriceBox:     { backgroundColor: '#F9FAFB', borderRadius: 14, padding: 14, marginBottom: 20, borderWidth: 0.5, borderColor: '#E5E7EB' },
-  customPriceLabel:   { fontSize: 13, fontWeight: '700', color: '#101828', marginBottom: 3 },
-  customPriceSub:     { fontSize: 11, color: '#9CA3AF', marginBottom: 10 },
-  customPriceInput:   { backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: '#101828', fontWeight: '600' },
-  psaBtn:             { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center' },
-  psaBtnActive:       { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  psaText:            { fontSize: 15, color: '#6B7280', fontWeight: '500' },
-  psaTextActive:      { color: '#fff', fontWeight: '700' },
-  confirmBtn:         { backgroundColor: '#FF6900', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
-  confirmText:        { fontSize: 16, fontWeight: '700', color: '#fff' },
-  cancelBtn:          { alignItems: 'center', paddingVertical: 12 },
-  cancelText:         { fontSize: 15, color: '#9CA3AF' },
-});
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:               { flex: 1, backgroundColor: colors.surface.base },
+    loadingWrap:        { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+    loadingText:        { fontSize: 15, color: colors.text.tertiary },
+    backBtnInline:      { marginTop: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.brand.orange, borderRadius: 12 },
+    // backBtnInlineText '#fff' kept raw — always-white on Card Orange
+    backBtnInlineText:  { color: '#fff', fontWeight: '600' },
+    navBar:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
+    backBtn:            { paddingVertical: 6, paddingRight: 12 },
+    backBtnText:        { fontSize: 14, color: colors.text.secondary, fontWeight: '500' },
+    wishBtn:            { backgroundColor: colors.surface.section, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: colors.border.default },
+    wishBtnActive:      { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    wishBtnText:        { fontSize: 13, color: colors.text.secondary, fontWeight: '600' },
+    // wishBtnTextActive '#fff' kept raw — on Card Orange
+    wishBtnTextActive:  { color: '#fff' },
+    heroSection:        { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: colors.surface.base },
+    psaBadge:           { backgroundColor: colors.text.primary, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 7, marginBottom: 14 },
+    // psaBadgeText uses inverse — Paper on dark surface, Ink-light on light surface
+    psaBadgeText:       { color: colors.text.inverse, fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
+    heroName:           { fontSize: 22, fontWeight: '800', color: colors.text.primary, textAlign: 'center' },
+    heroSet:            { fontSize: 13, color: colors.brand.orange, fontWeight: '600', marginTop: 3, textAlign: 'center' },
+    // heroRarity '#3B82F6' kept raw — semantic rarity-indicator blue, same hue both modes
+    heroRarity:         { fontSize: 12, color: '#3B82F6', marginTop: 2, textAlign: 'center', fontWeight: '500' },
+    heroBadgeRow:       { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap', paddingHorizontal: 16 },
+    heroBadge:          { borderWidth: 1.5, borderColor: colors.text.primary, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 4 },
+    heroBadgeText:      { fontSize: 11, fontWeight: '700', color: colors.text.primary, letterSpacing: 0.5 },
+    heroImageWrap:      { marginTop: 14, position: 'relative' },
+    heroImage:          { width: SCREEN_W * 0.58, height: SCREEN_W * 0.58 * 1.4, borderRadius: 10 },
+    langToggleRow:      { flexDirection: 'row', gap: 8, marginBottom: 12, justifyContent: 'center' },
+    langToggleBtn:      { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: colors.border.default, backgroundColor: colors.surface.section },
+    langToggleBtnActive:{ backgroundColor: colors.text.primary, borderColor: colors.text.primary },
+    langToggleText:     { fontSize: 13, fontWeight: '600', color: colors.text.secondary },
+    langToggleTextActive:{ color: colors.text.inverse },
+    // jpFlag: semantic red flag overlaid on card image; same hue both modes
+    jpFlag:             { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(180,0,0,0.8)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+    jpFlagText:         { color: '#fff', fontSize: 10, fontWeight: '700' },
+    // liveFlag semantic LIVE green — indicates real-time data, same hue both modes
+    liveFlag:           { position: 'absolute', top: 8, right: 8, backgroundColor: '#00A63E', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+    liveFlagText:       { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+    priceSummary:       { marginTop: 16, alignItems: 'center', gap: 6 },
+    priceSummaryMain:   { fontSize: 28, fontWeight: '800', color: colors.text.primary },
+    changePill:         { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    // Vol.03 D2: change pill uses Sage/Brick tokens with low-opacity tint
+    changePillUp:       { backgroundColor: colors.state.upStrong + '22' },
+    changePillDown:     { backgroundColor: colors.state.down + '22' },
+    changePillText:     { fontSize: 12, fontWeight: '700' },
+    priceRow:           { flexDirection: 'row', gap: 8, marginTop: 16, width: '100%' },
+    priceBox:           { flex: 1, backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    priceBoxHighlight:  { backgroundColor: colors.text.primary, borderColor: colors.text.primary },
+    priceBoxLabel:      { fontSize: 10, color: colors.text.tertiary, fontWeight: '600', marginBottom: 4 },
+    priceBoxLabelHL:    { color: colors.text.tertiary, fontSize: 10, fontWeight: '600', marginBottom: 4 },
+    priceBoxValue:      { fontSize: 13, fontWeight: '800', color: colors.text.primary },
+    priceBoxValueHL:    { color: colors.text.inverse, fontSize: 14, fontWeight: '800' },
+    // estimateTag '#F59E0B' / liveTag '#00A63E' kept raw — semantic estimate amber / LIVE green
+    estimateTag:        { fontSize: 9, color: '#F59E0B', fontWeight: '700', marginTop: 2 },
+    liveTag:            { fontSize: 9, color: '#00A63E', fontWeight: '700', marginTop: 2 },
+    chartSection:       { paddingHorizontal: 16, marginTop: 8 },
+    chartDisclaimer:    { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4, marginBottom: 8 },
+    chartDisclaimerEst: { fontSize: 10, color: '#F59E0B', fontWeight: '500' },
+    chartDisclaimerReal:{ fontSize: 10, color: '#00A63E', fontWeight: '600' },
+    periodRow:          { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+    // Vol.03 D1: period selector uses 2px Card Orange underline (not orange-fill pill)
+    periodBtn:          { flex: 1, alignItems: 'center', paddingVertical: 6, borderBottomWidth: 2, borderBottomColor: 'transparent', marginHorizontal: 2 },
+    periodActive:       { borderBottomColor: colors.brand.orange },
+    periodText:         { fontSize: 12, color: colors.text.tertiary },
+    periodTextActive:   { color: colors.text.primary, fontWeight: '600' },
+    infoSection:        { paddingHorizontal: 24, marginTop: 20 },
+    sectionTitle:       { fontSize: 18, fontWeight: '800', color: colors.text.primary, marginBottom: 12 },
+    infoGrid:           { backgroundColor: colors.surface.section, borderRadius: 14, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default },
+    infoRow:            { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 11, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    infoLabel:          { fontSize: 13, color: colors.text.tertiary },
+    infoValue:          { fontSize: 13, fontWeight: '600', color: colors.text.primary, maxWidth: '60%', textAlign: 'right' },
+    // ── HK Listings ──────────────────────────────────────────────────────────────
+    hkSection:          { paddingHorizontal: 24, marginTop: 20 },
+    hkHeader:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    hkCountBadge:       { backgroundColor: colors.brand.peach, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: colors.brand.orange },
+    hkCountText:        { fontSize: 11, color: colors.brand.orange, fontWeight: '700' },
+    hkEmpty:            { backgroundColor: colors.surface.section, borderRadius: 14, paddingVertical: 28, alignItems: 'center', gap: 6, borderWidth: 0.5, borderColor: colors.border.default },
+    hkEmptyIcon:        { fontSize: 28 },
+    hkEmptyText:        { fontSize: 14, fontWeight: '600', color: colors.text.secondary },
+    hkEmptySubText:     { fontSize: 12, color: colors.text.tertiary },
+    hkRow:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    hkRowLeft:          { flex: 1, gap: 4 },
+    hkBadgeRow:         { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    hkCondBadge:        { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    // Semantic condition tint backgrounds — same hue both modes
+    hkCondMint:         { backgroundColor: '#DCFCE7' },
+    hkCondExcellent:    { backgroundColor: '#DBEAFE' },
+    hkCondOther:        { backgroundColor: colors.surface.section },
+    // hkCondText '#374151' kept raw — reads on the semantic-tint condition backgrounds above
+    hkCondText:         { fontSize: 11, fontWeight: '700', color: '#374151' },
+    // Semantic merchant amber + negotiable purple — same hue both modes
+    hkMerchBadge:       { backgroundColor: '#FEF3C7', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    hkMerchText:        { fontSize: 11, fontWeight: '700', color: '#92400E' },
+    hkNegoBadge:        { backgroundColor: '#EDE9FE', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    hkNegoText:         { fontSize: 11, fontWeight: '700', color: '#5B21B6' },
+    hkSellerType:       { fontSize: 11, color: colors.text.tertiary, marginTop: 2 },
+    hkPrice:            { fontSize: 17, fontWeight: '800', color: colors.text.primary },
+    hkRowRight:         { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 12 },
+    hkChevron:          { fontSize: 22, color: colors.text.tertiary, marginTop: -2 },
+    relatedSection:     { marginTop: 20, paddingHorizontal: 0 },
+    relatedCard:        { width: 120, backgroundColor: colors.surface.section, borderRadius: 14, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default, padding: 8 },
+    relatedImg:         { width: '100%', height: 120 * 1.4, borderRadius: 8 },
+    relatedName:        { fontSize: 11, fontWeight: '600', color: colors.text.primary, marginTop: 6, lineHeight: 14 },
+    relatedPrice:       { fontSize: 12, fontWeight: '800', color: colors.brand.orange, marginTop: 3 },
+    relatedChange:      { fontSize: 10, fontWeight: '600', marginTop: 1 },
+    relatedENTag:       { fontSize: 9, color: colors.text.tertiary, fontWeight: '500', marginTop: 1 },
+    modalOverlay:       { flex: 1, backgroundColor: colors.overlay.medium, justifyContent: 'flex-end' },
+    modalCard:          { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle:         { fontSize: 20, fontWeight: '800', color: colors.text.primary, marginBottom: 4 },
+    modalSub:           { fontSize: 14, color: colors.text.secondary, marginBottom: 16 },
+    previewRow:         { flexDirection: 'row', gap: 8, marginBottom: 20 },
+    previewBox:         { flex: 1, backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    previewBoxActive:   { backgroundColor: colors.brand.peach, borderColor: colors.brand.orange },
+    previewGrade:       { fontSize: 11, color: colors.text.tertiary, fontWeight: '600', marginBottom: 4 },
+    previewGradeActive: { color: colors.brand.orange },
+    previewAmount:      { fontSize: 13, fontWeight: '800', color: colors.text.primary },
+    previewAmountActive:{ color: colors.brand.orange },
+    psaGrid:            { flexDirection: 'row', gap: 12, marginBottom: 16 },
+    customPriceBox:     { backgroundColor: colors.surface.section, borderRadius: 14, padding: 14, marginBottom: 20, borderWidth: 0.5, borderColor: colors.border.default },
+    customPriceLabel:   { fontSize: 13, fontWeight: '700', color: colors.text.primary, marginBottom: 3 },
+    customPriceSub:     { fontSize: 11, color: colors.text.tertiary, marginBottom: 10 },
+    customPriceInput:   { backgroundColor: colors.surface.card, borderRadius: 10, borderWidth: 1, borderColor: colors.border.default, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: colors.text.primary, fontWeight: '600' },
+    psaBtn:             { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border.default, backgroundColor: colors.surface.section, alignItems: 'center' },
+    psaBtnActive:       { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    psaText:            { fontSize: 15, color: colors.text.secondary, fontWeight: '500' },
+    // psaTextActive '#fff' kept raw — on Card Orange
+    psaTextActive:      { color: '#fff', fontWeight: '700' },
+    confirmBtn:         { backgroundColor: colors.brand.orange, borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
+    // confirmText '#fff' kept raw — on Card Orange
+    confirmText:        { fontSize: 16, fontWeight: '700', color: '#fff' },
+    cancelBtn:          { alignItems: 'center', paddingVertical: 12 },
+    cancelText:         { fontSize: 15, color: colors.text.tertiary },
+  });
+}
