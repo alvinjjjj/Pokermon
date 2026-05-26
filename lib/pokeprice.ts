@@ -282,8 +282,8 @@ const CARD_MEM_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // ── Supabase cache helpers ─────────────────────────────────────────────────────
 
-const HOT_CACHE_KEY    = 'ppt_hot_jp_v9'; // v9: ranking moved to |change1d| from per-tier history (PSA 10 series when psa10>0); also adds change1d field so cached entries must be refreshed.
-const HOT_EN_CACHE_KEY = 'ppt_hot_en_v3'; // v3: bumped in lock-step with JP v9 so revivePPTCard sees the new change1d field on next read (older cache rows lack it).
+const HOT_CACHE_KEY    = 'ppt_hot_jp_v10'; // v10: PPT call window widened to days:'30' (was '7') so includeHistory:'true' actually returns ≥2 history points; required for change1d/7d/30d to be non-zero in getMarketMovers sort.
+const HOT_EN_CACHE_KEY = 'ppt_hot_en_v4';  // v4: fetchHotEnCards now passes includeHistory:'true' + days:'30' (was missing / '7'); EN rail will populate change deltas for the first time.
 
 async function dbReadHot(): Promise<PPTCard[] | null> {
   try {
@@ -444,7 +444,7 @@ export async function fetchHotCards(limit = 30): Promise<PPTCard[]> {
     sortOrder:      'desc',
     includeHistory: 'true',
     includeEbay:    'true',      // PSA9/PSA10 real eBay data (paid plan)
-    days:           '7',
+    days:           '30',        // Fix A v2 / Path A — was '7'; PPT 7-day window returned history:[] → change1d/7d/30d all 0 → sort degraded to weeklyVolume.
     limit:          '50',        // fetch 50, then filter down to quality cards
   });
   if (!json) return [];
@@ -622,8 +622,9 @@ export async function fetchHotEnCards(limit = 10): Promise<PPTCard[]> {
     minPrice:       '120',        // USD — PSA10 estimate ≥ ~HK$2,800
     sortBy:         'price',
     sortOrder:      'desc',
+    includeHistory: 'true',       // Fix A v2 / Path A — was missing; without it parseCard's change1d/7d/30d compute to 0 regardless of window.
     includeEbay:    'true',
-    days:           '7',
+    days:           '30',         // Fix A v2 / Path A — was '7'; symmetric with JP fetchHotCards.
     limit:          '30',
   });
   if (!json) return [];
