@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
 import { SkeletonGrid, SkeletonRow } from '../../components/SkeletonCard';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = (SCREEN_W - 48) / 2;
@@ -118,6 +119,8 @@ const PAGE_SIZE = 20;
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ShopsScreen() {
+  // Hotfix: status bar visible in dark mode. Phase 4d full migration upcoming.
+  const { colors } = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
   const [mainTab, setMainTab] = useState<MainTab>('marketplace');
@@ -715,7 +718,7 @@ export default function ShopsScreen() {
   // ── Main Render ────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
       <Header />
 
       {/* Sub-tab bar */}

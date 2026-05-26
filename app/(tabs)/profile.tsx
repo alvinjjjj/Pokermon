@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
 import Loader from '../../components/Loader';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_W = (width - 3) / 3;
@@ -43,6 +44,8 @@ type Post = {
 type SubTab = 'posts' | 'following' | 'feed';
 
 export default function ProfileScreen() {
+  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
+  const { colors } = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -200,7 +203,7 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
         <Header />
         <View style={styles.center}>
           <Loader size="large" />
@@ -368,7 +371,7 @@ export default function ProfileScreen() {
   const listKey = `tab-${activeTab}`;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
       <Header />
       <FlatList
         key={listKey}

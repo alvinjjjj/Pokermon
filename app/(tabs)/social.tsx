@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import Header from '../../components/Header';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +52,8 @@ function timeAgo(d: string, t: (k: string, opts?: any) => string): string {
 }
 
 export default function SocialScreen() {
+  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
+  const { colors } = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -492,7 +495,7 @@ export default function SocialScreen() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
       <Header />
 
       {/* Tab bar */}

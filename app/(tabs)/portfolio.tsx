@@ -20,6 +20,7 @@ import { SkeletonGrid } from '../../components/SkeletonCard';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { supabase } from '../../lib/supabase';
 import { BOOSTER_SETS } from '../../constants/boosterBoxes';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
 // Build a lookup map: setId → localImage (for boxes stored without imageUrl)
@@ -47,6 +48,8 @@ type Card = {
 type FilterType = 'newest' | 'highPrice' | 'lowPrice';
 
 export default function PortfolioScreen() {
+  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
+  const { colors } = useTheme();
   const { convert, currency, rate, symbol } = useCurrency();
   const router = useRouter();
   const { t } = useTranslation();
@@ -417,7 +420,7 @@ export default function PortfolioScreen() {
   }, [cards, activeFilter]);
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
       <Header />
       <ScrollView showsVerticalScrollIndicator={false}>
 

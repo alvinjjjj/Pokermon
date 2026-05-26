@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
 
 type NotifType = 'like' | 'comment' | 'follow' | 'moderation_approved' | 'moderation_rejected';
 
@@ -67,6 +68,8 @@ function notifTimeAgo(d: string, t: (k: string, opts?: any) => string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
+  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
+  const { colors } = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -248,7 +251,7 @@ export default function NotificationsScreen() {
 
   return (
     // edges={['top']} — tab bar 已處理底部 safe area，不需再加
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]} edges={['top']}>
       {/* Nav */}
       <View style={styles.nav}>
         {/* 在 tab 內用 navigate 回主頁，而非 back() */}
