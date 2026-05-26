@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -18,6 +18,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import Loader from '../components/Loader';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 const HK_DISTRICTS = [
   '中西區', '灣仔', '東區', '南區',
@@ -71,6 +73,8 @@ type MerchantData = {
 };
 
 export default function EditShop() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t }  = useTranslation();
 
@@ -298,7 +302,7 @@ export default function EditShop() {
             value={shopNameZh}
             onChangeText={setShopNameZh}
             placeholder={t('merchantReg.shopNameZhPlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
           />
 
           <Text style={styles.label}>{t('merchantReg.shopNameEnLabel')}</Text>
@@ -307,7 +311,7 @@ export default function EditShop() {
             value={shopNameEn}
             onChangeText={setShopNameEn}
             placeholder={t('merchantReg.shopNameEnPlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
           />
 
           {/* District */}
@@ -331,7 +335,7 @@ export default function EditShop() {
             value={description}
             onChangeText={setDescription}
             placeholder={t('merchantReg.descPlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             multiline
             numberOfLines={4}
           />
@@ -355,7 +359,7 @@ export default function EditShop() {
                 value={address}
                 onChangeText={setAddress}
                 placeholder={t('merchantReg.addressPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
               />
 
               <Text style={styles.label}>{t('merchantReg.businessHoursLabel')}</Text>
@@ -364,7 +368,7 @@ export default function EditShop() {
                 value={businessHours}
                 onChangeText={setBusinessHours}
                 placeholder={t('merchantReg.businessHoursPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
               />
             </>
           )}
@@ -376,7 +380,7 @@ export default function EditShop() {
             value={whatsapp}
             onChangeText={setWhatsapp}
             placeholder={t('merchantReg.whatsappPlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             keyboardType="phone-pad"
           />
 
@@ -386,7 +390,7 @@ export default function EditShop() {
             value={website}
             onChangeText={setWebsite}
             placeholder={t('merchantReg.websitePlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             autoCapitalize="none"
           />
 
@@ -396,7 +400,7 @@ export default function EditShop() {
             value={instagram}
             onChangeText={setInstagram}
             placeholder={t('merchantReg.instagramPlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             autoCapitalize="none"
           />
 
@@ -421,6 +425,7 @@ export default function EditShop() {
             disabled={saving}
           >
             {saving
+              // '#fff' kept raw — always-white on brand orange
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.saveBtnText}>{t('editShop.saveBtn')}</Text>}
           </TouchableOpacity>
@@ -444,75 +449,82 @@ export default function EditShop() {
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: '#fff' },
-  center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:    { flex: 1, backgroundColor: colors.surface.card },
+    center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-  },
-  navBack:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#FF6900', lineHeight: 32 },
-  navTitle:    { fontSize: 16, fontWeight: '700', color: '#101828' },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 12, paddingVertical: 8,
+      borderBottomWidth: 1, borderBottomColor: colors.surface.section,
+    },
+    navBack:     { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.brand.orange, lineHeight: 32 },
+    navTitle:    { fontSize: 16, fontWeight: '700', color: colors.text.primary },
 
-  content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 },
+    content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 },
 
-  label: { fontSize: 14, fontWeight: '700', color: '#101828', marginBottom: 8, marginTop: 16 },
+    label: { fontSize: 14, fontWeight: '700', color: colors.text.primary, marginBottom: 8, marginTop: 16 },
 
-  bannerWrap: {
-    width: '100%', aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1, borderColor: '#E5E7EB',
-  },
-  bannerImg:           { width: '100%', height: '100%' },
-  bannerPlaceholder:   { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  bannerPlaceholderText: { fontSize: 13, color: '#9CA3AF' },
+    bannerWrap: {
+      width: '100%', aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden',
+      backgroundColor: colors.surface.section,
+      borderWidth: 1, borderColor: colors.border.default,
+    },
+    bannerImg:           { width: '100%', height: '100%' },
+    bannerPlaceholder:   { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    bannerPlaceholderText: { fontSize: 13, color: colors.text.tertiary },
 
-  logoWrap: {
-    width: 96, height: 96, borderRadius: 16, overflow: 'hidden',
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1, borderColor: '#E5E7EB',
-  },
-  logoImg:             { width: '100%', height: '100%' },
-  logoPlaceholder:     { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  logoPlaceholderText: { fontSize: 36, color: '#9CA3AF', fontWeight: '300' },
+    logoWrap: {
+      width: 96, height: 96, borderRadius: 16, overflow: 'hidden',
+      backgroundColor: colors.surface.section,
+      borderWidth: 1, borderColor: colors.border.default,
+    },
+    logoImg:             { width: '100%', height: '100%' },
+    logoPlaceholder:     { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    logoPlaceholderText: { fontSize: 36, color: colors.text.tertiary, fontWeight: '300' },
 
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB',
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#101828',
-  },
-  textarea: { minHeight: 88, textAlignVertical: 'top' },
+    input: {
+      backgroundColor: colors.surface.section,
+      borderRadius: 12, borderWidth: 1, borderColor: colors.border.default,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: colors.text.primary,
+    },
+    textarea: { minHeight: 88, textAlignVertical: 'top' },
 
-  chipRow:    { gap: 8, paddingRight: 24 },
-  chip:       { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: '#F3F4F6' },
-  chipActive: { backgroundColor: '#FF6900' },
-  chipText:       { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
+    chipRow:    { gap: 8, paddingRight: 24 },
+    chip:       { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: colors.surface.section },
+    chipActive: { backgroundColor: colors.brand.orange },
+    chipText:       { fontSize: 13, color: colors.text.primary, fontWeight: '500' },
+    // '#fff' kept raw — always-white on brand orange
+    chipTextActive: { color: '#fff', fontWeight: '700' },
 
-  toggleRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
-  toggle:       { width: 48, height: 28, borderRadius: 14, backgroundColor: '#E5E7EB', padding: 3 },
-  toggleActive: { backgroundColor: '#FF6900' },
-  toggleKnob:        { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
-  toggleKnobActive:  { transform: [{ translateX: 20 }] },
+    toggleRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
+    toggle:       { width: 48, height: 28, borderRadius: 14, backgroundColor: colors.border.default, padding: 3 },
+    toggleActive: { backgroundColor: colors.brand.orange },
+    // '#fff' kept raw — always-white knob
+    toggleKnob:        { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+    toggleKnobActive:  { transform: [{ translateX: 20 }] },
 
-  paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  paymentChip:       { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: '#F3F4F6' },
-  paymentChipActive: { backgroundColor: '#FF6900' },
-  paymentText:       { fontSize: 13, color: '#374151', fontWeight: '500' },
-  paymentTextActive: { color: '#fff', fontWeight: '700' },
+    paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+    paymentChip:       { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.surface.section },
+    paymentChipActive: { backgroundColor: colors.brand.orange },
+    paymentText:       { fontSize: 13, color: colors.text.primary, fontWeight: '500' },
+    // '#fff' kept raw — always-white on brand orange
+    paymentTextActive: { color: '#fff', fontWeight: '700' },
 
-  saveBtn: {
-    marginTop: 32,
-    backgroundColor: '#FF6900', borderRadius: 50,
-    paddingVertical: 16, alignItems: 'center',
-  },
-  saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText:     { fontSize: 16, fontWeight: '700', color: '#fff' },
-  // Visually subordinate, destructive — text-only red link.
-  downgradeBtn:    { paddingVertical: 16, alignItems: 'center', marginTop: 4 },
-  downgradeText:   { fontSize: 14, color: '#E7000B', fontWeight: '600' },
-});
+    saveBtn: {
+      marginTop: 32,
+      backgroundColor: colors.brand.orange, borderRadius: 50,
+      paddingVertical: 16, alignItems: 'center',
+    },
+    saveBtnDisabled: { opacity: 0.5 },
+    // '#fff' kept raw — always-white on brand orange
+    saveBtnText:     { fontSize: 16, fontWeight: '700', color: '#fff' },
+    // Visually subordinate, destructive — text-only red link.
+    downgradeBtn:    { paddingVertical: 16, alignItems: 'center', marginTop: 4 },
+    // '#E7000B' kept raw — destructive red
+    downgradeText:   { fontSize: 14, color: '#E7000B', fontWeight: '600' },
+  });
+}

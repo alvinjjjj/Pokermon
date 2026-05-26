@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -18,8 +18,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import Loader from '../components/Loader';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 export default function EditProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
   const [username, setUsername] = useState('');
@@ -168,7 +172,7 @@ export default function EditProfileScreen() {
             style={styles.headerBtn}
           >
             {saving
-              ? <ActivityIndicator size="small" color="#FF6900" />
+              ? <ActivityIndicator size="small" color={colors.brand.orange} />
               : <Text style={[styles.headerBtnText, styles.headerSaveText]}>{t('editProfile.save')}</Text>
             }
           </TouchableOpacity>
@@ -197,7 +201,7 @@ export default function EditProfileScreen() {
                 value={username}
                 onChangeText={setUsername}
                 placeholder={t('editProfile.usernamePlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
                 autoCapitalize="none"
                 maxLength={30}
               />
@@ -210,7 +214,7 @@ export default function EditProfileScreen() {
                 value={bio}
                 onChangeText={setBio}
                 placeholder={t('editProfile.bioPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
                 multiline
                 numberOfLines={3}
                 maxLength={150}
@@ -226,60 +230,64 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.card },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-  },
-  headerBtn: { minWidth: 60 },
-  headerBtnText: { fontSize: 16, color: '#6B7280' },
-  headerSaveText: { color: '#FF6900', fontWeight: '700', textAlign: 'right' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.surface.section,
+    },
+    headerBtn: { minWidth: 60 },
+    headerBtnText: { fontSize: 16, color: colors.text.secondary },
+    headerSaveText: { color: colors.brand.orange, fontWeight: '700', textAlign: 'right' },
+    headerTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
 
-  content: { alignItems: 'center', paddingTop: 28, paddingHorizontal: 16 },
+    content: { alignItems: 'center', paddingTop: 28, paddingHorizontal: 16 },
 
-  avatarWrap: { position: 'relative', marginBottom: 8 },
-  avatar: {
-    width: 100, height: 100, borderRadius: 50,
-    borderWidth: 2, borderColor: '#FF6900',
-  },
-  avatarPlaceholder: {
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#FF6900',
-  },
-  avatarEmoji: { fontSize: 44 },
-  avatarEditBadge: {
-    position: 'absolute', bottom: 2, right: 2,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#FF6900',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff',
-  },
-  avatarEditIcon: { width: 14, height: 14, resizeMode: 'contain', tintColor: '#fff' },
-  changePhotoText: { fontSize: 14, color: '#FF6900', fontWeight: '600', marginBottom: 28 },
+    avatarWrap: { position: 'relative', marginBottom: 8 },
+    avatar: {
+      width: 100, height: 100, borderRadius: 50,
+      borderWidth: 2, borderColor: colors.brand.orange,
+    },
+    avatarPlaceholder: {
+      width: 100, height: 100, borderRadius: 50,
+      backgroundColor: colors.surface.section,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: colors.brand.orange,
+    },
+    avatarEmoji: { fontSize: 44 },
+    avatarEditBadge: {
+      position: 'absolute', bottom: 2, right: 2,
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: colors.brand.orange,
+      alignItems: 'center', justifyContent: 'center',
+      // '#fff' kept raw — always-white ring around brand-orange badge
+      borderWidth: 2, borderColor: '#fff',
+    },
+    // '#fff' kept raw — always-white tint on brand orange
+    avatarEditIcon: { width: 14, height: 14, resizeMode: 'contain', tintColor: '#fff' },
+    changePhotoText: { fontSize: 14, color: colors.brand.orange, fontWeight: '600', marginBottom: 28 },
 
-  fieldGroup: {
-    width: '100%',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: '#E5E7EB',
-    overflow: 'hidden',
-  },
-  field: { paddingHorizontal: 16, paddingVertical: 14 },
-  fieldLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: '600', marginBottom: 6 },
-  fieldInput: { fontSize: 16, color: '#101828' },
-  bioInput: { height: 72, textAlignVertical: 'top' },
-  charCount: { fontSize: 11, color: '#D1D5DB', textAlign: 'right', marginTop: 4 },
-  separator: { height: 0.5, backgroundColor: '#E5E7EB', marginLeft: 16 },
-});
+    fieldGroup: {
+      width: '100%',
+      backgroundColor: colors.surface.section,
+      borderRadius: 16,
+      borderWidth: 0.5,
+      borderColor: colors.border.default,
+      overflow: 'hidden',
+    },
+    field: { paddingHorizontal: 16, paddingVertical: 14 },
+    fieldLabel: { fontSize: 12, color: colors.text.tertiary, fontWeight: '600', marginBottom: 6 },
+    fieldInput: { fontSize: 16, color: colors.text.primary },
+    bioInput: { height: 72, textAlignVertical: 'top' },
+    charCount: { fontSize: 11, color: colors.border.strong, textAlign: 'right', marginTop: 4 },
+    separator: { height: 0.5, backgroundColor: colors.border.default, marginLeft: 16 },
+  });
+}

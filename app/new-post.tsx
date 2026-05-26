@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 type MediaAsset = {
   uri: string;
@@ -30,6 +32,8 @@ type MediaAsset = {
 type PostCategory = 'post' | 'unboxing';
 
 export default function NewPostScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
   const [media, setMedia]               = useState<MediaAsset | null>(null);
@@ -278,6 +282,7 @@ export default function NewPostScreen() {
             disabled={!tosChecked || tosLoading}
           >
             {tosLoading
+              // '#fff' kept raw — always-white on brand orange
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.tosAgreeBtnText}>{t('newPost.tosAgreeBtn')}</Text>
             }
@@ -311,6 +316,7 @@ export default function NewPostScreen() {
             disabled={!media || uploading}
           >
             {uploading
+              // '#fff' kept raw — always-white on brand orange
               ? <ActivityIndicator size="small" color="#fff" />
               : <Text style={styles.postBtnText}>{t('newPost.publish')}</Text>
             }
@@ -396,7 +402,7 @@ export default function NewPostScreen() {
                 value={caption}
                 onChangeText={setCaption}
                 placeholder={t('newPost.captionPlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
                 multiline
                 maxLength={300}
                 textAlignVertical="top"
@@ -413,7 +419,7 @@ export default function NewPostScreen() {
                 value={cardName}
                 onChangeText={setCardName}
                 placeholder={t('newPost.cardNamePlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
               />
             </View>
 
@@ -426,7 +432,7 @@ export default function NewPostScreen() {
                 value={setName}
                 onChangeText={setSetName}
                 placeholder={t('newPost.setNamePlaceholder')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.text.tertiary}
               />
             </View>
           </View>
@@ -440,115 +446,125 @@ export default function NewPostScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6',
-  },
-  headerBtn: { minWidth: 56 },
-  cancelText: { fontSize: 15, color: '#6B7280' },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#101828' },
-  postBtn: {
-    backgroundColor: '#FF6900', borderRadius: 10,
-    paddingHorizontal: 18, paddingVertical: 8, minWidth: 60, alignItems: 'center',
-  },
-  postBtnDisabled: { backgroundColor: '#FDBA74' },
-  postBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.surface.section,
+    },
+    headerBtn: { minWidth: 56 },
+    cancelText: { fontSize: 15, color: colors.text.secondary },
+    headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text.primary },
+    postBtn: {
+      backgroundColor: colors.brand.orange, borderRadius: 10,
+      paddingHorizontal: 18, paddingVertical: 8, minWidth: 60, alignItems: 'center',
+    },
+    postBtnDisabled: { backgroundColor: '#FDBA74' }, // light-orange disabled state, kept raw
+    // '#fff' kept raw — always-white on brand orange
+    postBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  // Category selector
-  categoryRow: {
-    flexDirection: 'row', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6',
-  },
-  categoryBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB',
-  },
-  categoryBtnActive: { backgroundColor: '#FFF3E8', borderColor: '#FF6900' },
-  categoryText: { fontSize: 14, fontWeight: '600', color: '#9CA3AF' },
-  categoryTextActive: { color: '#FF6900' },
+    // Category selector
+    categoryRow: {
+      flexDirection: 'row', gap: 10,
+      paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.surface.section,
+    },
+    categoryBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 12,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: colors.border.default, backgroundColor: colors.surface.section,
+    },
+    categoryBtnActive: { backgroundColor: colors.brand.peach, borderColor: colors.brand.orange },
+    categoryText: { fontSize: 14, fontWeight: '600', color: colors.text.tertiary },
+    categoryTextActive: { color: colors.brand.orange },
 
-  // Picker
-  pickerSection: {
-    margin: 16, backgroundColor: '#fff', borderRadius: 20,
-    padding: 24, borderWidth: 1, borderColor: '#F3F4F6',
-  },
-  pickerTitle: { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 18, textAlign: 'center' },
-  pickerRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
-  pickerBtn: {
-    flex: 1, borderRadius: 16, paddingVertical: 22,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  pickerBtnCamera: { backgroundColor: '#FF6900' },
-  pickerBtnLibrary: { backgroundColor: '#F3F4F6' },
-  pickerBtnLabel: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  pickerBtnLabelLight: { color: '#374151' },
+    // Picker
+    pickerSection: {
+      margin: 16, backgroundColor: colors.surface.card, borderRadius: 20,
+      padding: 24, borderWidth: 1, borderColor: colors.surface.section,
+    },
+    pickerTitle: { fontSize: 14, fontWeight: '700', color: colors.text.primary, marginBottom: 18, textAlign: 'center' },
+    pickerRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+    pickerBtn: {
+      flex: 1, borderRadius: 16, paddingVertical: 22,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    pickerBtnCamera: { backgroundColor: colors.brand.orange },
+    pickerBtnLibrary: { backgroundColor: colors.surface.section },
+    // '#fff' kept raw — always-white on brand orange
+    pickerBtnLabel: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    pickerBtnLabelLight: { color: colors.text.primary },
 
-  orDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 16 },
-  orLine: { flex: 1, height: 0.5, backgroundColor: '#E5E7EB' },
-  orText: { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
+    orDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 16 },
+    orLine: { flex: 1, height: 0.5, backgroundColor: colors.border.default },
+    orText: { fontSize: 12, color: colors.text.tertiary, fontWeight: '500' },
 
-  // Preview
-  previewWrap: { margin: 16, borderRadius: 20, overflow: 'hidden', position: 'relative' },
-  preview: { width: '100%', height: 340 },
-  videoOverlay: {
-    position: 'absolute', top: 12, left: 12,
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 5,
-  },
-  videoOverlayText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  reprPickRow: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', gap: 8 },
-  reprPickBtn: {
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 6,
-  },
-  reprPickText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    // Preview
+    previewWrap: { margin: 16, borderRadius: 20, overflow: 'hidden', position: 'relative' },
+    preview: { width: '100%', height: 340 },
+    videoOverlay: {
+      position: 'absolute', top: 12, left: 12,
+      // rgba(0,0,0,0.55) kept raw — on-image scrim
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8,
+      paddingHorizontal: 10, paddingVertical: 5,
+    },
+    // '#fff' kept raw — always-white on dark scrim
+    videoOverlayText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    reprPickRow: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', gap: 8 },
+    reprPickBtn: {
+      // rgba(0,0,0,0.55) kept raw — on-image scrim
+      backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 6,
+    },
+    // '#fff' kept raw — always-white on dark scrim
+    reprPickText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
-  // Form
-  form: {
-    backgroundColor: '#fff', borderRadius: 20,
-    marginHorizontal: 16, paddingHorizontal: 16, paddingTop: 4,
-  },
-  field: { paddingVertical: 14 },
-  label: {
-    fontSize: 11, fontWeight: '700', color: '#9CA3AF',
-    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
-  },
-  captionInput: { fontSize: 15, color: '#101828', minHeight: 80, lineHeight: 22 },
-  input: { fontSize: 15, color: '#101828' },
-  charCount: { fontSize: 11, color: '#D1D5DB', textAlign: 'right', marginTop: 4 },
-  divider: { height: 0.5, backgroundColor: '#F3F4F6' },
+    // Form
+    form: {
+      backgroundColor: colors.surface.card, borderRadius: 20,
+      marginHorizontal: 16, paddingHorizontal: 16, paddingTop: 4,
+    },
+    field: { paddingVertical: 14 },
+    label: {
+      fontSize: 11, fontWeight: '700', color: colors.text.tertiary,
+      textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
+    },
+    captionInput: { fontSize: 15, color: colors.text.primary, minHeight: 80, lineHeight: 22 },
+    input: { fontSize: 15, color: colors.text.primary },
+    charCount: { fontSize: 11, color: colors.border.strong, textAlign: 'right', marginTop: 4 },
+    divider: { height: 0.5, backgroundColor: colors.surface.section },
 
-  // ToS Modal
-  tosOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  tosSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingHorizontal: 20, paddingTop: 24, paddingBottom: 36, maxHeight: '88%',
-  },
-  tosTitle: { fontSize: 22, fontWeight: '800', color: '#101828', textAlign: 'center', marginBottom: 4 },
-  tosSubtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 18 },
-  tosScroll: { maxHeight: 320 },
-  tosSection: { fontSize: 13, fontWeight: '800', color: '#374151', marginBottom: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  tosItem: { fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 2 },
-  tosBody: { fontSize: 13, color: '#6B7280', lineHeight: 20 },
-  tosCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 20, marginBottom: 16 },
-  tosCheckbox: {
-    width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#D1D5DB',
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
-  },
-  tosCheckboxChecked: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  tosCheckmark: { fontSize: 13, color: '#fff', fontWeight: '800' },
-  tosCheckLabel: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 20 },
-  tosAgreeBtn: {
-    backgroundColor: '#FF6900', borderRadius: 16, paddingVertical: 16, alignItems: 'center',
-  },
-  tosAgreeBtnDisabled: { backgroundColor: '#FDBA74' },
-  tosAgreeBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  tosCancelBtn: { paddingVertical: 14, alignItems: 'center' },
-  tosCancelText: { fontSize: 14, color: '#9CA3AF' },
-});
+    // ToS Modal
+    tosOverlay: { flex: 1, backgroundColor: colors.overlay.medium, justifyContent: 'flex-end' },
+    tosSheet: {
+      backgroundColor: colors.surface.elevated, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      paddingHorizontal: 20, paddingTop: 24, paddingBottom: 36, maxHeight: '88%',
+    },
+    tosTitle: { fontSize: 22, fontWeight: '800', color: colors.text.primary, textAlign: 'center', marginBottom: 4 },
+    tosSubtitle: { fontSize: 14, color: colors.text.secondary, textAlign: 'center', marginBottom: 18 },
+    tosScroll: { maxHeight: 320 },
+    tosSection: { fontSize: 13, fontWeight: '800', color: colors.text.primary, marginBottom: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+    tosItem: { fontSize: 14, color: colors.text.primary, lineHeight: 22, marginBottom: 2 },
+    tosBody: { fontSize: 13, color: colors.text.secondary, lineHeight: 20 },
+    tosCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 20, marginBottom: 16 },
+    tosCheckbox: {
+      width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border.strong,
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
+    },
+    tosCheckboxChecked: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    // '#fff' kept raw — always-white on brand orange
+    tosCheckmark: { fontSize: 13, color: '#fff', fontWeight: '800' },
+    tosCheckLabel: { flex: 1, fontSize: 13, color: colors.text.primary, lineHeight: 20 },
+    tosAgreeBtn: {
+      backgroundColor: colors.brand.orange, borderRadius: 16, paddingVertical: 16, alignItems: 'center',
+    },
+    tosAgreeBtnDisabled: { backgroundColor: '#FDBA74' }, // light-orange disabled state, kept raw
+    // '#fff' kept raw — always-white on brand orange
+    tosAgreeBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    tosCancelBtn: { paddingVertical: 14, alignItems: 'center' },
+    tosCancelText: { fontSize: 14, color: colors.text.tertiary },
+  });
+}

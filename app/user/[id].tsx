@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_W = (width - 3) / 3;
@@ -40,6 +42,8 @@ type Post = {
 };
 
 export default function UserProfileScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const { t }   = useTranslation();
@@ -212,7 +216,8 @@ export default function UserProfileScreen() {
             disabled={followLoading}
           >
             {followLoading
-              ? <ActivityIndicator size="small" color={isFollowing ? '#6B7280' : '#fff'} />
+              // '#fff' kept raw — always-white on brand orange
+              ? <ActivityIndicator size="small" color={isFollowing ? colors.text.secondary : '#fff'} />
               : <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
                   {isFollowing ? '✓ ' + t('social.following') : t('social.follow')}
                 </Text>
@@ -240,7 +245,7 @@ export default function UserProfileScreen() {
                 }
               }}
             >
-              <Image source={require('../../assets/icons/message.png')} style={{ width: 18, height: 18, tintColor: '#FF6900' }} />
+              <Image source={require('../../assets/icons/message.png')} style={{ width: 18, height: 18, tintColor: colors.brand.orange }} />
             </TouchableOpacity>
           )}
         </View>
@@ -279,7 +284,7 @@ export default function UserProfileScreen() {
         ListHeaderComponent={ListHeader}
         renderItem={renderPost}
         columnWrapperStyle={posts.length > 0 ? styles.row : undefined}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor="#FF6900" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor={colors.brand.orange} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       />
@@ -287,76 +292,84 @@ export default function UserProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.card },
+    loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6',
-  },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      borderBottomWidth: 0.5, borderBottomColor: colors.surface.section,
+    },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
 
-  profileSection: {
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20,
-    borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6',
-  },
-  profileTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 20 },
-  avatar: {
-    width: 84, height: 84, borderRadius: 42,
-    backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#FF6900',
-  },
-  avatarImg: { width: 84, height: 84, borderRadius: 42 },
-  avatarPlaceholderIcon: { width: 40, height: 40, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  statsRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
-  statItem: { alignItems: 'center', gap: 2 },
-  statNumber: { fontSize: 18, fontWeight: '700', color: '#101828' },
-  statLabel: { fontSize: 12, color: '#6B7280' },
+    profileSection: {
+      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20,
+      borderBottomWidth: 0.5, borderBottomColor: colors.surface.section,
+    },
+    profileTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 20 },
+    avatar: {
+      width: 84, height: 84, borderRadius: 42,
+      backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: colors.brand.orange,
+    },
+    avatarImg: { width: 84, height: 84, borderRadius: 42 },
+    avatarPlaceholderIcon: { width: 40, height: 40, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    statsRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
+    statItem: { alignItems: 'center', gap: 2 },
+    statNumber: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    statLabel: { fontSize: 12, color: colors.text.secondary },
 
-  profileName: { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 4 },
-  profileBio: { fontSize: 13, color: '#6B7280', lineHeight: 18, marginBottom: 12 },
+    profileName: { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 4 },
+    profileBio: { fontSize: 13, color: colors.text.secondary, lineHeight: 18, marginBottom: 12 },
 
-  followBtn: {
-    backgroundColor: '#FF6900', borderRadius: 12, paddingVertical: 12,
-    alignItems: 'center', marginTop: 8,
-  },
-  msgBtn: {
-    backgroundColor: '#FFF3E8', borderRadius: 12, paddingHorizontal: 16,
-    alignItems: 'center', justifyContent: 'center', marginTop: 8,
-    borderWidth: 1, borderColor: '#FF6900',
-  },
-  followingBtn: { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  followBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  followingBtnText: { color: '#374151' },
-  editBtn: {
-    backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 12,
-    alignItems: 'center', marginTop: 8,
-  },
-  editBtnText: { fontSize: 14, fontWeight: '600', color: '#101828' },
+    followBtn: {
+      backgroundColor: colors.brand.orange, borderRadius: 12, paddingVertical: 12,
+      alignItems: 'center', marginTop: 8,
+    },
+    msgBtn: {
+      backgroundColor: colors.brand.peach, borderRadius: 12, paddingHorizontal: 16,
+      alignItems: 'center', justifyContent: 'center', marginTop: 8,
+      borderWidth: 1, borderColor: colors.brand.orange,
+    },
+    followingBtn: { backgroundColor: colors.surface.section, borderWidth: 1, borderColor: colors.border.default },
+    // '#fff' kept raw — always-white on brand orange
+    followBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    followingBtnText: { color: colors.text.primary },
+    editBtn: {
+      backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 12,
+      alignItems: 'center', marginTop: 8,
+    },
+    editBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
 
-  emptyPosts: { alignItems: 'center', paddingTop: 40 },
-  emptyPostsText: { fontSize: 15, color: '#9CA3AF' },
+    emptyPosts: { alignItems: 'center', paddingTop: 40 },
+    emptyPostsText: { fontSize: 15, color: colors.text.tertiary },
 
-  // Grid
-  row: { gap: 1.5 },
-  gridItem: { width: GRID_ITEM_W, height: GRID_ITEM_W, marginBottom: 1.5, position: 'relative' },
-  gridImg: { width: '100%', height: '100%' },
-  gridPlaceholder: { backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  videoTag: {
-    position: 'absolute', top: 6, right: 6,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2,
-  },
-  videoTagText: { fontSize: 10, color: '#fff' },
-  gridOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    flexDirection: 'row', justifyContent: 'space-evenly', padding: 4,
-  },
-  gridOverlayItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  gridOverlayIcon: { width: 10, height: 10, tintColor: '#fff', resizeMode: 'contain' },
-  gridOverlayText: { fontSize: 10, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-});
+    // Grid
+    row: { gap: 1.5 },
+    gridItem: { width: GRID_ITEM_W, height: GRID_ITEM_W, marginBottom: 1.5, position: 'relative' },
+    gridImg: { width: '100%', height: '100%' },
+    gridPlaceholder: { backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    videoTag: {
+      position: 'absolute', top: 6, right: 6,
+      // rgba(0,0,0,0.5) kept raw — on-image scrim
+      backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2,
+    },
+    // '#fff' kept raw — always-white on dark scrim
+    videoTagText: { fontSize: 10, color: '#fff' },
+    gridOverlay: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      // rgba(0,0,0,0.45) kept raw — on-image scrim
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      flexDirection: 'row', justifyContent: 'space-evenly', padding: 4,
+    },
+    gridOverlayItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    // '#fff' kept raw — always-white tint on dark scrim
+    gridOverlayIcon: { width: 10, height: 10, tintColor: '#fff', resizeMode: 'contain' },
+    // rgba(255,255,255,0.9) kept raw — floating text on dark scrim
+    gridOverlayText: { fontSize: 10, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  });
+}

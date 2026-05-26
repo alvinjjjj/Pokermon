@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
@@ -50,6 +52,8 @@ function gradeLabel(g: string): string {
 }
 
 export default function PublicPortfolioScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
@@ -177,7 +181,7 @@ export default function PublicPortfolioScreen() {
           ListHeaderComponent={ListHeader}
           renderItem={renderCard}
           columnWrapperStyle={styles.row}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="#FF6900" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.brand.orange} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         />
@@ -186,46 +190,49 @@ export default function PublicPortfolioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB',
-  },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
+    loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
 
-  header: { paddingVertical: 20 },
-  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-  avatar: {
-    width: 60, height: 60, borderRadius: 30,
-    backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#FF6900',
-  },
-  headerInfo: { flex: 1 },
-  portfolioName: { fontSize: 18, fontWeight: '800', color: '#101828' },
-  ownerName: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+    header: { paddingVertical: 20 },
+    headerTop: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+    avatar: {
+      width: 60, height: 60, borderRadius: 30,
+      backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: colors.brand.orange,
+    },
+    headerInfo: { flex: 1 },
+    portfolioName: { fontSize: 18, fontWeight: '800', color: colors.text.primary },
+    ownerName: { fontSize: 13, color: colors.text.tertiary, marginTop: 2 },
 
-  statsRow: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16 },
-  statItem: { flex: 1, alignItems: 'center' },
-  statNum: { fontSize: 16, fontWeight: '800', color: '#101828' },
-  statLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-  statDiv: { width: 0.5, backgroundColor: '#E5E7EB', marginVertical: 4 },
+    statsRow: { flexDirection: 'row', backgroundColor: colors.surface.card, borderRadius: 16, padding: 16, marginBottom: 16 },
+    statItem: { flex: 1, alignItems: 'center' },
+    statNum: { fontSize: 16, fontWeight: '800', color: colors.text.primary },
+    statLabel: { fontSize: 11, color: colors.text.tertiary, marginTop: 2 },
+    statDiv: { width: 0.5, backgroundColor: colors.border.default, marginVertical: 4 },
 
-  empty: { alignItems: 'center', paddingTop: 40, gap: 12 },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+    empty: { alignItems: 'center', paddingTop: 40, gap: 12 },
+    emptyText: { fontSize: 15, color: colors.text.tertiary },
 
-  row: { gap: 16, marginBottom: 16 },
-  card: { width: CARD_W, backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB' },
-  cardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  cardImg: { width: '100%', height: '100%' },
-  gradeBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  gradeBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-  cardInfo: { padding: 10 },
-  cardName: { fontSize: 13, fontWeight: '700', color: '#101828' },
-  cardSet: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-  cardPrice: { fontSize: 14, fontWeight: '700', color: '#FF6900', marginTop: 4 },
-});
+    row: { gap: 16, marginBottom: 16 },
+    card: { width: CARD_W, backgroundColor: colors.surface.card, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default },
+    cardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    cardImg: { width: '100%', height: '100%' },
+    gradeBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    // '#fff' kept raw — always-white on grade fill
+    gradeBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+    cardInfo: { padding: 10 },
+    cardName: { fontSize: 13, fontWeight: '700', color: colors.text.primary },
+    cardSet: { fontSize: 11, color: colors.text.tertiary, marginTop: 2 },
+    cardPrice: { fontSize: 14, fontWeight: '700', color: colors.brand.orange, marginTop: 4 },
+  });
+}

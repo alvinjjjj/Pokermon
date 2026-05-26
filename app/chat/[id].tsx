@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -46,6 +48,8 @@ type ListingCtx = {
 // ── Component ─────────────────────────────────────────────────
 
 export default function ChatScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const { t, i18n } = useTranslation();
@@ -271,7 +275,8 @@ export default function ChatScreen() {
               {myAvatar ? (
                 <Image source={{ uri: myAvatar }} style={styles.msgAvatarImg} />
               ) : (
-                <View style={[styles.msgAvatarPlaceholder, { backgroundColor: '#FF6900' }]}>
+                <View style={[styles.msgAvatarPlaceholder, { backgroundColor: colors.brand.orange }]}>
+                  {/* '#fff' kept raw — always-white on brand orange */}
                   <Image source={require('../../assets/icons/profile.png')} style={[styles.msgAvatarIcon, { tintColor: '#fff' }]} />
                 </View>
               )}
@@ -343,7 +348,7 @@ export default function ChatScreen() {
           {listingThumb ? (
             <Image source={{ uri: listingThumb }} style={styles.listingBannerImg} resizeMode="contain" />
           ) : (
-            <View style={[styles.listingBannerImg, { backgroundColor: '#F3F4F6' }]} />
+            <View style={[styles.listingBannerImg, { backgroundColor: colors.surface.section }]} />
           )}
           <View style={styles.listingBannerInfo}>
             <Text style={styles.listingBannerName} numberOfLines={1}>{listing.card_name}</Text>
@@ -370,7 +375,7 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           onEndReached={loadOlderMessages}
           onEndReachedThreshold={0.2}
-          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#FF6900" style={{ marginVertical: 12 }} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color={colors.brand.orange} style={{ marginVertical: 12 }} /> : null}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
               <Text style={styles.emptyChatText}>{t('chat.startConversation')}</Text>
@@ -385,7 +390,7 @@ export default function ChatScreen() {
             value={input}
             onChangeText={setInput}
             placeholder={t('chat.inputPlaceholder')}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             multiline
             maxLength={2000}
             returnKeyType="default"
@@ -396,6 +401,7 @@ export default function ChatScreen() {
             disabled={!input.trim() || sending}
           >
             {sending
+              // '#fff' kept raw — always-white on brand orange
               ? <ActivityIndicator size="small" color="#fff" />
               : <Image source={require('../../assets/icons/arrow.png')} style={styles.sendIcon} />
             }
@@ -408,79 +414,84 @@ export default function ChatScreen() {
 
 // ── Styles ────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:   { flex: 1, backgroundColor: colors.surface.card },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  // Nav
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 8, paddingVertical: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB',
-  },
-  navBack:             { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  navBackText:         { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navCenter:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  navAvatar:           { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F3F4F6' },
-  navAvatarPlaceholder:{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  navAvatarIcon:       { width: 16, height: 16, resizeMode: 'contain', tintColor: '#9CA3AF' },
-  navName:             { fontSize: 16, fontWeight: '700', color: '#101828', maxWidth: 180 },
+    // Nav
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 8, paddingVertical: 10,
+      borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    navBack:             { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    navBackText:         { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navCenter:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    navAvatar:           { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surface.section },
+    navAvatarPlaceholder:{ width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    navAvatarIcon:       { width: 16, height: 16, resizeMode: 'contain', tintColor: colors.text.tertiary },
+    navName:             { fontSize: 16, fontWeight: '700', color: colors.text.primary, maxWidth: 180 },
 
-  // Listing banner
-  listingBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 10,
-    backgroundColor: '#FFF8F3',
-    borderBottomWidth: 0.5, borderBottomColor: '#FFD4B2',
-  },
-  listingBannerImg:   { width: 40, height: 40, borderRadius: 8 },
-  listingBannerInfo:  { flex: 1 },
-  listingBannerName:  { fontSize: 13, fontWeight: '700', color: '#101828' },
-  listingBannerPrice: { fontSize: 12, color: '#FF6900', fontWeight: '600', marginTop: 1 },
-  listingBannerArrow: { fontSize: 20, color: '#C7C7CC' },
+    // Listing banner
+    listingBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingHorizontal: 16, paddingVertical: 10,
+      backgroundColor: colors.brand.peach,
+      borderBottomWidth: 0.5, borderBottomColor: colors.brand.peach,
+    },
+    listingBannerImg:   { width: 40, height: 40, borderRadius: 8 },
+    listingBannerInfo:  { flex: 1 },
+    listingBannerName:  { fontSize: 13, fontWeight: '700', color: colors.text.primary },
+    listingBannerPrice: { fontSize: 12, color: colors.brand.orange, fontWeight: '600', marginTop: 1 },
+    listingBannerArrow: { fontSize: 20, color: colors.text.tertiary },
 
-  // Messages
-  msgList: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, flexGrow: 1 },
+    // Messages
+    msgList: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, flexGrow: 1 },
 
-  msgRow:     { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, gap: 8 },
-  msgRowMe:   { justifyContent: 'flex-end' },
-  msgRowThem: { justifyContent: 'flex-start' },
+    msgRow:     { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, gap: 8 },
+    msgRowMe:   { justifyContent: 'flex-end' },
+    msgRowThem: { justifyContent: 'flex-start' },
 
-  msgAvatar:           { width: 28, flexShrink: 0 },
-  msgAvatarImg:        { width: 28, height: 28, borderRadius: 14 },
-  msgAvatarPlaceholder:{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  msgAvatarIcon:       { width: 14, height: 14, tintColor: '#9CA3AF', resizeMode: 'contain' },
-  msgAvatarLetter:     { fontSize: 12, fontWeight: '700', color: '#6B7280' },
+    msgAvatar:           { width: 28, flexShrink: 0 },
+    msgAvatarImg:        { width: 28, height: 28, borderRadius: 14 },
+    msgAvatarPlaceholder:{ width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    msgAvatarIcon:       { width: 14, height: 14, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    msgAvatarLetter:     { fontSize: 12, fontWeight: '700', color: colors.text.secondary },
 
-  bubble:         { maxWidth: '72%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
-  bubbleMe:       { backgroundColor: '#FF6900', borderBottomRightRadius: 4 },
-  bubbleThem:     { backgroundColor: '#F3F4F6', borderBottomLeftRadius: 4 },
-  bubbleText:     { fontSize: 15, lineHeight: 21 },
-  bubbleTextMe:   { color: '#fff' },
-  bubbleTextThem: { color: '#101828' },
-  bubbleTime:     { fontSize: 11, marginTop: 4 },
-  bubbleTimeMe:   { color: 'rgba(255,255,255,0.65)', textAlign: 'right' },
-  bubbleTimeThem: { color: '#9CA3AF' },
+    bubble:         { maxWidth: '72%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
+    bubbleMe:       { backgroundColor: colors.brand.orange, borderBottomRightRadius: 4 },
+    bubbleThem:     { backgroundColor: colors.surface.section, borderBottomLeftRadius: 4 },
+    bubbleText:     { fontSize: 15, lineHeight: 21 },
+    // '#fff' kept raw — always-white on brand orange bubble
+    bubbleTextMe:   { color: '#fff' },
+    bubbleTextThem: { color: colors.text.primary },
+    bubbleTime:     { fontSize: 11, marginTop: 4 },
+    // rgba(255,255,255,0.65) kept raw — floating timestamp on brand orange bubble
+    bubbleTimeMe:   { color: 'rgba(255,255,255,0.65)', textAlign: 'right' },
+    bubbleTimeThem: { color: colors.text.tertiary },
 
-  dateSep:     { alignItems: 'center', marginVertical: 12 },
-  dateSepText: { fontSize: 12, color: '#9CA3AF', backgroundColor: '#fff', paddingHorizontal: 8 },
+    dateSep:     { alignItems: 'center', marginVertical: 12 },
+    dateSepText: { fontSize: 12, color: colors.text.tertiary, backgroundColor: colors.surface.card, paddingHorizontal: 8 },
 
-  emptyChat:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyChatText: { fontSize: 14, color: '#9CA3AF' },
+    emptyChat:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+    emptyChatText: { fontSize: 14, color: colors.text.tertiary },
 
-  // Input bar
-  inputBar: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24,
-    borderTopWidth: 0.5, borderTopColor: '#E5E7EB',
-    backgroundColor: '#fff',
-  },
-  input: {
-    flex: 1, backgroundColor: '#F3F4F6', borderRadius: 22,
-    paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 15, color: '#101828', maxHeight: 120,
-  },
-  sendBtn:         { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FF6900', alignItems: 'center', justifyContent: 'center' },
-  sendBtnDisabled: { backgroundColor: '#E5E7EB' },
-  sendIcon:        { width: 18, height: 18, resizeMode: 'contain', tintColor: '#fff' },
-});
+    // Input bar
+    inputBar: {
+      flexDirection: 'row', alignItems: 'flex-end', gap: 10,
+      paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24,
+      borderTopWidth: 0.5, borderTopColor: colors.border.default,
+      backgroundColor: colors.surface.card,
+    },
+    input: {
+      flex: 1, backgroundColor: colors.surface.section, borderRadius: 22,
+      paddingHorizontal: 16, paddingVertical: 10,
+      fontSize: 15, color: colors.text.primary, maxHeight: 120,
+    },
+    sendBtn:         { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brand.orange, alignItems: 'center', justifyContent: 'center' },
+    sendBtnDisabled: { backgroundColor: colors.border.default },
+    // '#fff' kept raw — always-white tint on brand orange
+    sendIcon:        { width: 18, height: 18, resizeMode: 'contain', tintColor: '#fff' },
+  });
+}

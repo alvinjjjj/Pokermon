@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -14,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -42,6 +44,8 @@ type ConversationItem = {
 // ── Component ─────────────────────────────────────────────────
 
 export default function InboxScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router    = useRouter();
   const { t, i18n } = useTranslation();
 
@@ -213,7 +217,7 @@ export default function InboxScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadConversations(true)}
-              tintColor="#FF6900"
+              tintColor={colors.brand.orange}
             />
           }
           ListEmptyComponent={
@@ -234,53 +238,57 @@ export default function InboxScreen() {
 
 // ── Styles ────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:   { flex: 1, backgroundColor: colors.surface.card },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 8, paddingVertical: 10,
-    borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB',
-  },
-  backBtn:  { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  title:    { fontSize: 18, fontWeight: '800', color: '#101828' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 8, paddingVertical: 10,
+      borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    backBtn:  { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    backText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    title:    { fontSize: 18, fontWeight: '800', color: colors.text.primary },
 
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
-  },
+    row: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+    },
 
-  avatarWrap:          { position: 'relative', flexShrink: 0 },
-  avatar:              { width: 52, height: 52, borderRadius: 26, backgroundColor: '#F3F4F6' },
-  avatarPlaceholder:   { width: 52, height: 52, borderRadius: 26, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  avatarIcon:          { width: 24, height: 24, tintColor: '#9CA3AF', resizeMode: 'contain' },
-  unreadBadge:         {
-    position: 'absolute', top: -2, right: -2,
-    minWidth: 18, height: 18, borderRadius: 9,
-    backgroundColor: '#FF6900',
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2, borderColor: '#fff',
-  },
-  unreadBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+    avatarWrap:          { position: 'relative', flexShrink: 0 },
+    avatar:              { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surface.section },
+    avatarPlaceholder:   { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    avatarIcon:          { width: 24, height: 24, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    unreadBadge:         {
+      position: 'absolute', top: -2, right: -2,
+      minWidth: 18, height: 18, borderRadius: 9,
+      backgroundColor: colors.brand.orange,
+      alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 4,
+      // '#fff' kept raw — always-white ring around badge
+      borderWidth: 2, borderColor: '#fff',
+    },
+    // '#fff' kept raw — always-white on brand orange
+    unreadBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
 
-  content:       { flex: 1, minWidth: 0 },
-  topRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  name:          { fontSize: 15, fontWeight: '600', color: '#374151', flex: 1, marginRight: 8 },
-  nameUnread:    { color: '#101828', fontWeight: '700' },
-  time:          { fontSize: 12, color: '#9CA3AF', flexShrink: 0 },
-  listingLabel:  { fontSize: 12, color: '#FF6900', fontWeight: '500', marginBottom: 2 },
-  preview:       { fontSize: 13, color: '#9CA3AF' },
-  previewUnread: { color: '#374151', fontWeight: '500' },
+    content:       { flex: 1, minWidth: 0 },
+    topRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+    name:          { fontSize: 15, fontWeight: '600', color: colors.text.primary, flex: 1, marginRight: 8 },
+    nameUnread:    { color: colors.text.primary, fontWeight: '700' },
+    time:          { fontSize: 12, color: colors.text.tertiary, flexShrink: 0 },
+    listingLabel:  { fontSize: 12, color: colors.brand.orange, fontWeight: '500', marginBottom: 2 },
+    preview:       { fontSize: 13, color: colors.text.tertiary },
+    previewUnread: { color: colors.text.primary, fontWeight: '500' },
 
-  thumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#F9FAFB', flexShrink: 0 },
+    thumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: colors.surface.section, flexShrink: 0 },
 
-  separator: { height: 0.5, backgroundColor: '#F3F4F6', marginLeft: 80 },
+    separator: { height: 0.5, backgroundColor: colors.surface.section, marginLeft: 80 },
 
-  empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyIcon:  { width: 48, height: 48, tintColor: '#D1D5DB', resizeMode: 'contain' },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#374151' },
-  emptySub:   { fontSize: 14, color: '#9CA3AF' },
-});
+    empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+    emptyIcon:  { width: 48, height: 48, tintColor: colors.border.strong, resizeMode: 'contain' },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    emptySub:   { fontSize: 14, color: colors.text.tertiary },
+  });
+}
