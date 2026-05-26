@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActionSheetIOS,
@@ -19,6 +19,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import Loader from '../components/Loader';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 type Post = {
   id: string;
@@ -45,6 +47,8 @@ type Comment = {
 };
 
 export default function PostDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const { t }   = useTranslation();
@@ -279,9 +283,9 @@ export default function PostDetailScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <Text style={{ fontSize: 16, color: '#6B7280' }}>{t('postDetail.notFound')}</Text>
+          <Text style={{ fontSize: 16, color: colors.text.secondary }}>{t('postDetail.notFound')}</Text>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={{ color: '#FF6900', marginTop: 12, fontSize: 15, fontWeight: '600' }}>{t('postDetail.goBack')}</Text>
+            <Text style={{ color: colors.brand.orange, marginTop: 12, fontSize: 15, fontWeight: '600' }}>{t('postDetail.goBack')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -358,14 +362,14 @@ export default function PostDetailScreen() {
             <TouchableOpacity style={styles.actionBtn} onPress={toggleLike}>
               <Image
                 source={require('../assets/icons/love.png')}
-                style={[styles.actionIcon, { tintColor: liked ? '#E7000B' : '#9CA3AF' }]}
+                style={[styles.actionIcon, { tintColor: liked ? '#E7000B' : colors.text.tertiary }]}
               />
               <Text style={[styles.actionCount, liked && { color: '#E7000B' }]}>{post.likes_count}</Text>
             </TouchableOpacity>
             <View style={styles.actionBtn}>
               <Image
                 source={require('../assets/icons/message.png')}
-                style={[styles.actionIcon, { tintColor: '#9CA3AF' }]}
+                style={[styles.actionIcon, { tintColor: colors.text.tertiary }]}
               />
               <Text style={styles.actionCount}>{post.comments_count}</Text>
             </View>
@@ -394,7 +398,7 @@ export default function PostDetailScreen() {
                   >
                     {c.profiles?.avatar_url
                       ? <Image source={{ uri: c.profiles.avatar_url }} style={styles.commentAvatar} />
-                      : <View style={styles.commentAvatarPlaceholder}><Image source={require('../assets/icons/profile.png')} style={{ width: 16, height: 16, tintColor: '#C4C9D4', resizeMode: 'contain' }} /></View>
+                      : <View style={styles.commentAvatarPlaceholder}><Image source={require('../assets/icons/profile.png')} style={{ width: 16, height: 16, tintColor: colors.border.strong, resizeMode: 'contain' }} /></View>
                     }
                   </TouchableOpacity>
                   <View style={styles.commentBody}>
@@ -421,12 +425,12 @@ export default function PostDetailScreen() {
         <View style={styles.inputBar}>
           {myProfile?.avatar_url
             ? <Image source={{ uri: myProfile.avatar_url }} style={styles.inputAvatar} />
-            : <View style={styles.inputAvatarPlaceholder}><Image source={require('../assets/icons/profile.png')} style={{ width: 18, height: 18, tintColor: '#C4C9D4', resizeMode: 'contain' }} /></View>
+            : <View style={styles.inputAvatarPlaceholder}><Image source={require('../assets/icons/profile.png')} style={{ width: 18, height: 18, tintColor: colors.border.strong, resizeMode: 'contain' }} /></View>
           }
           <TextInput
             style={styles.input}
             placeholder={t('postDetail.commentPlaceholder', { username: myProfile?.username ?? t('social.user') })}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             value={commentText}
             onChangeText={setCommentText}
             multiline
@@ -467,91 +471,98 @@ export default function PostDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.card },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6',
-  },
-  backBtn: { width: 50 },
-  backIcon: { fontSize: 28, color: '#101828', lineHeight: 32 },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  moreBtn: { width: 50, alignItems: 'flex-end' },
-  deleteText: { fontSize: 14, color: '#E7000B', fontWeight: '600' },
-  reportText: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    backBtn: { width: 50 },
+    backIcon: { fontSize: 28, color: colors.text.primary, lineHeight: 32 },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    moreBtn: { width: 50, alignItems: 'flex-end' },
+    // '#E7000B' kept raw — destructive red
+    deleteText: { fontSize: 14, color: '#E7000B', fontWeight: '600' },
+    reportText: { fontSize: 14, color: colors.text.tertiary, fontWeight: '600' },
 
-  userRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-  },
-  avatar: { width: 42, height: 42, borderRadius: 21 },
-  avatarPlaceholder: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  avatarEmoji: { width: 22, height: 22, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  userMeta: { flex: 1 },
-  username: { fontSize: 15, fontWeight: '700', color: '#101828' },
-  postTime: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+    userRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingHorizontal: 16, paddingVertical: 12,
+    },
+    avatar: { width: 42, height: 42, borderRadius: 21 },
+    avatarPlaceholder: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    avatarEmoji: { width: 22, height: 22, tintColor: colors.border.strong, resizeMode: 'contain' },
+    userMeta: { flex: 1 },
+    username: { fontSize: 15, fontWeight: '700', color: colors.text.primary },
+    postTime: { fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
 
-  media: { width: '100%', aspectRatio: 1, backgroundColor: '#F3F4F6' },
-  mediaPlaceholder: { width: '100%', aspectRatio: 1, backgroundColor: '#0F1923', alignItems: 'center', justifyContent: 'center' },
+    media: { width: '100%', aspectRatio: 1, backgroundColor: colors.surface.section },
+    // '#0F1923' kept raw — dark video-placeholder canvas
+    mediaPlaceholder: { width: '100%', aspectRatio: 1, backgroundColor: '#0F1923', alignItems: 'center', justifyContent: 'center' },
 
-  cardInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF3EB' },
-  cardInfoIcon: { width: 20, height: 20, tintColor: '#FF6900', resizeMode: 'contain' },
-  cardName: { fontSize: 14, fontWeight: '700', color: '#101828' },
-  setName: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+    cardInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.brand.peach },
+    cardInfoIcon: { width: 20, height: 20, tintColor: colors.brand.orange, resizeMode: 'contain' },
+    cardName: { fontSize: 14, fontWeight: '700', color: colors.text.primary },
+    setName: { fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
 
-  actionsRow: { flexDirection: 'row', gap: 18, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: '#F3F4F6' },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionIcon: { width: 22, height: 22, resizeMode: 'contain' },
-  actionCount: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
+    actionsRow: { flexDirection: 'row', gap: 18, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: colors.border.default },
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    actionIcon: { width: 22, height: 22, resizeMode: 'contain' },
+    actionCount: { fontSize: 14, color: colors.text.secondary, fontWeight: '600' },
 
-  captionWrap: { paddingHorizontal: 16, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' },
-  captionUser: { fontSize: 14, fontWeight: '700', color: '#101828' },
-  captionText: { fontSize: 14, color: '#101828', lineHeight: 20 },
+    captionWrap: { paddingHorizontal: 16, paddingBottom: 12, flexDirection: 'row', flexWrap: 'wrap' },
+    captionUser: { fontSize: 14, fontWeight: '700', color: colors.text.primary },
+    captionText: { fontSize: 14, color: colors.text.primary, lineHeight: 20 },
 
-  // Comments
-  commentsDivider: { height: 8, backgroundColor: '#F9FAFB', borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#F3F4F6' },
-  noComments: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', paddingVertical: 28 },
+    // Comments
+    commentsDivider: { height: 8, backgroundColor: colors.surface.section, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: colors.border.default },
+    noComments: { fontSize: 13, color: colors.text.tertiary, textAlign: 'center', paddingVertical: 28 },
 
-  commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 14, paddingVertical: 10 },
-  commentAvatar: { width: 34, height: 34, borderRadius: 17 },
-  commentAvatarPlaceholder: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  commentBody: { flex: 1, gap: 3 },
-  commentBubble: { backgroundColor: '#F3F4F6', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', flexWrap: 'wrap' },
-  commentUsername: { fontSize: 13, fontWeight: '700', color: '#101828' },
-  commentContent: { fontSize: 13, color: '#374151', lineHeight: 18 },
-  commentTime: { fontSize: 11, color: '#9CA3AF', paddingLeft: 4 },
-  commentDeleteBtn: { padding: 6, alignSelf: 'center' },
-  commentDeleteIcon: { fontSize: 13, color: '#9CA3AF' },
+    commentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 14, paddingVertical: 10 },
+    commentAvatar: { width: 34, height: 34, borderRadius: 17 },
+    commentAvatarPlaceholder: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    commentBody: { flex: 1, gap: 3 },
+    commentBubble: { backgroundColor: colors.surface.section, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', flexWrap: 'wrap' },
+    commentUsername: { fontSize: 13, fontWeight: '700', color: colors.text.primary },
+    commentContent: { fontSize: 13, color: colors.text.primary, lineHeight: 18 },
+    commentTime: { fontSize: 11, color: colors.text.tertiary, paddingLeft: 4 },
+    commentDeleteBtn: { padding: 6, alignSelf: 'center' },
+    commentDeleteIcon: { fontSize: 13, color: colors.text.tertiary },
 
-  // Input bar
-  inputBar: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderTopWidth: 0.5, borderTopColor: '#E5E7EB',
-    backgroundColor: '#fff',
-  },
-  inputAvatar: { width: 34, height: 34, borderRadius: 17, marginBottom: 2 },
-  inputAvatarPlaceholder: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  input: {
-    flex: 1, backgroundColor: '#F3F4F6', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: '#101828', maxHeight: 100,
-  },
-  sendBtn: { paddingHorizontal: 12, paddingVertical: 10 },
-  sendBtnDisabled: { opacity: 0.35 },
-  sendBtnText: { fontSize: 15, fontWeight: '700', color: '#FF6900' },
+    // Input bar
+    inputBar: {
+      flexDirection: 'row', alignItems: 'flex-end', gap: 10,
+      paddingHorizontal: 14, paddingVertical: 10,
+      borderTopWidth: 0.5, borderTopColor: colors.border.default,
+      backgroundColor: colors.surface.card,
+    },
+    inputAvatar: { width: 34, height: 34, borderRadius: 17, marginBottom: 2 },
+    inputAvatarPlaceholder: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+    input: {
+      flex: 1, backgroundColor: colors.surface.section, borderRadius: 20,
+      paddingHorizontal: 14, paddingVertical: 10,
+      fontSize: 14, color: colors.text.primary, maxHeight: 100,
+    },
+    sendBtn: { paddingHorizontal: 12, paddingVertical: 10 },
+    sendBtnDisabled: { opacity: 0.35 },
+    sendBtnText: { fontSize: 15, fontWeight: '700', color: colors.brand.orange },
 
-  // Delete modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  deleteModal: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', gap: 12 },
-  deleteModalTitle: { fontSize: 18, fontWeight: '800', color: '#101828', textAlign: 'center' },
-  deleteModalSub: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
-  deleteModalBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  deleteModalCancel: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  deleteModalCancelText: { fontSize: 15, fontWeight: '600', color: '#374151' },
-  deleteModalConfirm: { flex: 1, backgroundColor: '#E7000B', borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  deleteModalConfirmText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-});
+    // Delete modal
+    // rgba(0,0,0,0.45) kept raw — modal scrim
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
+    deleteModal: { backgroundColor: colors.surface.elevated, borderRadius: 20, padding: 24, width: '100%', gap: 12 },
+    deleteModalTitle: { fontSize: 18, fontWeight: '800', color: colors.text.primary, textAlign: 'center' },
+    deleteModalSub: { fontSize: 14, color: colors.text.secondary, textAlign: 'center', lineHeight: 20 },
+    deleteModalBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    deleteModalCancel: { flex: 1, backgroundColor: colors.surface.section, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+    deleteModalCancelText: { fontSize: 15, fontWeight: '600', color: colors.text.primary },
+    // '#E7000B' kept raw — destructive red
+    deleteModalConfirm: { flex: 1, backgroundColor: '#E7000B', borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+    // '#fff' kept raw — always-white on destructive red
+    deleteModalConfirmText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  });
+}

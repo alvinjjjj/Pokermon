@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { fetchArtofpkmImages } from '../lib/artofpkm';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,6 +18,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import Loader from '../components/Loader';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = (SCREEN_W - 48) / 2;
@@ -55,6 +57,8 @@ const CONDITION_COLOR: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function MyListings() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router    = useRouter();
   const { t }     = useTranslation();
 
@@ -169,7 +173,7 @@ export default function MyListings() {
     const primaryUri = item.photo_urls?.[0] || item.card_image_url || null;
     const fallbackUri = artofpkmMap[item.card_name] || null;
     const imgUri = (imgErrors[item.id] ? fallbackUri : primaryUri) ?? fallbackUri ?? null;
-    const condColor = CONDITION_COLOR[item.condition] ?? '#9CA3AF';
+    const condColor = CONDITION_COLOR[item.condition] ?? colors.text.tertiary;
     return (
       <TouchableOpacity
         key={item.id}
@@ -233,7 +237,7 @@ export default function MyListings() {
               <View style={styles.sheetCardInfo}>
                 <Text style={styles.sheetCardName}>{actionTarget.card_name}</Text>
                 <Text style={styles.sheetCardPrice}>HK${actionTarget.price.toLocaleString()}</Text>
-                <View style={[styles.sheetCondBadge, { backgroundColor: CONDITION_COLOR[actionTarget.condition] ?? '#9CA3AF' }]}>
+                <View style={[styles.sheetCondBadge, { backgroundColor: CONDITION_COLOR[actionTarget.condition] ?? colors.text.tertiary }]}>
                   <Text style={styles.sheetCondText}>{actionTarget.condition}</Text>
                 </View>
               </View>
@@ -371,7 +375,7 @@ export default function MyListings() {
           {/* Listings */}
           <ScrollView
             showsVerticalScrollIndicator={false}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor="#FF6900" />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor={colors.brand.orange} />}
             contentContainerStyle={styles.scrollContent}
           >
             {filtered.length === 0 ? (
@@ -402,94 +406,103 @@ export default function MyListings() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F3F4F6' },
-  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  navUpload: { backgroundColor: '#FF6900', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
-  navUploadText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
+    nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    navUpload: { backgroundColor: colors.brand.orange, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
+    // '#fff' kept raw — always-white on Card Orange
+    navUploadText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  noProfileWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
-  noProfileIcon: { width: 56, height: 56, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  noProfileTitle: { fontSize: 18, fontWeight: '700', color: '#374151' },
-  noProfileBtn: { backgroundColor: '#FF6900', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 32 },
-  noProfileBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    noProfileWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
+    noProfileIcon: { width: 56, height: 56, tintColor: colors.border.strong, resizeMode: 'contain' },
+    noProfileTitle: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    noProfileBtn: { backgroundColor: colors.brand.orange, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 32 },
+    // '#fff' kept raw — always-white on Card Orange
+    noProfileBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-  // Seller header
-  sellerHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 16, gap: 12 },
-  sellerHeaderLeft: { flex: 1, gap: 3 },
-  sellerName: { fontSize: 17, fontWeight: '800', color: '#101828' },
-  sellerTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  sellerTypeIcon: { width: 13, height: 13, resizeMode: 'contain', tintColor: '#6B7280' },
-  sellerType: { fontSize: 13, color: '#6B7280' },
-  uploadLimit: { alignItems: 'center', gap: 2 },
-  uploadLimitNum: { fontSize: 22, fontWeight: '800', color: '#FF6900' },
-  uploadLimitTotal: { fontSize: 14, color: '#9CA3AF', fontWeight: '400' },
-  uploadLimitLabel: { fontSize: 11, color: '#9CA3AF' },
+    // Seller header
+    sellerHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface.card, paddingHorizontal: 20, paddingVertical: 16, gap: 12 },
+    sellerHeaderLeft: { flex: 1, gap: 3 },
+    sellerName: { fontSize: 17, fontWeight: '800', color: colors.text.primary },
+    sellerTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+    sellerTypeIcon: { width: 13, height: 13, resizeMode: 'contain', tintColor: colors.text.secondary },
+    sellerType: { fontSize: 13, color: colors.text.secondary },
+    uploadLimit: { alignItems: 'center', gap: 2 },
+    uploadLimitNum: { fontSize: 22, fontWeight: '800', color: colors.brand.orange },
+    uploadLimitTotal: { fontSize: 14, color: colors.text.tertiary, fontWeight: '400' },
+    uploadLimitLabel: { fontSize: 11, color: colors.text.tertiary },
 
-  progressWrap: { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 14 },
-  progressTrack: { height: 4, backgroundColor: '#F3F4F6', borderRadius: 2, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#FF6900', borderRadius: 2 },
-  progressFillWarn: { backgroundColor: '#EF4444' },
+    progressWrap: { backgroundColor: colors.surface.card, paddingHorizontal: 20, paddingBottom: 14 },
+    progressTrack: { height: 4, backgroundColor: colors.surface.section, borderRadius: 2, overflow: 'hidden' },
+    progressFill: { height: '100%', backgroundColor: colors.brand.orange, borderRadius: 2 },
+    // '#EF4444' kept raw — destructive red over-quota warn
+    progressFillWarn: { backgroundColor: '#EF4444' },
 
-  // Tab bar
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', marginBottom: 8 },
-  tabBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 6, borderBottomWidth: 2.5, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: '#FF6900' },
-  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#9CA3AF' },
-  tabBtnTextActive: { color: '#FF6900', fontWeight: '700' },
-  tabCount: { backgroundColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
-  tabCountActive: { backgroundColor: '#FFF3E8' },
-  tabCountText: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
-  tabCountTextActive: { color: '#FF6900' },
+    // Tab bar
+    tabBar: { flexDirection: 'row', backgroundColor: colors.surface.card, borderBottomWidth: 1, borderBottomColor: colors.border.default, marginBottom: 8 },
+    tabBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 6, borderBottomWidth: 2.5, borderBottomColor: 'transparent' },
+    tabBtnActive: { borderBottomColor: colors.brand.orange },
+    tabBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.tertiary },
+    tabBtnTextActive: { color: colors.brand.orange, fontWeight: '700' },
+    tabCount: { backgroundColor: colors.border.default, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+    tabCountActive: { backgroundColor: colors.brand.peach },
+    tabCountText: { fontSize: 11, fontWeight: '700', color: colors.text.secondary },
+    tabCountTextActive: { color: colors.brand.orange },
 
-  scrollContent: { paddingHorizontal: 12, paddingTop: 8 },
+    scrollContent: { paddingHorizontal: 12, paddingTop: 8 },
 
-  // Grid
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { width: CARD_W, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB' },
-  cardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: '#F9FAFB', position: 'relative' },
-  cardImg: { width: '100%', height: '100%' },
-  cardImgPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
-  condBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  condBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-  cardInfo: { padding: 10, gap: 3 },
-  cardName: { fontSize: 13, fontWeight: '700', color: '#101828', lineHeight: 18 },
-  cardSet: { fontSize: 11, color: '#9CA3AF' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  price: { fontSize: 15, fontWeight: '800', color: '#FF6900' },
-  nego: { fontSize: 10, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 },
-  qty: { fontSize: 11, color: '#9CA3AF' },
-  actionBtn: { marginHorizontal: 10, marginBottom: 10, backgroundColor: '#F3F4F6', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  actionBtnText: { fontSize: 12, fontWeight: '600', color: '#374151' },
+    // Grid
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    card: { width: CARD_W, backgroundColor: colors.surface.card, borderRadius: 18, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default },
+    cardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: colors.surface.section, position: 'relative' },
+    cardImg: { width: '100%', height: '100%' },
+    cardImgPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface.section },
+    condBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    // '#fff' kept raw — always-white on filled condition badge
+    condBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+    cardInfo: { padding: 10, gap: 3 },
+    cardName: { fontSize: 13, fontWeight: '700', color: colors.text.primary, lineHeight: 18 },
+    cardSet: { fontSize: 11, color: colors.text.tertiary },
+    priceRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+    price: { fontSize: 15, fontWeight: '800', color: colors.brand.orange },
+    nego: { fontSize: 10, color: colors.text.secondary, backgroundColor: colors.surface.section, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1 },
+    qty: { fontSize: 11, color: colors.text.tertiary },
+    actionBtn: { marginHorizontal: 10, marginBottom: 10, backgroundColor: colors.surface.section, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
+    actionBtnText: { fontSize: 12, fontWeight: '600', color: colors.text.primary },
 
-  // Empty
-  emptyWrap: { paddingVertical: 60, alignItems: 'center', gap: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#374151' },
-  emptyBtn: { backgroundColor: '#FF6900', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 28, marginTop: 4 },
-  emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    // Empty
+    emptyWrap: { paddingVertical: 60, alignItems: 'center', gap: 12 },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    emptyBtn: { backgroundColor: colors.brand.orange, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 28, marginTop: 4 },
+    // '#fff' kept raw — always-white on Card Orange
+    emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  // Action modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  actionSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingBottom: 40 },
-  sheetHandle: { width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 16 },
-  sheetCardPreview: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#F9FAFB', borderRadius: 16, padding: 14, marginBottom: 16 },
-  sheetCardImg: { width: 48, height: 67, borderRadius: 6 },
-  sheetCardInfo: { flex: 1, gap: 4 },
-  sheetCardName: { fontSize: 15, fontWeight: '700', color: '#101828' },
-  sheetCardPrice: { fontSize: 14, fontWeight: '700', color: '#FF6900' },
-  sheetCondBadge: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  sheetCondText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  sheetActions: { gap: 2 },
-  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6' },
-  sheetRowDanger: { borderBottomWidth: 0 },
-  sheetRowIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: '#374151' },
-  sheetRowText: { fontSize: 16, color: '#101828' },
-  sheetRowTextDanger: { color: '#EF4444' },
-  sheetCancel: { marginTop: 12, backgroundColor: '#F3F4F6', borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
-  sheetCancelText: { fontSize: 16, fontWeight: '600', color: '#374151' },
-});
+    // Action modal
+    modalOverlay: { flex: 1, backgroundColor: colors.overlay.light, justifyContent: 'flex-end' },
+    actionSheet: { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingBottom: 40 },
+    sheetHandle: { width: 40, height: 4, backgroundColor: colors.border.default, borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 16 },
+    sheetCardPreview: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surface.section, borderRadius: 16, padding: 14, marginBottom: 16 },
+    sheetCardImg: { width: 48, height: 67, borderRadius: 6 },
+    sheetCardInfo: { flex: 1, gap: 4 },
+    sheetCardName: { fontSize: 15, fontWeight: '700', color: colors.text.primary },
+    sheetCardPrice: { fontSize: 14, fontWeight: '700', color: colors.brand.orange },
+    sheetCondBadge: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+    // '#fff' kept raw — always-white on filled condition badge
+    sheetCondText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    sheetActions: { gap: 2 },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    sheetRowDanger: { borderBottomWidth: 0 },
+    sheetRowIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: colors.text.primary },
+    sheetRowText: { fontSize: 16, color: colors.text.primary },
+    // '#EF4444' kept raw — destructive red
+    sheetRowTextDanger: { color: '#EF4444' },
+    sheetCancel: { marginTop: 12, backgroundColor: colors.surface.section, borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
+    sheetCancelText: { fontSize: 16, fontWeight: '600', color: colors.text.primary },
+  });
+}

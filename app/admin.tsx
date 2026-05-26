@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import Loader from '../components/Loader';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 // Convert i18n language code to a JS Intl locale string for date formatting.
 const localeFor = (lang: string): string =>
@@ -61,9 +63,19 @@ type AdminUser = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const locale = localeFor(i18n.language);
+
+  // Helper — keeps style/colors closure scope
+  const DetailRow = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={[styles.detailValue, highlight && { color: colors.brand.orange }]} numberOfLines={3}>{value}</Text>
+    </View>
+  );
 
   const [isAdmin, setIsAdmin]         = useState<boolean | null>(null);
   // Track super_admin separately — only super_admin can demote certified
@@ -444,7 +456,7 @@ export default function AdminScreen() {
                 <TextInput
                   style={styles.rejectInput}
                   placeholder={t('admin.rejectReasonPlaceholder')}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.text.tertiary}
                   value={rejectReason}
                   onChangeText={setRejectReason}
                   multiline
@@ -606,99 +618,103 @@ export default function AdminScreen() {
   );
 }
 
-// ── Helper ────────────────────────────────────────────────────────────────────
-
-function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={[styles.detailValue, highlight && { color: '#FF6900' }]} numberOfLines={3}>{value}</Text>
-    </View>
-  );
-}
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe:              { flex: 1, backgroundColor: '#F9FAFB' },
-  center:            { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe:              { flex: 1, backgroundColor: colors.surface.section },
+    center:            { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
 
-  // Nav
-  nav:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  navBack:           { width: 40, alignItems: 'flex-start' },
-  navBackText:       { fontSize: 28, color: '#FF6900', lineHeight: 32 },
-  navTitle:          { fontSize: 16, fontWeight: '700', color: '#101828' },
+    // Nav
+    nav:               { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface.card, borderBottomWidth: 1, borderBottomColor: colors.border.default },
+    navBack:           { width: 40, alignItems: 'flex-start' },
+    navBackText:       { fontSize: 28, color: colors.brand.orange, lineHeight: 32 },
+    navTitle:          { fontSize: 16, fontWeight: '700', color: colors.text.primary },
 
-  // Tabs
-  tabs:              { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  tabBtn:            { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  tabBtnActive:      { borderBottomWidth: 2, borderBottomColor: '#FF6900' },
-  tabText:           { fontSize: 13, fontWeight: '500', color: '#9CA3AF' },
-  tabTextActive:     { color: '#FF6900', fontWeight: '700' },
+    // Tabs
+    tabs:              { flexDirection: 'row', backgroundColor: colors.surface.card, borderBottomWidth: 1, borderBottomColor: colors.border.default },
+    tabBtn:            { flex: 1, paddingVertical: 12, alignItems: 'center' },
+    tabBtnActive:      { borderBottomWidth: 2, borderBottomColor: colors.brand.orange },
+    tabText:           { fontSize: 13, fontWeight: '500', color: colors.text.tertiary },
+    tabTextActive:     { color: colors.brand.orange, fontWeight: '700' },
 
-  // List
-  list:              { padding: 16, gap: 12 },
+    // List
+    list:              { padding: 16, gap: 12 },
 
-  // Card
-  card:              { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' },
-  cardHeader:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-  cardHeaderLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  logo:              { width: 48, height: 48, borderRadius: 12 },
-  logoPlaceholder:   { backgroundColor: '#FF6900', alignItems: 'center', justifyContent: 'center' },
-  logoPlaceholderText: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  shopName:          { fontSize: 15, fontWeight: '700', color: '#101828' },
-  meta:              { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
-  chevron:           { fontSize: 12, color: '#9CA3AF', marginLeft: 8 },
+    // Card
+    card:              { backgroundColor: colors.surface.card, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.default },
+    cardHeader:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
+    cardHeaderLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    logo:              { width: 48, height: 48, borderRadius: 12 },
+    logoPlaceholder:   { backgroundColor: colors.brand.orange, alignItems: 'center', justifyContent: 'center' },
+    // '#fff' kept raw — always-white on Card Orange
+    logoPlaceholderText: { fontSize: 20, fontWeight: '800', color: '#fff' },
+    shopName:          { fontSize: 15, fontWeight: '700', color: colors.text.primary },
+    meta:              { fontSize: 12, color: colors.text.tertiary, marginTop: 1 },
+    chevron:           { fontSize: 12, color: colors.text.tertiary, marginLeft: 8 },
 
-  // Details
-  details:           { paddingHorizontal: 14, paddingBottom: 14, gap: 6, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  detailRow:         { flexDirection: 'row', gap: 8, paddingVertical: 4 },
-  detailLabel:       { width: 72, fontSize: 12, color: '#9CA3AF', fontWeight: '500', paddingTop: 1 },
-  detailValue:       { flex: 1, fontSize: 13, color: '#374151', fontWeight: '500' },
-  brBtn:             { backgroundColor: '#EFF6FF', borderRadius: 8, paddingVertical: 8, alignItems: 'center', marginTop: 6 },
-  brBtnText:         { fontSize: 13, fontWeight: '600', color: '#2563EB' },
-  banner:            { width: '100%', height: 100, borderRadius: 8, marginTop: 8 },
+    // Details
+    details:           { paddingHorizontal: 14, paddingBottom: 14, gap: 6, borderTopWidth: 1, borderTopColor: colors.border.default },
+    detailRow:         { flexDirection: 'row', gap: 8, paddingVertical: 4 },
+    detailLabel:       { width: 72, fontSize: 12, color: colors.text.tertiary, fontWeight: '500', paddingTop: 1 },
+    detailValue:       { flex: 1, fontSize: 13, color: colors.text.primary, fontWeight: '500' },
+    // '#EFF6FF'/'#2563EB' kept raw — semantic info-blue tint for BR doc link
+    brBtn:             { backgroundColor: '#EFF6FF', borderRadius: 8, paddingVertical: 8, alignItems: 'center', marginTop: 6 },
+    // '#2563EB' kept raw — semantic info-blue link
+    brBtnText:         { fontSize: 13, fontWeight: '600', color: '#2563EB' },
+    banner:            { width: '100%', height: 100, borderRadius: 8, marginTop: 8 },
 
-  // Actions
-  actions:           { padding: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  btnRow:            { flexDirection: 'row', gap: 10 },
-  approveBtn:        { flex: 1, backgroundColor: '#FF6900', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  approveBtnText:    { fontSize: 14, fontWeight: '700', color: '#fff' },
-  rejectBtn:         { flex: 1, backgroundColor: '#FEF2F2', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FECACA' },
-  rejectBtnText:     { fontSize: 14, fontWeight: '700', color: '#DC2626' },
+    // Actions
+    actions:           { padding: 12, borderTopWidth: 1, borderTopColor: colors.border.default },
+    btnRow:            { flexDirection: 'row', gap: 10 },
+    approveBtn:        { flex: 1, backgroundColor: colors.brand.orange, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+    // '#fff' kept raw — always-white on Card Orange
+    approveBtnText:    { fontSize: 14, fontWeight: '700', color: '#fff' },
+    // '#FEF2F2'/'#FECACA' kept raw — destructive red tint
+    rejectBtn:         { flex: 1, backgroundColor: '#FEF2F2', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FECACA' },
+    // '#DC2626' kept raw — destructive red
+    rejectBtnText:     { fontSize: 14, fontWeight: '700', color: '#DC2626' },
 
-  // Reject box
-  rejectBox:         { gap: 8 },
-  rejectLabel:       { fontSize: 13, fontWeight: '600', color: '#374151' },
-  rejectInput:       { backgroundColor: '#F9FAFB', borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', padding: 10, fontSize: 13, color: '#101828', minHeight: 72, textAlignVertical: 'top' },
-  rejectRow:         { flexDirection: 'row', gap: 8 },
-  cancelRejectBtn:   { flex: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  cancelRejectText:  { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  confirmRejectBtn:  { flex: 1, backgroundColor: '#DC2626', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  confirmRejectText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    // Reject box
+    rejectBox:         { gap: 8 },
+    rejectLabel:       { fontSize: 13, fontWeight: '600', color: colors.text.primary },
+    rejectInput:       { backgroundColor: colors.surface.section, borderRadius: 10, borderWidth: 1, borderColor: colors.border.default, padding: 10, fontSize: 13, color: colors.text.primary, minHeight: 72, textAlignVertical: 'top' },
+    rejectRow:         { flexDirection: 'row', gap: 8 },
+    cancelRejectBtn:   { flex: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    cancelRejectText:  { fontSize: 13, fontWeight: '600', color: colors.text.secondary },
+    // '#DC2626' kept raw — destructive red
+    confirmRejectBtn:  { flex: 1, backgroundColor: '#DC2626', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+    // '#fff' kept raw — always-white on destructive red fill
+    confirmRejectText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  // Access denied
-  accessDenied:      { fontSize: 18, fontWeight: '700', color: '#374151' },
-  backBtn:           { backgroundColor: '#FF6900', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 24 },
-  backBtnText:       { fontSize: 14, fontWeight: '700', color: '#fff' },
+    // Access denied
+    accessDenied:      { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    backBtn:           { backgroundColor: colors.brand.orange, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 24 },
+    // '#fff' kept raw — always-white on Card Orange
+    backBtnText:       { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  // Empty
-  emptyText:         { fontSize: 15, color: '#9CA3AF', fontWeight: '500', textAlign: 'center', paddingVertical: 20 },
+    // Empty
+    emptyText:         { fontSize: 15, color: colors.text.tertiary, fontWeight: '500', textAlign: 'center', paddingVertical: 20 },
 
-  // Admin accounts tab
-  addAdminBox:       { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', gap: 10 },
-  addAdminTitle:     { fontSize: 14, fontWeight: '700', color: '#101828' },
-  addAdminRow:       { flexDirection: 'row', gap: 8 },
-  addAdminInput:     { flex: 1, backgroundColor: '#F9FAFB', borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: '#101828' },
-  addAdminBtn:       { backgroundColor: '#FF6900', borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
-  addAdminBtnText:   { fontSize: 14, fontWeight: '700', color: '#fff' },
-  adminListTitle:    { fontSize: 12, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 8 },
-  adminCard:         { backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#E5E7EB' },
-  adminAvatar:       { width: 44, height: 44, borderRadius: 22 },
-  adminAvatarPlaceholder: { backgroundColor: '#FF6900', alignItems: 'center', justifyContent: 'center' },
-  adminAvatarText:   { fontSize: 18, fontWeight: '800', color: '#fff' },
-  adminName:         { fontSize: 15, fontWeight: '600', color: '#101828' },
-  adminDate:         { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  removeAdminBtn:    { backgroundColor: '#FEF2F2', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: '#FECACA' },
-  removeAdminText:   { fontSize: 13, fontWeight: '600', color: '#DC2626' },
-});
+    // Admin accounts tab
+    addAdminBox:       { backgroundColor: colors.surface.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border.default, gap: 10 },
+    addAdminTitle:     { fontSize: 14, fontWeight: '700', color: colors.text.primary },
+    addAdminRow:       { flexDirection: 'row', gap: 8 },
+    addAdminInput:     { flex: 1, backgroundColor: colors.surface.section, borderRadius: 10, borderWidth: 1, borderColor: colors.border.default, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: colors.text.primary },
+    addAdminBtn:       { backgroundColor: colors.brand.orange, borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
+    // '#fff' kept raw — always-white on Card Orange
+    addAdminBtnText:   { fontSize: 14, fontWeight: '700', color: '#fff' },
+    adminListTitle:    { fontSize: 12, fontWeight: '700', color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 8 },
+    adminCard:         { backgroundColor: colors.surface.card, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: colors.border.default },
+    adminAvatar:       { width: 44, height: 44, borderRadius: 22 },
+    adminAvatarPlaceholder: { backgroundColor: colors.brand.orange, alignItems: 'center', justifyContent: 'center' },
+    // '#fff' kept raw — always-white on Card Orange
+    adminAvatarText:   { fontSize: 18, fontWeight: '800', color: '#fff' },
+    adminName:         { fontSize: 15, fontWeight: '600', color: colors.text.primary },
+    adminDate:         { fontSize: 12, color: colors.text.tertiary, marginTop: 2 },
+    // '#FEF2F2'/'#FECACA' kept raw — destructive red tint
+    removeAdminBtn:    { backgroundColor: '#FEF2F2', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: '#FECACA' },
+    // '#DC2626' kept raw — destructive red
+    removeAdminText:   { fontSize: 13, fontWeight: '600', color: '#DC2626' },
+  });
+}

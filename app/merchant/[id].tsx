@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchArtofpkmImages } from '../../lib/artofpkm';
 import { useTranslation } from 'react-i18next';
 import {
@@ -19,6 +19,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const BANNER_H = 220;
@@ -83,6 +85,8 @@ const CONDITION_LABEL: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function MerchantPage() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const { t, i18n } = useTranslation();
@@ -218,7 +222,7 @@ export default function MerchantPage() {
             </View>
           )}
           {/* Condition badge */}
-          <View style={[styles.condBadge, { backgroundColor: CONDITION_COLOR[item.condition] ?? '#9CA3AF' }]}>
+          <View style={[styles.condBadge, { backgroundColor: CONDITION_COLOR[item.condition] ?? colors.text.tertiary }]}>
             <Text style={styles.condBadgeText}>{CONDITION_LABEL[item.condition] ?? item.condition}</Text>
           </View>
         </View>
@@ -279,7 +283,7 @@ export default function MerchantPage() {
           )}
           {profile.has_physical_store && (
             <View style={[styles.infoRow, styles.storeRow]}>
-              <Image source={require('../../assets/icons/shops.png')} style={[styles.infoRowIconImg, { tintColor: '#FF6900' }]} />
+              <Image source={require('../../assets/icons/shops.png')} style={[styles.infoRowIconImg, { tintColor: colors.brand.orange }]} />
               <Text style={[styles.infoRowText, styles.storeRowText]}>{t('merchant.hasPhysicalStore')}</Text>
             </View>
           )}
@@ -479,7 +483,7 @@ export default function MerchantPage() {
             )}
             {profile.has_physical_store && (
               <View style={[styles.metaChip, styles.storeMetaChip]}>
-                <Image source={require('../../assets/icons/shops.png')} style={[styles.metaChipIcon, { tintColor: '#FF6900' }]} />
+                <Image source={require('../../assets/icons/shops.png')} style={[styles.metaChipIcon, { tintColor: colors.brand.orange }]} />
                 <Text style={[styles.metaChipText, styles.storeMetaText]}>{t('merchant.physicalStore')}</Text>
               </View>
             )}
@@ -545,105 +549,118 @@ export default function MerchantPage() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F3F4F6' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
 
-  // Floating header
-  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  floatingHeaderInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  floatingTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#101828', textAlign: 'center' },
-  absoluteBack: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 101 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 26, color: '#101828', lineHeight: 30, fontWeight: '300' },
-  backBtnDark: { backgroundColor: 'rgba(0,0,0,0.3)' },
-  backBtnTextDark: { color: '#fff' },
+    // Floating header
+    floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    floatingHeaderInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+    floatingTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text.primary, textAlign: 'center' },
+    absoluteBack: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 101 },
+    // rgba(255,255,255,0.9) kept raw — floating overlay on banner image
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
+    backBtnText: { fontSize: 26, color: colors.text.primary, lineHeight: 30, fontWeight: '300' },
+    // rgba(0,0,0,0.3) kept raw — scrim overlay on banner image
+    backBtnDark: { backgroundColor: 'rgba(0,0,0,0.3)' },
+    // '#fff' kept raw — always-white on scrim
+    backBtnTextDark: { color: '#fff' },
 
-  // Loading / error
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#9CA3AF' },
-  notFoundText: { fontSize: 18, fontWeight: '700', color: '#374151' },
-  backLink: { fontSize: 15, color: '#FF6900', fontWeight: '600', marginTop: 8 },
+    // Loading / error
+    loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+    loadingText: { fontSize: 14, color: colors.text.tertiary },
+    notFoundText: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    backLink: { fontSize: 15, color: colors.brand.orange, fontWeight: '600', marginTop: 8 },
 
-  // Banner
-  bannerWrap: { width: '100%', height: BANNER_H },
-  bannerImg: { width: '100%', height: '100%' },
-  bannerPlaceholder: { backgroundColor: '#FFF3E8' },
+    // Banner
+    bannerWrap: { width: '100%', height: BANNER_H },
+    bannerImg: { width: '100%', height: '100%' },
+    bannerPlaceholder: { backgroundColor: colors.brand.peach },
 
-  // Profile header
-  profileHeader: { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 20, marginBottom: 8 },
-  logoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -LOGO_SIZE / 2 - 8, marginBottom: 12 },
-  logoWrap: { borderRadius: LOGO_SIZE / 2 + 4, borderWidth: 4, borderColor: '#fff', overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  logoImg: { width: LOGO_SIZE, height: LOGO_SIZE },
-  logoPlaceholder: { backgroundColor: '#FF6900', alignItems: 'center', justifyContent: 'center' },
-  logoPlaceholderText: { fontSize: 28, fontWeight: '800', color: '#fff' },
-  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  certTypeBadge: { backgroundColor: '#ECFDF5' },
-  indTypeBadge: { backgroundColor: '#F3F4F6' },
-  typeBadgeIcon: { width: 13, height: 13, resizeMode: 'contain' },
-  typeBadgeText: { fontSize: 12, fontWeight: '700' },
+    // Profile header
+    profileHeader: { backgroundColor: colors.surface.card, paddingHorizontal: 20, paddingBottom: 20, marginBottom: 8 },
+    logoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -LOGO_SIZE / 2 - 8, marginBottom: 12 },
+    // shadowColor '#000' kept raw (shadow convention); border '#fff' kept raw — always-white frame
+    logoWrap: { borderRadius: LOGO_SIZE / 2 + 4, borderWidth: 4, borderColor: '#fff', overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+    logoImg: { width: LOGO_SIZE, height: LOGO_SIZE },
+    logoPlaceholder: { backgroundColor: colors.brand.orange, alignItems: 'center', justifyContent: 'center' },
+    // '#fff' kept raw — always-white on Card Orange
+    logoPlaceholderText: { fontSize: 28, fontWeight: '800', color: '#fff' },
+    typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+    // '#ECFDF5' kept raw — semantic mint tint for certified-merchant
+    certTypeBadge: { backgroundColor: '#ECFDF5' },
+    indTypeBadge: { backgroundColor: colors.surface.section },
+    typeBadgeIcon: { width: 13, height: 13, resizeMode: 'contain' },
+    typeBadgeText: { fontSize: 12, fontWeight: '700' },
 
-  profileName: { fontSize: 24, fontWeight: '800', color: '#101828', marginBottom: 2 },
-  profileNameEn: { fontSize: 14, color: '#6B7280', marginBottom: 10 },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F3F4F6', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  storeMetaChip: { backgroundColor: '#FFF3E8' },
-  metaChipIcon: { width: 12, height: 12, resizeMode: 'contain', tintColor: '#6B7280' },
-  metaChipText: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-  storeMetaText: { color: '#FF6900' },
-  profileDesc: { fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 16 },
+    profileName: { fontSize: 24, fontWeight: '800', color: colors.text.primary, marginBottom: 2 },
+    profileNameEn: { fontSize: 14, color: colors.text.secondary, marginBottom: 10 },
+    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    metaChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.surface.section, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+    storeMetaChip: { backgroundColor: colors.brand.peach },
+    metaChipIcon: { width: 12, height: 12, resizeMode: 'contain', tintColor: colors.text.secondary },
+    metaChipText: { fontSize: 13, color: colors.text.secondary, fontWeight: '500' },
+    storeMetaText: { color: colors.brand.orange },
+    profileDesc: { fontSize: 14, color: colors.text.primary, lineHeight: 22, marginBottom: 16 },
 
-  ctaRow: { flexDirection: 'row', gap: 10 },
-  ctaContact: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FF6900', borderRadius: 16, paddingVertical: 13 },
-  ctaIcon: { width: 18, height: 18, resizeMode: 'contain', tintColor: '#fff' },
-  ctaContactText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    ctaRow: { flexDirection: 'row', gap: 10 },
+    ctaContact: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.brand.orange, borderRadius: 16, paddingVertical: 13 },
+    // '#fff' kept raw — always-white on Card Orange
+    ctaIcon: { width: 18, height: 18, resizeMode: 'contain', tintColor: '#fff' },
+    // '#fff' kept raw — always-white on Card Orange
+    ctaContactText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-  // Tab bar
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', marginBottom: 8 },
-  tabBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: '#FF6900' },
-  tabBtnText: { fontSize: 15, fontWeight: '600', color: '#9CA3AF' },
-  tabBtnTextActive: { color: '#FF6900' },
+    // Tab bar
+    tabBar: { flexDirection: 'row', backgroundColor: colors.surface.card, borderBottomWidth: 1, borderBottomColor: colors.border.default, marginBottom: 8 },
+    tabBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+    tabBtnActive: { borderBottomColor: colors.brand.orange },
+    tabBtnText: { fontSize: 15, fontWeight: '600', color: colors.text.tertiary },
+    tabBtnTextActive: { color: colors.brand.orange },
 
-  // Listings grid
-  listingGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 12, paddingTop: 4 },
-  listingCard: { width: (SCREEN_W - 36) / 2, backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#E5E7EB' },
-  listingImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  listingImg: { width: '100%', height: '100%' },
-  listingImgPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
-  listingImgEmoji: { fontSize: 40 },
-  condBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  condBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  listingInfo: { padding: 10, gap: 2 },
-  listingName: { fontSize: 13, fontWeight: '700', color: '#101828', lineHeight: 18 },
-  listingSet: { fontSize: 11, color: '#9CA3AF' },
-  listingLang: { fontSize: 11, color: '#6B7280' },
-  listingPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-  listingPrice: { fontSize: 15, fontWeight: '800', color: '#FF6900' },
-  listingNego: { fontSize: 11, color: '#6B7280', backgroundColor: '#F3F4F6', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
-  listingQty: { fontSize: 11, color: '#9CA3AF' },
-  listingContactBtn: { marginHorizontal: 10, marginBottom: 10, backgroundColor: '#FFF3E8', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  listingContactBtnText: { fontSize: 13, fontWeight: '600', color: '#FF6900' },
+    // Listings grid
+    listingGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 12, paddingTop: 4 },
+    listingCard: { width: (SCREEN_W - 36) / 2, backgroundColor: colors.surface.card, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.border.default },
+    listingImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    listingImg: { width: '100%', height: '100%' },
+    listingImgPlaceholder: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+    listingImgEmoji: { fontSize: 40 },
+    condBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+    // '#fff' kept raw — always-white on filled condition badge
+    condBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    listingInfo: { padding: 10, gap: 2 },
+    listingName: { fontSize: 13, fontWeight: '700', color: colors.text.primary, lineHeight: 18 },
+    listingSet: { fontSize: 11, color: colors.text.tertiary },
+    listingLang: { fontSize: 11, color: colors.text.secondary },
+    listingPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    listingPrice: { fontSize: 15, fontWeight: '800', color: colors.brand.orange },
+    listingNego: { fontSize: 11, color: colors.text.secondary, backgroundColor: colors.surface.section, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+    listingQty: { fontSize: 11, color: colors.text.tertiary },
+    listingContactBtn: { marginHorizontal: 10, marginBottom: 10, backgroundColor: colors.brand.peach, borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
+    listingContactBtnText: { fontSize: 13, fontWeight: '600', color: colors.brand.orange },
 
-  // Empty
-  emptyWrap: { paddingVertical: 60, alignItems: 'center', gap: 10 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#374151' },
-  emptySub: { fontSize: 14, color: '#9CA3AF' },
+    // Empty
+    emptyWrap: { paddingVertical: 60, alignItems: 'center', gap: 10 },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    emptySub: { fontSize: 14, color: colors.text.tertiary },
 
-  // Info tab
-  infoWrap: { paddingBottom: 16 },
-  infoSection: { backgroundColor: '#fff', marginBottom: 8, paddingHorizontal: 20, paddingVertical: 16, gap: 10 },
-  infoSectionTitle: { fontSize: 13, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  infoText: { fontSize: 15, color: '#374151', lineHeight: 24 },
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  infoRowIconImg: { width: 18, height: 18, resizeMode: 'contain', tintColor: '#6B7280', marginTop: 2 },
-  infoRowText: { flex: 1, fontSize: 15, color: '#374151', lineHeight: 22 },
-  storeRow: { backgroundColor: '#FFF3E8', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  storeRowText: { color: '#FF6900', fontWeight: '600' },
-  infoContactRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  infoContactIconImg: { width: 20, height: 20, resizeMode: 'contain' },
-  infoContactText: { flex: 1, fontSize: 15, color: '#3B82F6' },
-  infoContactArrow: { fontSize: 16, color: '#3B82F6' },
-  payGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  payItem: { backgroundColor: '#F3F4F6', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  payItemText: { fontSize: 13, fontWeight: '600', color: '#374151' },
-});
+    // Info tab
+    infoWrap: { paddingBottom: 16 },
+    infoSection: { backgroundColor: colors.surface.card, marginBottom: 8, paddingHorizontal: 20, paddingVertical: 16, gap: 10 },
+    infoSectionTitle: { fontSize: 13, fontWeight: '700', color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+    infoText: { fontSize: 15, color: colors.text.primary, lineHeight: 24 },
+    infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    infoRowIconImg: { width: 18, height: 18, resizeMode: 'contain', tintColor: colors.text.secondary, marginTop: 2 },
+    infoRowText: { flex: 1, fontSize: 15, color: colors.text.primary, lineHeight: 22 },
+    storeRow: { backgroundColor: colors.brand.peach, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+    storeRowText: { color: colors.brand.orange, fontWeight: '600' },
+    infoContactRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+    infoContactIconImg: { width: 20, height: 20, resizeMode: 'contain' },
+    // '#3B82F6' kept raw — semantic info-blue link
+    infoContactText: { flex: 1, fontSize: 15, color: '#3B82F6' },
+    // '#3B82F6' kept raw — semantic info-blue link
+    infoContactArrow: { fontSize: 16, color: '#3B82F6' },
+    payGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    payItem: { backgroundColor: colors.surface.section, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+    payItemText: { fontSize: 13, fontWeight: '600', color: colors.text.primary },
+  });
+}

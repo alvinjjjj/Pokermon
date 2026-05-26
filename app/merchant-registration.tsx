@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,8 @@ async function uploadAsset(uri: string, path: string): Promise<string | null> {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function MerchantRegistration() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>(1);
@@ -284,7 +288,7 @@ export default function MerchantRegistration() {
         <TextInput
           style={styles.input}
           placeholder={t('merchantReg.shopNameZhPlaceholder')}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text.tertiary}
           value={shopNameZh}
           onChangeText={setShopNameZh}
           maxLength={30}
@@ -296,7 +300,7 @@ export default function MerchantRegistration() {
         <TextInput
           style={styles.input}
           placeholder="e.g. Card House HK"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text.tertiary}
           value={shopNameEn}
           onChangeText={setShopNameEn}
           autoCapitalize="words"
@@ -326,7 +330,7 @@ export default function MerchantRegistration() {
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder={t('merchantReg.descPlaceholder')}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text.tertiary}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -369,7 +373,8 @@ export default function MerchantRegistration() {
         <Switch
           value={hasPhysicalStore}
           onValueChange={setHasPhysicalStore}
-          trackColor={{ true: '#FF6900', false: '#E5E7EB' }}
+          trackColor={{ true: colors.brand.orange, false: colors.border.default }}
+          // '#fff' kept raw — always-white thumb
           thumbColor="#fff"
         />
       </View>
@@ -381,7 +386,7 @@ export default function MerchantRegistration() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder={t('merchantReg.addressPlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={address}
               onChangeText={setAddress}
               multiline
@@ -394,7 +399,7 @@ export default function MerchantRegistration() {
             <TextInput
               style={styles.input}
               placeholder={t('merchantReg.businessHoursPlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={businessHours}
               onChangeText={setBusinessHours}
             />
@@ -408,7 +413,7 @@ export default function MerchantRegistration() {
         <TextInput
           style={styles.input}
           placeholder="e.g. 91234567"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text.tertiary}
           value={whatsapp}
           onChangeText={setWhatsapp}
           keyboardType="phone-pad"
@@ -422,7 +427,7 @@ export default function MerchantRegistration() {
           <TextInput
             style={styles.prefixTextInput}
             placeholder="instagram_handle"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.text.tertiary}
             value={instagram}
             onChangeText={setInstagram}
             autoCapitalize="none"
@@ -435,7 +440,7 @@ export default function MerchantRegistration() {
         <TextInput
           style={styles.input}
           placeholder="https://your-shop.com"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text.tertiary}
           value={website}
           onChangeText={setWebsite}
           autoCapitalize="none"
@@ -493,7 +498,7 @@ export default function MerchantRegistration() {
         <TextInput
           style={styles.input}
           placeholder="e.g. 12345678-000-01-23-4"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.text.tertiary}
           value={brNumber}
           onChangeText={setBrNumber}
           autoCapitalize="characters"
@@ -622,110 +627,127 @@ export default function MerchantRegistration() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F3F4F6' },
-  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  scrollContent: { paddingBottom: 40 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
+    nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    scrollContent: { paddingBottom: 40 },
 
-  // Step indicator
-  stepIndicator: { flexDirection: 'row', backgroundColor: '#fff', paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  stepItem: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  stepDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' },
-  stepDotActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  stepDotDone: { backgroundColor: '#22C55E', borderColor: '#22C55E' },
-  stepDotText: { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
-  stepDotTextActive: { color: '#fff' },
-  stepLabel: { fontSize: 11, color: '#9CA3AF', marginLeft: 6 },
-  stepLabelActive: { color: '#FF6900', fontWeight: '700' },
-  stepLine: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB', marginHorizontal: 4 },
-  stepLineDone: { backgroundColor: '#22C55E' },
+    // Step indicator
+    stepIndicator: { flexDirection: 'row', backgroundColor: colors.surface.card, paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    stepItem: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+    stepDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.border.default },
+    stepDotActive: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    // '#22C55E' kept raw — semantic success/done green
+    stepDotDone: { backgroundColor: '#22C55E', borderColor: '#22C55E' },
+    stepDotText: { fontSize: 12, fontWeight: '700', color: colors.text.tertiary },
+    // '#fff' kept raw — always-white on filled dot
+    stepDotTextActive: { color: '#fff' },
+    stepLabel: { fontSize: 11, color: colors.text.tertiary, marginLeft: 6 },
+    stepLabelActive: { color: colors.brand.orange, fontWeight: '700' },
+    stepLine: { flex: 1, height: 1.5, backgroundColor: colors.border.default, marginHorizontal: 4 },
+    // '#22C55E' kept raw — semantic success/done green
+    stepLineDone: { backgroundColor: '#22C55E' },
 
-  section: { backgroundColor: '#fff', padding: 20, marginBottom: 8, gap: 8 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  switchInfo: { flex: 1, gap: 4 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 4 },
-  required: { color: '#EF4444' },
-  hint: { fontSize: 12, color: '#9CA3AF' },
-  charCount: { fontSize: 11, color: '#9CA3AF', textAlign: 'right' },
+    section: { backgroundColor: colors.surface.card, padding: 20, marginBottom: 8, gap: 8 },
+    switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    switchInfo: { flex: 1, gap: 4 },
+    sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 4 },
+    // '#EF4444' kept raw — destructive red
+    required: { color: '#EF4444' },
+    hint: { fontSize: 12, color: colors.text.tertiary },
+    charCount: { fontSize: 11, color: colors.text.tertiary, textAlign: 'right' },
 
-  input: { backgroundColor: '#F3F4F6', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#101828', borderWidth: 1, borderColor: '#E5E7EB' },
-  textArea: { height: 90, paddingTop: 12 },
+    input: { backgroundColor: colors.surface.section, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: colors.text.primary, borderWidth: 1, borderColor: colors.border.default },
+    textArea: { height: 90, paddingTop: 12 },
 
-  prefixInput: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 14, borderWidth: 1, borderColor: '#E5E7EB', paddingHorizontal: 16 },
-  prefixText: { fontSize: 16, color: '#9CA3AF', marginRight: 2 },
-  prefixTextInput: { flex: 1, fontSize: 15, color: '#101828', paddingVertical: 14 },
+    prefixInput: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface.section, borderRadius: 14, borderWidth: 1, borderColor: colors.border.default, paddingHorizontal: 16 },
+    prefixText: { fontSize: 16, color: colors.text.tertiary, marginRight: 2 },
+    prefixTextInput: { flex: 1, fontSize: 15, color: colors.text.primary, paddingVertical: 14 },
 
-  // Image pickers
-  bannerPicker: { width: '100%', height: 140, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed' },
-  bannerPreview: { width: '100%', height: '100%' },
-  bannerPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#F9FAFB' },
-  bannerPlaceholderIcon: { fontSize: 28 },
-  bannerPlaceholderText: { fontSize: 13, color: '#9CA3AF' },
+    // Image pickers
+    bannerPicker: { width: '100%', height: 140, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: colors.border.default, borderStyle: 'dashed' },
+    bannerPreview: { width: '100%', height: '100%' },
+    bannerPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.surface.section },
+    bannerPlaceholderIcon: { fontSize: 28 },
+    bannerPlaceholderText: { fontSize: 13, color: colors.text.tertiary },
 
-  logoPicker: { alignSelf: 'flex-start' },
-  logoPreview: { width: 80, height: 80, borderRadius: 16 },
-  logoPlaceholder: { width: 80, height: 80, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed' },
-  logoPlaceholderIcon: { fontSize: 24 },
-  logoPlaceholderText: { fontSize: 10, color: '#9CA3AF' },
+    logoPicker: { alignSelf: 'flex-start' },
+    logoPreview: { width: 80, height: 80, borderRadius: 16 },
+    logoPlaceholder: { width: 80, height: 80, borderRadius: 16, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1.5, borderColor: colors.border.default, borderStyle: 'dashed' },
+    logoPlaceholderIcon: { fontSize: 24 },
+    logoPlaceholderText: { fontSize: 10, color: colors.text.tertiary },
 
-  chipRow: { gap: 8, paddingVertical: 4 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  chipActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  chipText: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
+    chipRow: { gap: 8, paddingVertical: 4 },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.surface.section, borderWidth: 1, borderColor: colors.border.default },
+    chipActive: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    chipText: { fontSize: 13, fontWeight: '500', color: colors.text.secondary },
+    // '#fff' kept raw — always-white on Card Orange
+    chipTextActive: { color: '#fff', fontWeight: '700' },
 
-  payGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  payBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  payBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#3B82F6' },
-  payBtnText: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
-  payBtnTextActive: { color: '#3B82F6', fontWeight: '700' },
+    payGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    payBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surface.section, borderWidth: 1, borderColor: colors.border.default },
+    // '#EFF6FF'/'#3B82F6' kept raw — semantic rarity/payment-selected blue
+    payBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#3B82F6' },
+    payBtnText: { fontSize: 13, fontWeight: '500', color: colors.text.secondary },
+    // '#3B82F6' kept raw — semantic blue
+    payBtnTextActive: { color: '#3B82F6', fontWeight: '700' },
 
-  // Document picker
-  docPicker: { borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 16 },
-  docPickerEmpty: { alignItems: 'center', paddingVertical: 32, gap: 6 },
-  docPickerIcon: { width: 32, height: 32, tintColor: '#9CA3AF', resizeMode: 'contain' },
-  docPickerText: { fontSize: 14, color: '#374151', fontWeight: '600' },
-  docPickerHint: { fontSize: 12, color: '#9CA3AF' },
-  docPickerSelected: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 10 },
-  docPickerSelectedIcon: { width: 22, height: 22, tintColor: '#22C55E', resizeMode: 'contain' },
-  docPickerSelectedText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#22C55E' },
-  docPickerChangeText: { fontSize: 13, color: '#FF6900', fontWeight: '600' },
+    // Document picker
+    docPicker: { borderWidth: 1.5, borderColor: colors.border.default, borderStyle: 'dashed', borderRadius: 16 },
+    docPickerEmpty: { alignItems: 'center', paddingVertical: 32, gap: 6 },
+    docPickerIcon: { width: 32, height: 32, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    docPickerText: { fontSize: 14, color: colors.text.primary, fontWeight: '600' },
+    docPickerHint: { fontSize: 12, color: colors.text.tertiary },
+    docPickerSelected: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 10 },
+    // '#22C55E' kept raw — semantic success green
+    docPickerSelectedIcon: { width: 22, height: 22, tintColor: '#22C55E', resizeMode: 'contain' },
+    // '#22C55E' kept raw — semantic success green
+    docPickerSelectedText: { flex: 1, fontSize: 14, fontWeight: '600', color: '#22C55E' },
+    docPickerChangeText: { fontSize: 13, color: colors.brand.orange, fontWeight: '600' },
 
-  // Info box
-  infoBox: { flexDirection: 'row', backgroundColor: '#EFF6FF', margin: 16, borderRadius: 16, padding: 16, gap: 10 },
-  infoBoxIcon: { fontSize: 14, fontWeight: '800', color: '#3B82F6', width: 20, textAlign: 'center' },
-  infoBoxText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 20 },
+    // Info box
+    // '#EFF6FF'/'#3B82F6' kept raw — semantic info-blue tint
+    infoBox: { flexDirection: 'row', backgroundColor: '#EFF6FF', margin: 16, borderRadius: 16, padding: 16, gap: 10 },
+    // '#3B82F6' kept raw — semantic info blue
+    infoBoxIcon: { fontSize: 14, fontWeight: '800', color: '#3B82F6', width: 20, textAlign: 'center' },
+    infoBoxText: { flex: 1, fontSize: 13, color: colors.text.primary, lineHeight: 20 },
 
-  // Review flow box
-  reviewBox: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: 8, borderRadius: 20, padding: 20, gap: 12 },
-  reviewBoxTitle: { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 4 },
-  reviewStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  reviewDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FF6900', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  reviewDotText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  reviewStepText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 20 },
+    // Review flow box
+    reviewBox: { backgroundColor: colors.surface.card, marginHorizontal: 16, marginTop: 8, borderRadius: 20, padding: 20, gap: 12 },
+    reviewBoxTitle: { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 4 },
+    reviewStep: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    reviewDot: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.brand.orange, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+    // '#fff' kept raw — always-white on Card Orange
+    reviewDotText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+    reviewStepText: { flex: 1, fontSize: 13, color: colors.text.primary, lineHeight: 20 },
 
-  // Buttons
-  nextBtn: { marginHorizontal: 16, marginTop: 8, backgroundColor: '#FF6900', borderRadius: 18, paddingVertical: 16, alignItems: 'center' },
-  nextBtnFlex: { flex: 1, marginHorizontal: 0 },
-  nextBtnDisabled: { backgroundColor: '#FED7B0', opacity: 0.7 },
-  nextBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    // Buttons
+    nextBtn: { marginHorizontal: 16, marginTop: 8, backgroundColor: colors.brand.orange, borderRadius: 18, paddingVertical: 16, alignItems: 'center' },
+    nextBtnFlex: { flex: 1, marginHorizontal: 0 },
+    // '#FED7B0' kept raw — disabled orange tint
+    nextBtnDisabled: { backgroundColor: '#FED7B0', opacity: 0.7 },
+    // '#fff' kept raw — always-white on Card Orange
+    nextBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 
-  stepBtnRow: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 8 },
-  backStepBtn: { paddingHorizontal: 20, paddingVertical: 16, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  backStepBtnText: { fontSize: 15, fontWeight: '600', color: '#6B7280' },
+    stepBtnRow: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 8 },
+    backStepBtn: { paddingHorizontal: 20, paddingVertical: 16, borderRadius: 18, backgroundColor: colors.surface.section, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    backStepBtnText: { fontSize: 15, fontWeight: '600', color: colors.text.secondary },
 
-  // Success screen
-  successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  successIcon: { width: 64, height: 64, tintColor: '#FF6900', resizeMode: 'contain' },
-  successTitle: { fontSize: 26, fontWeight: '800', color: '#101828' },
-  successSub: { fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
-  successSteps: { backgroundColor: '#F9FAFB', borderRadius: 20, padding: 20, width: '100%', gap: 14, borderWidth: 1, borderColor: '#E5E7EB' },
-  successStep: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  successStepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#FF6900', textAlign: 'center', lineHeight: 28, fontSize: 13, fontWeight: '800', color: '#fff', overflow: 'hidden' },
-  successStepText: { flex: 1, fontSize: 14, color: '#374151', lineHeight: 20 },
-  successBtn: { backgroundColor: '#F3F4F6', borderRadius: 18, paddingVertical: 15, paddingHorizontal: 32, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: '#E5E7EB' },
-  successBtnText: { fontSize: 15, fontWeight: '600', color: '#374151' },
-});
+    // Success screen
+    successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
+    successIcon: { width: 64, height: 64, tintColor: colors.brand.orange, resizeMode: 'contain' },
+    successTitle: { fontSize: 26, fontWeight: '800', color: colors.text.primary },
+    successSub: { fontSize: 15, color: colors.text.secondary, textAlign: 'center', lineHeight: 24 },
+    successSteps: { backgroundColor: colors.surface.section, borderRadius: 20, padding: 20, width: '100%', gap: 14, borderWidth: 1, borderColor: colors.border.default },
+    successStep: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    // '#fff' kept raw — always-white on Card Orange
+    successStepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.brand.orange, textAlign: 'center', lineHeight: 28, fontSize: 13, fontWeight: '800', color: '#fff', overflow: 'hidden' },
+    successStepText: { flex: 1, fontSize: 14, color: colors.text.primary, lineHeight: 20 },
+    successBtn: { backgroundColor: colors.surface.section, borderRadius: 18, paddingVertical: 15, paddingHorizontal: 32, alignItems: 'center', width: '100%', borderWidth: 1, borderColor: colors.border.default },
+    successBtnText: { fontSize: 15, fontWeight: '600', color: colors.text.primary },
+  });
+}

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { extractArtofpkmKey } from '../../lib/artofpkm';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,6 +18,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -66,9 +68,29 @@ const CONDITION_COLOR: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ListingDetail() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
   const { t }   = useTranslation();
+
+  // Helper — keeps style/colors closure scope
+  const DetailRow = ({
+    iconSource, label, value, valueColor,
+  }: {
+    iconSource?: any; label: string; value: string; valueColor?: string;
+  }) => (
+    <View style={styles.detailRow}>
+      {iconSource
+        ? <Image source={iconSource} style={styles.detailIcon} />
+        : <View style={styles.detailIconPlaceholder} />
+      }
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={[styles.detailValue, valueColor ? { color: valueColor, fontWeight: '700' } : {}]}>
+        {value}
+      </Text>
+    </View>
+  );
 
   const [listing, setListing]   = useState<Listing | null>(null);
   const [seller, setSeller]     = useState<SellerInfo | null>(null);
@@ -132,7 +154,7 @@ export default function ListingDetail() {
     ? (listing.photo_urls?.length ? listing.photo_urls : (listing.card_image_url ? [listing.card_image_url] : []))
     : [];
 
-  const condColor = listing ? (CONDITION_COLOR[listing.condition] ?? '#9CA3AF') : '#9CA3AF';
+  const condColor = listing ? (CONDITION_COLOR[listing.condition] ?? colors.text.tertiary) : colors.text.tertiary;
 
   const sellerName  = seller?.seller_type === 'certified_merchant'
     ? (seller.shop_name_zh ?? seller.display_name)
@@ -212,7 +234,7 @@ export default function ListingDetail() {
           <Text style={styles.navTitle}>{t('listing.title')}</Text>
         </View>
         <View style={styles.loadingWrap}>
-          <Text style={{ fontSize: 16, color: '#6B7280' }}>{t('listing.notFound')}</Text>
+          <Text style={{ fontSize: 16, color: colors.text.secondary }}>{t('listing.notFound')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -388,7 +410,7 @@ export default function ListingDetail() {
       {listing.status !== 'sold' && seller && myId !== listing.seller_id && (
         <View style={styles.bottomBar}>
           <TouchableOpacity
-            style={[styles.contactBtn, { backgroundColor: chatting ? '#FDBA74' : '#FF6900' }]}
+            style={[styles.contactBtn, { backgroundColor: chatting ? '#FDBA74' : colors.brand.orange }]}
             onPress={startChat}
             disabled={chatting}
             activeOpacity={0.85}
@@ -402,143 +424,135 @@ export default function ListingDetail() {
   );
 }
 
-// ── Sub-component ─────────────────────────────────────────────────────────────
-
-function DetailRow({
-  iconSource, label, value, valueColor,
-}: {
-  iconSource?: any; label: string; value: string; valueColor?: string;
-}) {
-  return (
-    <View style={styles.detailRow}>
-      {iconSource
-        ? <Image source={iconSource} style={styles.detailIcon} />
-        : <View style={styles.detailIconPlaceholder} />
-      }
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={[styles.detailValue, valueColor ? { color: valueColor, fontWeight: '700' } : {}]}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.card },
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB',
-  },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
 
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  // Photo carousel
-  photo: { width: SCREEN_W, height: SCREEN_W * 1.1, backgroundColor: '#F9FAFB' },
-  photoPlaceholder: {
-    width: SCREEN_W, height: SCREEN_W * 1.1,
-    backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center',
-  },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#D1D5DB' },
-  dotActive: { backgroundColor: '#FF6900', width: 18 },
-  condOverlay: {
-    position: 'absolute', top: 14, left: 14,
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  condOverlayText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+    // Photo carousel
+    photo: { width: SCREEN_W, height: SCREEN_W * 1.1, backgroundColor: colors.surface.section },
+    photoPlaceholder: {
+      width: SCREEN_W, height: SCREEN_W * 1.1,
+      backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center',
+    },
+    dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border.strong },
+    dotActive: { backgroundColor: colors.brand.orange, width: 18 },
+    condOverlay: {
+      position: 'absolute', top: 14, left: 14,
+      borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+    },
+    // '#fff' kept raw — always-white on filled condition overlay
+    condOverlayText: { fontSize: 12, fontWeight: '800', color: '#fff' },
 
-  // Info section
-  infoSection: { paddingHorizontal: 20, paddingTop: 20, gap: 12 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  cardName: { fontSize: 20, fontWeight: '800', color: '#101828', lineHeight: 26 },
-  cardSet: { fontSize: 13, color: '#9CA3AF', marginTop: 3 },
-  soldTag: {
-    backgroundColor: '#FEE2E2', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
-  },
-  soldTagText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
+    // Info section
+    infoSection: { paddingHorizontal: 20, paddingTop: 20, gap: 12 },
+    cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+    cardName: { fontSize: 20, fontWeight: '800', color: colors.text.primary, lineHeight: 26 },
+    cardSet: { fontSize: 13, color: colors.text.tertiary, marginTop: 3 },
+    // '#FEE2E2'/'#EF4444' kept raw — destructive red tint for sold
+    soldTag: {
+      backgroundColor: '#FEE2E2', borderRadius: 8,
+      paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
+    },
+    // '#EF4444' kept raw — destructive red
+    soldTagText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
 
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  price: { fontSize: 28, fontWeight: '800', color: '#FF6900' },
-  negoTag: {
-    backgroundColor: '#FFF3E8', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4,
-  },
-  negoTagText: { fontSize: 12, fontWeight: '600', color: '#FF6900' },
+    priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    price: { fontSize: 28, fontWeight: '800', color: colors.brand.orange },
+    negoTag: {
+      backgroundColor: colors.brand.peach, borderRadius: 8,
+      paddingHorizontal: 10, paddingVertical: 4,
+    },
+    negoTagText: { fontSize: 12, fontWeight: '600', color: colors.brand.orange },
 
-  detailsBox: {
-    backgroundColor: '#F9FAFB', borderRadius: 16,
-    paddingHorizontal: 16, paddingVertical: 4,
-  },
-  detailRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6', gap: 10,
-  },
-  detailIcon: { width: 16, height: 16, resizeMode: 'contain', tintColor: '#6B7280' },
-  detailIconPlaceholder: { width: 16 },
-  detailLabel: { fontSize: 14, color: '#6B7280', flex: 1 },
-  detailValue: { fontSize: 14, color: '#101828', fontWeight: '600' },
+    detailsBox: {
+      backgroundColor: colors.surface.section, borderRadius: 16,
+      paddingHorizontal: 16, paddingVertical: 4,
+    },
+    detailRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.border.default, gap: 10,
+    },
+    detailIcon: { width: 16, height: 16, resizeMode: 'contain', tintColor: colors.text.secondary },
+    detailIconPlaceholder: { width: 16 },
+    detailLabel: { fontSize: 14, color: colors.text.secondary, flex: 1 },
+    detailValue: { fontSize: 14, color: colors.text.primary, fontWeight: '600' },
 
-  notesBox: {
-    backgroundColor: '#FFFBEB', borderRadius: 14,
-    padding: 14, borderWidth: 1, borderColor: '#FDE68A',
-  },
-  notesLabel: { fontSize: 12, fontWeight: '700', color: '#92400E', marginBottom: 6 },
-  notesText: { fontSize: 14, color: '#78350F', lineHeight: 20 },
+    // '#FFFBEB'/'#FDE68A'/'#92400E'/'#78350F' kept raw — semantic merchant-note amber tint
+    notesBox: {
+      backgroundColor: '#FFFBEB', borderRadius: 14,
+      padding: 14, borderWidth: 1, borderColor: '#FDE68A',
+    },
+    // '#92400E' kept raw — semantic merchant-note amber text
+    notesLabel: { fontSize: 12, fontWeight: '700', color: '#92400E', marginBottom: 6 },
+    // '#78350F' kept raw — semantic merchant-note amber text
+    notesText: { fontSize: 14, color: '#78350F', lineHeight: 20 },
 
-  // Seller section
-  sellerSection: { paddingHorizontal: 20, paddingTop: 24, gap: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#374151' },
-  sellerRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#F9FAFB', borderRadius: 18,
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  sellerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E5E7EB' },
-  sellerAvatarPlaceholder: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center',
-  },
-  sellerAvatarIcon: { width: 26, height: 26, resizeMode: 'contain', tintColor: '#9CA3AF' },
-  sellerInfo: { flex: 1, gap: 4 },
-  sellerName: { fontSize: 16, fontWeight: '700', color: '#101828' },
-  sellerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  certBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#ECFDF5', borderRadius: 6,
-    paddingHorizontal: 6, paddingVertical: 2,
-  },
-  certBadgeIcon: { width: 11, height: 11, resizeMode: 'contain', tintColor: '#065F46' },
-  certBadgeText: { fontSize: 11, fontWeight: '700', color: '#065F46' },
-  sellerDistrictRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  locationIcon: { width: 11, height: 11, resizeMode: 'contain', tintColor: '#6B7280' },
-  sellerDistrict: { fontSize: 12, color: '#6B7280' },
-  sellerArrow: { fontSize: 22, color: '#9CA3AF', fontWeight: '300' },
+    // Seller section
+    sellerSection: { paddingHorizontal: 20, paddingTop: 24, gap: 12 },
+    sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text.primary },
+    sellerRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      backgroundColor: colors.surface.section, borderRadius: 18,
+      paddingHorizontal: 16, paddingVertical: 14,
+    },
+    sellerAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.border.default },
+    sellerAvatarPlaceholder: {
+      width: 52, height: 52, borderRadius: 26,
+      backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center',
+    },
+    sellerAvatarIcon: { width: 26, height: 26, resizeMode: 'contain', tintColor: colors.text.tertiary },
+    sellerInfo: { flex: 1, gap: 4 },
+    sellerName: { fontSize: 16, fontWeight: '700', color: colors.text.primary },
+    sellerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    // '#ECFDF5'/'#065F46' kept raw — semantic mint tint for certified
+    certBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      backgroundColor: '#ECFDF5', borderRadius: 6,
+      paddingHorizontal: 6, paddingVertical: 2,
+    },
+    // '#065F46' kept raw — semantic emerald text for certified
+    certBadgeIcon: { width: 11, height: 11, resizeMode: 'contain', tintColor: '#065F46' },
+    // '#065F46' kept raw — semantic emerald text for certified
+    certBadgeText: { fontSize: 11, fontWeight: '700', color: '#065F46' },
+    sellerDistrictRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    locationIcon: { width: 11, height: 11, resizeMode: 'contain', tintColor: colors.text.secondary },
+    sellerDistrict: { fontSize: 12, color: colors.text.secondary },
+    sellerArrow: { fontSize: 22, color: colors.text.tertiary, fontWeight: '300' },
 
-  viewAllBtn: {
-    backgroundColor: '#F3F4F6', borderRadius: 14,
-    paddingVertical: 13, alignItems: 'center',
-  },
-  viewAllBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
+    viewAllBtn: {
+      backgroundColor: colors.surface.section, borderRadius: 14,
+      paddingVertical: 13, alignItems: 'center',
+    },
+    viewAllBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
 
-  // Bottom bar
-  bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 20, paddingBottom: 34, paddingTop: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 0.5, borderTopColor: '#E5E7EB',
-  },
-  contactBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, borderRadius: 18, paddingVertical: 17,
-  },
-  contactBtnIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: '#fff' },
-  contactBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-});
+    // Bottom bar
+    bottomBar: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      paddingHorizontal: 20, paddingBottom: 34, paddingTop: 12,
+      backgroundColor: colors.surface.card,
+      borderTopWidth: 0.5, borderTopColor: colors.border.default,
+    },
+    contactBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 10, borderRadius: 18, paddingVertical: 17,
+    },
+    // '#fff' kept raw — always-white on Card Orange
+    contactBtnIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: '#fff' },
+    // '#fff' kept raw — always-white on Card Orange
+    contactBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  });
+}

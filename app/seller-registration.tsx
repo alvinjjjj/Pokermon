@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -17,6 +17,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../theme/ThemeProvider';
+import { type ColorTokens } from '../constants/colors';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -31,6 +33,8 @@ const HK_DISTRICTS = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SellerRegistration() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -214,7 +218,7 @@ export default function SellerRegistration() {
             <TextInput
               style={styles.input}
               placeholder={t('sellerReg.namePlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={displayName}
               onChangeText={setDisplayName}
               maxLength={30}
@@ -261,7 +265,7 @@ export default function SellerRegistration() {
                 contactType === 'Telegram'  ? t('sellerReg.placeholderTelegram') :
                 t('sellerReg.placeholderInstagram')
               }
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               value={contactValue}
               onChangeText={setContactValue}
               keyboardType={contactType === 'WhatsApp' ? 'phone-pad' : 'default'}
@@ -328,71 +332,82 @@ export default function SellerRegistration() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F3F4F6' },
-  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 0.5, borderBottomColor: '#E5E7EB' },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  scrollContent: { paddingBottom: 40 },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
+    nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    scrollContent: { paddingBottom: 40 },
 
-  headerWrap: { backgroundColor: '#fff', padding: 24, alignItems: 'center', gap: 6, marginBottom: 8 },
-  headerIcon: { width: 40, height: 40, tintColor: '#FF6900', resizeMode: 'contain' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#101828' },
-  headerSub: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
+    headerWrap: { backgroundColor: colors.surface.card, padding: 24, alignItems: 'center', gap: 6, marginBottom: 8 },
+    headerIcon: { width: 40, height: 40, tintColor: colors.brand.orange, resizeMode: 'contain' },
+    headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text.primary },
+    headerSub: { fontSize: 14, color: colors.text.secondary, textAlign: 'center', lineHeight: 20 },
 
-  section: { backgroundColor: '#fff', padding: 20, marginBottom: 8, gap: 8 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 4 },
-  required: { color: '#EF4444' },
-  hint: { fontSize: 12, color: '#9CA3AF' },
+    section: { backgroundColor: colors.surface.card, padding: 20, marginBottom: 8, gap: 8 },
+    sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 4 },
+    // '#EF4444' kept raw — destructive red
+    required: { color: '#EF4444' },
+    hint: { fontSize: 12, color: colors.text.tertiary },
 
-  input: { backgroundColor: '#F3F4F6', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#101828', borderWidth: 1, borderColor: '#E5E7EB' },
+    input: { backgroundColor: colors.surface.section, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: colors.text.primary, borderWidth: 1, borderColor: colors.border.default },
 
-  avatarPicker: { alignSelf: 'center' },
-  avatarImg: { width: 80, height: 80, borderRadius: 40 },
-  avatarPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1.5, borderColor: '#E5E7EB', borderStyle: 'dashed' },
-  avatarPlaceholderIcon: { width: 24, height: 24, tintColor: '#9CA3AF', resizeMode: 'contain' },
-  avatarPlaceholderText: { fontSize: 11, color: '#9CA3AF' },
+    avatarPicker: { alignSelf: 'center' },
+    avatarImg: { width: 80, height: 80, borderRadius: 40 },
+    avatarPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1.5, borderColor: colors.border.default, borderStyle: 'dashed' },
+    avatarPlaceholderIcon: { width: 24, height: 24, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    avatarPlaceholderText: { fontSize: 11, color: colors.text.tertiary },
 
-  chipRow: { gap: 8, paddingVertical: 4 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  chipActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  chipText: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
+    chipRow: { gap: 8, paddingVertical: 4 },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.surface.section, borderWidth: 1, borderColor: colors.border.default },
+    chipActive: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    chipText: { fontSize: 13, fontWeight: '500', color: colors.text.secondary },
+    // '#fff' kept raw — always-white on Card Orange
+    chipTextActive: { color: '#fff', fontWeight: '700' },
 
-  contactTypeRow: { flexDirection: 'row', gap: 8 },
-  contactTypeBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
-  contactTypeBtnActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  contactTypeBtnText: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  contactTypeBtnTextActive: { color: '#fff' },
+    contactTypeRow: { flexDirection: 'row', gap: 8 },
+    contactTypeBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surface.section, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
+    contactTypeBtnActive: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    contactTypeBtnText: { fontSize: 12, fontWeight: '600', color: colors.text.secondary },
+    // '#fff' kept raw — always-white on Card Orange
+    contactTypeBtnTextActive: { color: '#fff' },
 
-  payGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  payBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
-  payBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#3B82F6' },
-  payBtnText: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
-  payBtnTextActive: { color: '#3B82F6', fontWeight: '700' },
+    payGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    payBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.surface.section, borderWidth: 1, borderColor: colors.border.default },
+    // '#EFF6FF'/'#3B82F6' kept raw — semantic payment-selected blue
+    payBtnActive: { backgroundColor: '#EFF6FF', borderColor: '#3B82F6' },
+    payBtnText: { fontSize: 13, fontWeight: '500', color: colors.text.secondary },
+    // '#3B82F6' kept raw — semantic blue
+    payBtnTextActive: { color: '#3B82F6', fontWeight: '700' },
 
-  declarationBox: { backgroundColor: '#fff', margin: 16, borderRadius: 20, padding: 20, gap: 12, borderWidth: 1, borderColor: '#E5E7EB' },
-  declarationTitle: { fontSize: 15, fontWeight: '700', color: '#101828' },
-  declarationText: { fontSize: 13, color: '#374151', lineHeight: 22 },
-  declarationCheck: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
-  checkboxActive: { backgroundColor: '#FF6900', borderColor: '#FF6900' },
-  checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  declarationCheckText: { fontSize: 14, color: '#374151', flex: 1 },
+    declarationBox: { backgroundColor: colors.surface.card, margin: 16, borderRadius: 20, padding: 20, gap: 12, borderWidth: 1, borderColor: colors.border.default },
+    declarationTitle: { fontSize: 15, fontWeight: '700', color: colors.text.primary },
+    declarationText: { fontSize: 13, color: colors.text.primary, lineHeight: 22 },
+    declarationCheck: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: colors.border.strong, alignItems: 'center', justifyContent: 'center' },
+    checkboxActive: { backgroundColor: colors.brand.orange, borderColor: colors.brand.orange },
+    // '#fff' kept raw — always-white on Card Orange
+    checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    declarationCheckText: { fontSize: 14, color: colors.text.primary, flex: 1 },
 
-  submitBtn: { marginHorizontal: 16, backgroundColor: '#FF6900', borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
-  submitBtnDisabled: { backgroundColor: '#FED7B0', opacity: 0.7 },
-  submitBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  footerNote: { textAlign: 'center', fontSize: 13, color: '#9CA3AF' },
+    submitBtn: { marginHorizontal: 16, backgroundColor: colors.brand.orange, borderRadius: 18, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
+    // '#FED7B0' kept raw — disabled orange tint
+    submitBtnDisabled: { backgroundColor: '#FED7B0', opacity: 0.7 },
+    // '#fff' kept raw — always-white on Card Orange
+    submitBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    footerNote: { textAlign: 'center', fontSize: 13, color: colors.text.tertiary },
 
-  // Success screen
-  successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  successIcon: { fontSize: 72 },
-  successTitle: { fontSize: 28, fontWeight: '800', color: '#101828' },
-  successSub: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 26 },
-  successBtnPrimary: { backgroundColor: '#FF6900', borderRadius: 18, paddingVertical: 16, paddingHorizontal: 32, alignItems: 'center', width: '100%', marginTop: 8 },
-  successBtnPrimaryText: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  successBtnSecondary: { paddingVertical: 12, alignItems: 'center' },
-  successBtnSecondaryText: { fontSize: 15, color: '#9CA3AF', fontWeight: '500' },
-});
+    // Success screen
+    successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
+    successIcon: { fontSize: 72 },
+    successTitle: { fontSize: 28, fontWeight: '800', color: colors.text.primary },
+    successSub: { fontSize: 16, color: colors.text.secondary, textAlign: 'center', lineHeight: 26 },
+    successBtnPrimary: { backgroundColor: colors.brand.orange, borderRadius: 18, paddingVertical: 16, paddingHorizontal: 32, alignItems: 'center', width: '100%', marginTop: 8 },
+    // '#fff' kept raw — always-white on Card Orange
+    successBtnPrimaryText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    successBtnSecondary: { paddingVertical: 12, alignItems: 'center' },
+    successBtnSecondaryText: { fontSize: 15, color: colors.text.tertiary, fontWeight: '500' },
+  });
+}
