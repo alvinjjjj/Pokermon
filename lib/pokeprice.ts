@@ -41,7 +41,7 @@ export type PPTPrice = {
   cgc10:  number;  // eBay CGC 10 (bonus data)
   change7d:     number; // % change vs ~7 days ago (0 if no history)
   change30d:    number; // % change vs ~30 days ago (0 if no history)
-  weeklyVolume: number; // eBay weekly sales count (used for 今日熱門 ranking)
+  weeklyVolume: number; // eBay weekly sales count (tiebreak for 今日熱門 ranking; primary signal is |change30d|)
   history:  { date: string; price: number }[]; // sorted oldest → newest
 };
 
@@ -272,8 +272,8 @@ const CARD_MEM_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // ── Supabase cache helpers ─────────────────────────────────────────────────────
 
-const HOT_CACHE_KEY    = 'ppt_hot_jp_v7'; // v7: re-parse cache through parseCard to apply URL upgrades
-const HOT_EN_CACHE_KEY = 'ppt_hot_en_v1';
+const HOT_CACHE_KEY    = 'ppt_hot_jp_v8'; // v8: ranking switched from weeklyVolume → 30d price delta (getMarketMovers); v7 cache invalidated to force immediate re-fetch.
+const HOT_EN_CACHE_KEY = 'ppt_hot_en_v2'; // v2: bumped in lock-step with JP v8 even though EN rail ranks via pokemontcg.io orderBy — keeps user-visible cache state coherent across both rails.
 
 async function dbReadHot(): Promise<PPTCard[] | null> {
   try {
@@ -533,19 +533,36 @@ export async function getCardPrice(
 }
 
 /**
- * Return "hot" cards — sorted by eBay weekly sales volume.
- * PPT does not provide time-series price history, so change7d is always 0.
- * Weekly volume is the best available proxy for market activity.
+ * Return "hot" cards — sorted by 30-day price movement magnitude.
+ *
+ * Previous ranking (≤ v7 cache) used eBay weekly sales volume, but for the
+ * $641+ PSA10 JP-grail segment the same 10 cards held the top-volume slots
+ * for weeks at a time (1–4 sales/week per card → sticky leaderboard, looked
+ * frozen to users despite a healthy 6h cache refresh).
+ *
+ * New ranking ranks by |change30d| — cards that have MOVED (up OR down) in
+ * the last 30 days regardless of trade volume. Movement is what "hot" should
+ * convey on a marketplace surface. Rotation is expected as prices drift.
+ *
+ * Requires fetchHotCards to be called with includeHistory: 'true' (already
+ * the case for the JP path) so change30d is populated. Cards without history
+ * carry change30d = 0 and fall through to the weeklyVolume tiebreak — same
+ * legacy behavior — so an unhistoried fetch degrades gracefully.
+ *
  * No API call — works on already-fetched hot cards.
  */
 export function getMarketMovers(cards: PPTCard[], limit = 10): PPTCard[] {
   return [...cards]
     .filter(c => c.price.weeklyVolume > 0 || c.price.market > 0)
     .sort((a, b) => {
-      // Primary: weekly eBay volume (most active trades)
+      // Primary: absolute 30-day price change % (most-moved card first).
+      const deltaDiff = Math.abs(b.price.change30d) - Math.abs(a.price.change30d);
+      if (Math.abs(deltaDiff) > 0.01) return deltaDiff;
+      // Secondary: weekly eBay sales volume (legacy primary — preserved as
+      // tiebreak so the rail still works when history is missing / equal).
       const volDiff = b.price.weeklyVolume - a.price.weeklyVolume;
       if (Math.abs(volDiff) > 0.01) return volDiff;
-      // Secondary: highest market price
+      // Tertiary: market price (legacy tiebreak preserved).
       return b.price.market - a.price.market;
     })
     .slice(0, limit);
