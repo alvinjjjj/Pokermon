@@ -13,27 +13,28 @@
  *   assets/images/HKCardColl-Lockup-Horizontal-light.svg
  *   assets/images/HKCardColl-Lockup-Horizontal-dark.svg
  *
- * Render size: matches existing Logo.png appearance (128×32, 4:1).
- * SVG natural aspect is 498:105 (≈4.74:1); preserveAspectRatio="none"
- * stretches into the 4:1 box, preserving visual consistency with the
- * pre-migration PNG that users have been seeing in light mode.
+ * Render: natural SVG aspect 498:105 (≈4.74:1) preserved across modes.
+ * Wordmark spacing is correct (NOT stretched). Both light + dark render
+ * at identical dimensions, just stroke + wordmark color swap.
  */
 
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeProvider';
 
+// SVG natural aspect: width 498 / height 105
+const ASPECT = 498 / 105;
+
 type Props = {
-  /** Display height in px. Width auto-derived at 4:1 (matches existing Logo.png). */
+  /** Display height in px. Width auto-derived at natural 4.74:1 SVG aspect. */
   height?: number;
 };
 
 export function LogoLockup({ height = 32 }: Props) {
   const { mode } = useTheme();
 
-  // Match existing Logo.png 4:1 ratio (was 128×32). preserveAspectRatio
-  // below stretches native 498×105 SVG to fit this box.
-  const width = height * 4;
+  // Preserve native SVG aspect — no horizontal squish on wordmark.
+  const width = height * ASPECT;
 
   // Single accent color switches strokes + wordmark by theme.
   // Cream middle card (#F6F2EA) + Orange front card (#FF6A1F) stay
@@ -41,7 +42,7 @@ export function LogoLockup({ height = 32 }: Props) {
   const accent = mode === 'dark' ? 'white' : '#1A1814';
 
   return (
-    <Svg width={width} height={height} viewBox="0 0 498 105" preserveAspectRatio="none">
+    <Svg width={width} height={height} viewBox="0 0 498 105">
       {/* Back card outline */}
       <Path
         d="M54.126 12.0646L10.0342 19.8391C5.39585 20.657 2.29875 25.0801 3.11661 29.7184L14.5934 94.8064C15.4112 99.4447 19.8343 102.542 24.4727 101.724L68.5645 93.9493C73.2028 93.1315 76.2999 88.7084 75.4821 84.07L64.0053 18.9821C63.1874 14.3438 58.7643 11.2467 54.126 12.0646Z"
