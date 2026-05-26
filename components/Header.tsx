@@ -133,8 +133,7 @@ export default Header;
 function makeStyles(colors: ColorTokens) {
   return StyleSheet.create({
     row1: { alignItems: 'center', paddingVertical: 8, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
-    // Logo.png is 4:1 aspect ratio (2560×640). Height 32 → width 128.
-    logoImg: { height: 32, width: 128 },
+    // logoImg style removed — <LogoLockup /> handles its own sizing now
     row2: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surface.card, borderBottomWidth: 0.5, borderBottomColor: colors.border.default },
     hkdBtn: { borderWidth: 1, borderColor: colors.border.default, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
     hkdText: { fontSize: 13, color: colors.text.primary },
