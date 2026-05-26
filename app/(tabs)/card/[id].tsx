@@ -239,6 +239,27 @@ function PriceChart({
     return `${symbol}${v.toFixed(0)}`;
   };
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // Hooks MUST run unconditionally on every render — keep ptsRef + panResponder
+  // ABOVE the `if (!data.length) return null` early-exit at line ~265.
+  // Previously these useRef calls sat after the early return, violating
+  // Rules of Hooks: when `data` toggled empty/non-empty between renders the
+  // hook order changed and React would crash with "Rendered fewer hooks than
+  // expected" (caught by eslint react-hooks/rules-of-hooks).
+  //
+  // panResponder callbacks reference `findNearest` (declared further down)
+  // via lexical scope — fine because the callbacks only fire at gesture time,
+  // not at PanResponder.create() time.
+  const ptsRef = useRef<{ x: number; y: number }[]>([]);
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: e => findNearest(e.nativeEvent.locationX),
+      onPanResponderMove: e => findNearest(e.nativeEvent.locationX),
+      onPanResponderRelease: () => setHoverIdx(null),
+    }),
+  ).current;
+
   const w = SCREEN_W - 32;
   const h = 180;
   const padL = 30;
@@ -269,22 +290,9 @@ function PriceChart({
       ? `${linePath} L ${pts[pts.length - 1].x} ${h - padB} L ${pts[0].x} ${h - padB} Z`
       : '';
 
-  // Keep a ref to the latest pts so the PanResponder closure never goes stale
-  // (PanResponder.create is called once via useRef, so its callback captures
-  //  the pts array at first render — we use ptsRef.current instead to always
-  //  get the latest computed positions after period/data changes.)
-  const ptsRef = useRef(pts);
+  // Keep ptsRef in sync with the latest computed positions so PanResponder
+  // callbacks (captured once above) always see fresh data.
   ptsRef.current = pts;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: e => findNearest(e.nativeEvent.locationX),
-      onPanResponderMove: e => findNearest(e.nativeEvent.locationX),
-      onPanResponderRelease: () => setHoverIdx(null),
-    }),
-  ).current;
 
   const findNearest = (x: number) => {
     let nearest = 0, minDist = Infinity;
