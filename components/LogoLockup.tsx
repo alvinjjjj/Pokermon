@@ -22,19 +22,15 @@ import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeProvider';
 
-// SVG natural aspect: width 498 / height 105
-const ASPECT = 498 / 105;
-
 type Props = {
-  /** Display height in px. Width auto-derived at natural 4.74:1 SVG aspect. */
+  /** Display width in px (default 128 — matches existing Header sizing). */
+  width?: number;
+  /** Display height in px (default 27.7 — preserves wordmark scale). */
   height?: number;
 };
 
-export function LogoLockup({ height = 32 }: Props) {
+export function LogoLockup({ width = 128, height = 27.7 }: Props) {
   const { mode } = useTheme();
-
-  // Preserve native SVG aspect — no horizontal squish on wordmark.
-  const width = height * ASPECT;
 
   // Single accent color switches strokes + wordmark by theme.
   // Cream middle card (#F6F2EA) + Orange front card (#FF6A1F) stay
