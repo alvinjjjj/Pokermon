@@ -21,6 +21,7 @@ import { useCurrency } from '../../contexts/CurrencyContext';
 import { supabase } from '../../lib/supabase';
 import { BOOSTER_SETS } from '../../constants/boosterBoxes';
 import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 // Build a lookup map: setId → localImage (for boxes stored without imageUrl)
@@ -48,8 +49,8 @@ type Card = {
 type FilterType = 'newest' | 'highPrice' | 'lowPrice';
 
 export default function PortfolioScreen() {
-  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
   const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { convert, currency, rate, symbol } = useCurrency();
   const router = useRouter();
   const { t } = useTranslation();
@@ -420,7 +421,7 @@ export default function PortfolioScreen() {
   }, [cards, activeFilter]);
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
+    <SafeAreaView style={styles.safe}>
       <Header />
       <ScrollView showsVerticalScrollIndicator={false}>
 
@@ -535,7 +536,7 @@ export default function PortfolioScreen() {
                         if (local) return <Image source={local} style={styles.boxImage} resizeMode="contain" />;
                       }
                       if (card.image_url) return <Image source={{ uri: card.image_url }} style={isBox ? styles.boxImage : styles.cardImage} resizeMode="contain" />;
-                      return <Image source={require('../../assets/icons/portfolio.png')} style={{ width: 44, height: 44, tintColor: '#D1D5DB', resizeMode: 'contain' }} />;
+                      return <Image source={require('../../assets/icons/portfolio.png')} style={{ width: 44, height: 44, tintColor: colors.border.strong, resizeMode: 'contain' }} />;
                     })()}
                     {/* Grade badge for cards */}
                     {!isBox && card.psa_grade && (
@@ -588,8 +589,9 @@ export default function PortfolioScreen() {
                     {/* Price + change row */}
                     <View style={styles.priceMainRow}>
                       <Text style={styles.priceMain}>{convert(card.current_price * card.quantity)}</Text>
-                      <View style={[styles.changePill, { backgroundColor: change >= 0 ? '#DCFCE7' : '#FEE2E2' }]}>
-                        <Text style={[styles.changePillText, { color: change >= 0 ? '#00A63E' : '#E7000B' }]}>
+                      {/* Vol.03 D2: ▲/▼ change pill uses Sage/Brick tokens with low-opacity tint backgrounds */}
+                      <View style={[styles.changePill, { backgroundColor: (change >= 0 ? colors.state.upStrong : colors.state.down) + '22' }]}>
+                        <Text style={[styles.changePillText, { color: change >= 0 ? colors.state.upStrong : colors.state.down }]}>
                           {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(1)}%
                         </Text>
                       </View>
@@ -678,7 +680,7 @@ export default function PortfolioScreen() {
               onChangeText={setEditPriceText}
               keyboardType="decimal-pad"
               placeholder={t('portfolio.editPricePlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               textContentType="none"
               autoComplete="off"
               autoCorrect={false}
@@ -693,7 +695,7 @@ export default function PortfolioScreen() {
               onChangeText={setEditPurchaseText}
               keyboardType="decimal-pad"
               placeholder={t('portfolio.editPurchasePlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               textContentType="none"
               autoComplete="off"
               autoCorrect={false}
@@ -760,7 +762,7 @@ export default function PortfolioScreen() {
               value={editingName}
               onChangeText={setEditingName}
               placeholder={t('portfolio.namePlaceholder')}
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.text.tertiary}
               maxLength={20}
               autoFocus
             />
@@ -782,255 +784,270 @@ export default function PortfolioScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
 
-  valueSection: {
-    backgroundColor: '#fff',
-    paddingVertical: 20,
-    alignItems: 'center',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-  },
-  nameTouchable: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  valueLabel: { fontSize: 14, color: '#6B7280' },
-  valueLabelOrange: { color: '#FF6900', fontWeight: '600' },
-  editNameIcon: { fontSize: 13, color: '#FF6900' },
-  renameSuccessTag: { fontSize: 12, color: '#00A63E', fontWeight: '700' },
-  valueRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  valueAmount: { fontSize: 36, fontWeight: '800', color: '#101828' },
-  eyeIcon: { width: 20, height: 20, tintColor: '#9CA3AF' },
-  cardCount: { fontSize: 13, color: '#9CA3AF', marginTop: 6 },
+    valueSection: {
+      backgroundColor: colors.surface.card,
+      paddingVertical: 20,
+      alignItems: 'center',
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border.default,
+    },
+    nameTouchable: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+    valueLabel: { fontSize: 14, color: colors.text.secondary },
+    valueLabelOrange: { color: colors.brand.orange, fontWeight: '600' },
+    editNameIcon: { fontSize: 13, color: colors.brand.orange },
+    renameSuccessTag: { fontSize: 12, color: colors.state.upStrong, fontWeight: '700' },
+    valueRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    valueAmount: { fontSize: 36, fontWeight: '800', color: colors.text.primary },
+    eyeIcon: { width: 20, height: 20, tintColor: colors.text.tertiary },
+    cardCount: { fontSize: 13, color: colors.text.tertiary, marginTop: 6 },
 
-  filterRowWrap: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-    position: 'relative',
-  },
-  filterRowContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    flexDirection: 'row',
-  },
-  filterFade: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 40,
-    backgroundColor: 'transparent',
-  },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#fff',
-  },
-  filterChipActive: { backgroundColor: '#101828', borderColor: '#101828' },
-  filterText: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
-  filterTextActive: { color: '#fff', fontWeight: '600' },
+    filterRowWrap: {
+      backgroundColor: colors.surface.card,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border.default,
+      position: 'relative',
+    },
+    filterRowContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 8,
+      flexDirection: 'row',
+    },
+    filterFade: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 40,
+      backgroundColor: 'transparent',
+    },
+    filterChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.border.default,
+      backgroundColor: colors.surface.card,
+    },
+    // Active chip uses high-contrast inverse — Ink on light, Paper on dark
+    filterChipActive: { backgroundColor: colors.text.primary, borderColor: colors.text.primary },
+    filterText: { fontSize: 12, color: colors.text.secondary, fontWeight: '500' },
+    filterTextActive: { color: colors.text.inverse, fontWeight: '600' },
 
-  loadingWrap: { padding: 60, alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 15, color: '#9CA3AF' },
-  emptyWrap: { padding: 60, alignItems: 'center', gap: 8 },
-  emptyEmoji: { fontSize: 48 },
-  emptyEmojiImg: { width: 48, height: 48, tintColor: '#D1D5DB', resizeMode: 'contain' },
-  emptyText: { fontSize: 18, fontWeight: '700', color: '#101828' },
-  emptySub: { fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
+    loadingWrap: { padding: 60, alignItems: 'center', gap: 12 },
+    loadingText: { fontSize: 15, color: colors.text.tertiary },
+    emptyWrap: { padding: 60, alignItems: 'center', gap: 8 },
+    emptyEmoji: { fontSize: 48 },
+    emptyEmojiImg: { width: 48, height: 48, tintColor: colors.border.strong, resizeMode: 'contain' },
+    emptyText: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    emptySub: { fontSize: 14, color: colors.text.tertiary, textAlign: 'center' },
 
-  // alignItems: 'stretch' makes cards in the same row match the tallest one's
-  // height — required for sell-button alignment when one card has the extra
-  // "×N @ price" line and its sibling doesn't.
-  grid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 12, alignItems: 'stretch' },
-  card: {
-    width: CARD_W,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: '#E5E7EB',
-    flexDirection: 'column',
-  },
-  cardImgBox: {
-    width: '100%',
-    aspectRatio: 0.72,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  // Same outer shape as cards so the grid stays uniform.
-  boxImgBox: {
-    aspectRatio: 0.72,
-    backgroundColor: '#F3F4F6',
-  },
-  cardImage: { width: '100%', height: '100%' },
-  // Boxes are roughly square so contain leaves a lot of empty space in the
-  // tall card-shaped container. Scale 1.5× to fill more of the slot — the
-  // container clips with overflow:hidden so it stays inside its bounds.
-  boxImage:  { width: '100%', height: '100%', transform: [{ scale: 1.5 }] },
-  cardEmoji: { fontSize: 56 },
-  psaBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#6B7280',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  gradeBadgeRaw:   { backgroundColor: '#6B7280' },
-  gradeBadgePsa9:  { backgroundColor: '#3B82F6' },
-  gradeBadgePsa10: { backgroundColor: '#F59E0B' },
-  sealedBadge: { backgroundColor: '#059669' },
-  openedBadge: { backgroundColor: '#D97706' },
-  psaBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
-  // Edit icon — small floating circle, top-left of the image area.
-  editIconBtn: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
-  },
-  editIconImg: { width: 14, height: 14, tintColor: '#101828', resizeMode: 'contain' },
-  boxTypePill: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(124,58,237,0.85)',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  boxTypePillText: { fontSize: 10, color: '#fff', fontWeight: '700' },
-  // flex:1 stretches the body to fill remaining height; sellBtn uses
-  // marginTop:'auto' to stick to the bottom regardless of variable content
-  // (cards with ×N quantity have an extra line; cards without don't).
-  cardBody: { padding: 10, flex: 1 },
-  cardName: { fontSize: 13, fontWeight: '700', color: '#101828', marginBottom: 2 },
-  cardSet:  { fontSize: 10, color: '#9CA3AF', marginBottom: 8 },
-  priceMainRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  priceMain:    { fontSize: 14, fontWeight: '800', color: '#101828', flexShrink: 1 },
-  changePill:   { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 4 },
-  changePillText: { fontSize: 10, fontWeight: '700' },
-  qtyText:      { fontSize: 10, color: '#9CA3AF', marginBottom: 6 },
+    // alignItems: 'stretch' makes cards in the same row match the tallest one's
+    // height — required for sell-button alignment when one card has the extra
+    // "×N @ price" line and its sibling doesn't.
+    grid: { flexDirection: 'row', flexWrap: 'wrap', padding: 16, gap: 12, alignItems: 'stretch' },
+    card: {
+      width: CARD_W,
+      backgroundColor: colors.surface.card,
+      borderRadius: 16,
+      overflow: 'hidden',
+      borderWidth: 0.5,
+      borderColor: colors.border.default,
+      flexDirection: 'column',
+    },
+    cardImgBox: {
+      width: '100%',
+      aspectRatio: 0.72,
+      backgroundColor: colors.surface.section,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    // Same outer shape as cards so the grid stays uniform.
+    boxImgBox: {
+      aspectRatio: 0.72,
+      backgroundColor: colors.surface.section,
+    },
+    cardImage: { width: '100%', height: '100%' },
+    // Boxes are roughly square so contain leaves a lot of empty space in the
+    // tall card-shaped container. Scale 1.5× to fill more of the slot — the
+    // container clips with overflow:hidden so it stays inside its bounds.
+    boxImage:  { width: '100%', height: '100%', transform: [{ scale: 1.5 }] },
+    cardEmoji: { fontSize: 56 },
+    psaBadge: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: '#6B7280',
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+    },
+    // Semantic grade-badge fills (Raw=gray / PSA 9=blue / PSA 10=amber) —
+    // same hue both modes, communicates grade not surface
+    gradeBadgeRaw:   { backgroundColor: '#6B7280' },
+    gradeBadgePsa9:  { backgroundColor: '#3B82F6' },
+    gradeBadgePsa10: { backgroundColor: '#F59E0B' },
+    // Semantic sealed/opened indicator (green/amber) — same hue both modes
+    sealedBadge: { backgroundColor: '#059669' },
+    openedBadge: { backgroundColor: '#D97706' },
+    // psaBadgeText '#fff' kept raw — always-white on semantic badge fills
+    psaBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+    // Edit icon — small floating circle, top-left of the image area.
+    // Background stays raw rgba-white because it sits on top of the card image,
+    // not a theme surface. shadowColor '#000' kept (shadow convention).
+    editIconBtn: {
+      position: 'absolute',
+      top: 8,
+      left: 8,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.92)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 2,
+    },
+    // editIconImg sits on the always-white floating circle above; ink-dark icon reads in both modes
+    editIconImg: { width: 14, height: 14, tintColor: '#101828', resizeMode: 'contain' },
+    // Box-type pill — semantic purple indicator overlaid on card image
+    boxTypePill: {
+      position: 'absolute',
+      bottom: 8,
+      left: 8,
+      backgroundColor: 'rgba(124,58,237,0.85)',
+      borderRadius: 6,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+    },
+    boxTypePillText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+    // flex:1 stretches the body to fill remaining height; sellBtn uses
+    // marginTop:'auto' to stick to the bottom regardless of variable content
+    // (cards with ×N quantity have an extra line; cards without don't).
+    cardBody: { padding: 10, flex: 1 },
+    cardName: { fontSize: 13, fontWeight: '700', color: colors.text.primary, marginBottom: 2 },
+    cardSet:  { fontSize: 10, color: colors.text.tertiary, marginBottom: 8 },
+    priceMainRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+    priceMain:    { fontSize: 14, fontWeight: '800', color: colors.text.primary, flexShrink: 1 },
+    changePill:   { borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, marginLeft: 4 },
+    changePillText: { fontSize: 10, fontWeight: '700' },
+    qtyText:      { fontSize: 10, color: colors.text.tertiary, marginBottom: 6 },
 
-  // Delete Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  deleteModal: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    alignItems: 'center',
-  },
-  deleteCardImg: { width: 100, height: 140, marginBottom: 12 },
-  deleteTitle: { fontSize: 18, fontWeight: '800', color: '#101828', marginBottom: 4, textAlign: 'center' },
-  deleteSub: { fontSize: 13, color: '#9CA3AF', marginBottom: 16 },
-  deleteWarning: { fontSize: 15, fontWeight: '600', color: '#101828', marginBottom: 6, textAlign: 'center' },
-  deletePrice: { fontSize: 13, color: '#EF4444', marginBottom: 24, textAlign: 'center' },
-  deleteConfirmBtn: {
-    backgroundColor: '#EF4444',
-    borderRadius: 14,
-    paddingVertical: 14,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  deleteConfirmText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  deleteCancelBtn: { paddingVertical: 12, width: '100%', alignItems: 'center' },
-  deleteCancelText: { fontSize: 15, color: '#9CA3AF' },
+    // Delete Modal
+    modalOverlay: { flex: 1, backgroundColor: colors.overlay.medium, justifyContent: 'center', alignItems: 'center', padding: 24 },
+    deleteModal: {
+      backgroundColor: colors.surface.elevated,
+      borderRadius: 24,
+      padding: 24,
+      width: '100%',
+      alignItems: 'center',
+    },
+    deleteCardImg: { width: 100, height: 140, marginBottom: 12 },
+    deleteTitle: { fontSize: 18, fontWeight: '800', color: colors.text.primary, marginBottom: 4, textAlign: 'center' },
+    deleteSub: { fontSize: 13, color: colors.text.tertiary, marginBottom: 16 },
+    deleteWarning: { fontSize: 15, fontWeight: '600', color: colors.text.primary, marginBottom: 6, textAlign: 'center' },
+    // deletePrice / deleteConfirmBtn '#EF4444' kept raw — semantic destructive red, same hue both modes
+    deletePrice: { fontSize: 13, color: '#EF4444', marginBottom: 24, textAlign: 'center' },
+    deleteConfirmBtn: {
+      backgroundColor: '#EF4444',
+      borderRadius: 14,
+      paddingVertical: 14,
+      width: '100%',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    // deleteConfirmText '#fff' kept raw — always-white on destructive red
+    deleteConfirmText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+    deleteCancelBtn: { paddingVertical: 12, width: '100%', alignItems: 'center' },
+    deleteCancelText: { fontSize: 15, color: colors.text.tertiary },
 
-  // Edit Modal (price / qty / purchase)
-  editModal: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-  },
-  editTitle: { fontSize: 18, fontWeight: '800', color: '#101828', textAlign: 'center', marginBottom: 4 },
-  editSub:   { fontSize: 13, color: '#9CA3AF', textAlign: 'center', marginBottom: 16 },
-  editLabel: { fontSize: 13, color: '#101828', fontWeight: '700', marginBottom: 6, marginTop: 8 },
-  editInput: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#101828',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-  },
-  editQtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  editQtyBtn: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: '#E5E7EB',
-  },
-  editQtyBtnDisabled: { opacity: 0.35 },
-  editQtyBtnText: { fontSize: 22, fontWeight: '700', color: '#101828', lineHeight: 24 },
-  editQtyInput: {
-    width: 60, height: 40, textAlign: 'center',
-    fontSize: 16, fontWeight: '700', color: '#101828',
-    backgroundColor: '#F9FAFB', borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#E5E7EB',
-    paddingVertical: 0,
-  },
-  editSaveBtn: {
-    marginTop: 20,
-    backgroundColor: '#FF6900',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  editSaveText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  editCancelBtn: { paddingVertical: 12, alignItems: 'center' },
-  editCancelText: { fontSize: 15, color: '#9CA3AF' },
+    // Edit Modal (price / qty / purchase)
+    editModal: {
+      backgroundColor: colors.surface.elevated,
+      borderRadius: 24,
+      padding: 24,
+      width: '100%',
+    },
+    editTitle: { fontSize: 18, fontWeight: '800', color: colors.text.primary, textAlign: 'center', marginBottom: 4 },
+    editSub:   { fontSize: 13, color: colors.text.tertiary, textAlign: 'center', marginBottom: 16 },
+    editLabel: { fontSize: 13, color: colors.text.primary, fontWeight: '700', marginBottom: 6, marginTop: 8 },
+    editInput: {
+      backgroundColor: colors.surface.section,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: colors.text.primary,
+      borderWidth: 1.5,
+      borderColor: colors.border.default,
+    },
+    editQtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+    editQtyBtn: {
+      width: 40, height: 40, borderRadius: 10,
+      backgroundColor: colors.surface.section,
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: colors.border.default,
+    },
+    editQtyBtnDisabled: { opacity: 0.35 },
+    editQtyBtnText: { fontSize: 22, fontWeight: '700', color: colors.text.primary, lineHeight: 24 },
+    editQtyInput: {
+      width: 60, height: 40, textAlign: 'center',
+      fontSize: 16, fontWeight: '700', color: colors.text.primary,
+      backgroundColor: colors.surface.section, borderRadius: 10,
+      borderWidth: 1.5, borderColor: colors.border.default,
+      paddingVertical: 0,
+    },
+    editSaveBtn: {
+      marginTop: 20,
+      backgroundColor: colors.brand.orange,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    // editSaveText '#fff' kept raw — always-white on Card Orange
+    editSaveText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+    editCancelBtn: { paddingVertical: 12, alignItems: 'center' },
+    editCancelText: { fontSize: 15, color: colors.text.tertiary },
 
-  // Rename Modal
-  renameModal: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-  },
-  renameTitle: { fontSize: 18, fontWeight: '800', color: '#101828', marginBottom: 16 },
-  renameInput: {
-    borderWidth: 1.5,
-    borderColor: '#FF6900',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#101828',
-  },
-  renameCount: { fontSize: 11, color: '#D1D5DB', textAlign: 'right', marginTop: 4, marginBottom: 20 },
-  renameSaveBtn: {
-    backgroundColor: '#FF6900',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  renameSaveText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  renameCancelBtn: { paddingVertical: 12, alignItems: 'center' },
-  renameCancelText: { fontSize: 15, color: '#9CA3AF' },
-  sellBtn: { marginTop: 'auto', backgroundColor: '#FFF3E8', borderRadius: 10, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: '#FFD4B2' },
-  sellBtnText: { fontSize: 13, fontWeight: '700', color: '#FF6900' },
-});
+    // Rename Modal
+    renameModal: {
+      backgroundColor: colors.surface.elevated,
+      borderRadius: 24,
+      padding: 24,
+      width: '100%',
+    },
+    renameTitle: { fontSize: 18, fontWeight: '800', color: colors.text.primary, marginBottom: 16 },
+    renameInput: {
+      borderWidth: 1.5,
+      borderColor: colors.brand.orange,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.text.primary,
+    },
+    renameCount: { fontSize: 11, color: colors.border.strong, textAlign: 'right', marginTop: 4, marginBottom: 20 },
+    renameSaveBtn: {
+      backgroundColor: colors.brand.orange,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    // renameSaveText '#fff' kept raw — always-white on Card Orange
+    renameSaveText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+    renameCancelBtn: { paddingVertical: 12, alignItems: 'center' },
+    renameCancelText: { fontSize: 15, color: colors.text.tertiary },
+    sellBtn: { marginTop: 'auto', backgroundColor: colors.brand.peach, borderRadius: 10, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: colors.brand.peach },
+    sellBtnText: { fontSize: 13, fontWeight: '700', color: colors.brand.orange },
+  });
+}
