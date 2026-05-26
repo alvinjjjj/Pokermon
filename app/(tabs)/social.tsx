@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -20,6 +20,7 @@ import Header from '../../components/Header';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
 import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -52,8 +53,8 @@ function timeAgo(d: string, t: (k: string, opts?: any) => string): string {
 }
 
 export default function SocialScreen() {
-  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
   const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -406,7 +407,7 @@ export default function SocialScreen() {
           <TouchableOpacity style={styles.footerBtn} onPress={() => toggleLike(post)}>
             <Image
               source={require('../../assets/icons/love.png')}
-              style={[styles.footerIcon, { tintColor: isLiked ? '#E7000B' : '#9CA3AF' }]}
+              style={[styles.footerIcon, { tintColor: isLiked ? '#E7000B' : colors.text.tertiary }]}
             />
             <Text style={[styles.footerCount, isLiked && { color: '#E7000B' }]}>{post.likes_count}</Text>
           </TouchableOpacity>
@@ -416,7 +417,7 @@ export default function SocialScreen() {
           >
             <Image
               source={require('../../assets/icons/message.png')}
-              style={[styles.footerIcon, { tintColor: '#9CA3AF' }]}
+              style={[styles.footerIcon, { tintColor: colors.text.tertiary }]}
             />
             <Text style={styles.footerCount}>{post.comments_count}</Text>
           </TouchableOpacity>
@@ -495,7 +496,7 @@ export default function SocialScreen() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]}>
+    <SafeAreaView style={styles.safe}>
       <Header />
 
       {/* Tab bar */}
@@ -516,7 +517,7 @@ export default function SocialScreen() {
       {activeTab === 'unboxing' && (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor="#FF6900" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor={colors.brand.orange} />}
           onScroll={handleFeedScroll}
           scrollEventThrottle={400}
         >
@@ -539,7 +540,7 @@ export default function SocialScreen() {
       {activeTab !== 'unboxing' && (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor="#FF6900" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadAll(true)} tintColor={colors.brand.orange} />}
           onScroll={handleFeedScroll}
           scrollEventThrottle={400}
         >
@@ -574,7 +575,7 @@ export default function SocialScreen() {
           }
           {loadingMore && !loading && (
             <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-              <ActivityIndicator color="#FF6900" />
+              <ActivityIndicator color={colors.brand.orange} />
             </View>
           )}
           <View style={{ height: 100 }} />
@@ -584,67 +585,69 @@ export default function SocialScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
 
-  // Tabs
-  tabRow: {
-    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-    backgroundColor: '#fff',
-  },
-  tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#9CA3AF' },
-  tabTextActive: { color: '#101828', fontWeight: '700' },
-  tabUnderline: { position: 'absolute', bottom: 0, left: '20%', right: '20%', height: 2.5, backgroundColor: '#FF6900', borderRadius: 2 },
+    // Tabs
+    tabRow: {
+      flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border.default,
+      backgroundColor: colors.surface.card,
+    },
+    tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' },
+    tabText: { fontSize: 14, fontWeight: '600', color: colors.text.tertiary },
+    tabTextActive: { color: colors.text.primary, fontWeight: '700' },
+    tabUnderline: { position: 'absolute', bottom: 0, left: '20%', right: '20%', height: 2.5, backgroundColor: colors.brand.orange, borderRadius: 2 },
 
-  // Post
-  postWrap: { borderBottomWidth: 8, borderBottomColor: '#F3F4F6', marginBottom: 0 },
-  postHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
-  avatarWrap: {},
-  avatarImg: { width: 38, height: 38, borderRadius: 19 },
-  avatarPlaceholder: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { width: 20, height: 20, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  postMeta: { flex: 1 },
-  userName: { fontSize: 14, fontWeight: '700', color: '#101828' },
-  handle: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
-  followBtn: { borderWidth: 1.5, borderColor: '#FF6900', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
-  followingBtn: { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' },
-  followText: { fontSize: 12, fontWeight: '700', color: '#FF6900' },
-  followingText: { color: '#6B7280' },
+    // Post
+    postWrap: { borderBottomWidth: 8, borderBottomColor: colors.surface.section, marginBottom: 0, backgroundColor: colors.surface.card },
+    postHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
+    avatarWrap: {},
+    avatarImg: { width: 38, height: 38, borderRadius: 19 },
+    avatarPlaceholder: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    avatarText: { width: 20, height: 20, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    postMeta: { flex: 1 },
+    userName: { fontSize: 14, fontWeight: '700', color: colors.text.primary },
+    handle: { fontSize: 11, color: colors.text.tertiary, marginTop: 1 },
+    followBtn: { borderWidth: 1.5, borderColor: colors.brand.orange, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5 },
+    followingBtn: { backgroundColor: colors.surface.section, borderColor: colors.border.default },
+    followText: { fontSize: 12, fontWeight: '700', color: colors.brand.orange },
+    followingText: { color: colors.text.secondary },
 
-  postMedia: { width: '100%', aspectRatio: 1 },
-  postCard: { width: '100%', height: 300, backgroundColor: '#0F1923' },
-  postCardInner: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 },
-  cardPlaceholderIcon: { width: 52, height: 52, tintColor: 'rgba(255,255,255,0.15)', resizeMode: 'contain' },
-  postCardName: { fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center' },
-  postSetName: { fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' },
-  videoPlayOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.2)' },
-  videoPlayIcon: { fontSize: 36, color: '#fff' },
+    postMedia: { width: '100%', aspectRatio: 1 },
+    postCard: { width: '100%', height: 300, backgroundColor: '#0F1923' }, // deep-navy placeholder card kept raw — always-dark fill
+    postCardInner: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 24 },
+    cardPlaceholderIcon: { width: 52, height: 52, tintColor: 'rgba(255,255,255,0.15)', resizeMode: 'contain' }, // overlay on dark card kept raw
+    postCardName: { fontSize: 17, fontWeight: '700', color: '#fff', textAlign: 'center' }, // '#fff' kept raw — always-white on dark card
+    postSetName: { fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }, // overlay on dark card kept raw
+    videoPlayOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }, // intentional play-button overlay kept raw
+    videoPlayIcon: { fontSize: 36, color: '#fff' }, // '#fff' kept raw — always-white on media overlay
 
-  postFooter: { flexDirection: 'row', gap: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  footerBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  footerIcon: { width: 22, height: 22, resizeMode: 'contain' },
-  footerCount: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
+    postFooter: { flexDirection: 'row', gap: 16, paddingHorizontal: 14, paddingVertical: 10 },
+    footerBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    footerIcon: { width: 22, height: 22, resizeMode: 'contain' },
+    footerCount: { fontSize: 13, color: colors.text.secondary, fontWeight: '600' },
 
-  captionWrap: { paddingHorizontal: 14, paddingBottom: 4 },
-  captionText: { fontSize: 14, color: '#101828', lineHeight: 20 },
-  captionHandle: { fontWeight: '700' },
-  viewComments: { paddingHorizontal: 14, paddingBottom: 8, fontSize: 13, color: '#9CA3AF' },
-  reportIcon: { fontSize: 16, color: '#D1D5DB' },
+    captionWrap: { paddingHorizontal: 14, paddingBottom: 4 },
+    captionText: { fontSize: 14, color: colors.text.primary, lineHeight: 20 },
+    captionHandle: { fontWeight: '700' },
+    viewComments: { paddingHorizontal: 14, paddingBottom: 8, fontSize: 13, color: colors.text.tertiary },
+    reportIcon: { fontSize: 16, color: colors.border.strong },
 
-  // Video grid
-  videoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 1.5, paddingTop: 8 },
-  videoItem: { aspectRatio: 0.75 },
-  videoThumb: { flex: 1, backgroundColor: '#1a1a1a', overflow: 'hidden' },
-  videoEmoji: { fontSize: 32, position: 'absolute', top: '40%', left: '40%' },
-  videoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.4)' },
-  videoPlayIconSmall: { fontSize: 10, color: '#fff' },
-  videoUser: { fontSize: 11, color: '#fff', flex: 1 },
+    // Video grid
+    videoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 1.5, paddingTop: 8 },
+    videoItem: { aspectRatio: 0.75 },
+    videoThumb: { flex: 1, backgroundColor: '#1a1a1a', overflow: 'hidden' }, // dark video placeholder kept raw — always-dark fill
+    videoEmoji: { fontSize: 32, position: 'absolute', top: '40%', left: '40%' },
+    videoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.overlay.light },
+    videoPlayIconSmall: { fontSize: 10, color: '#fff' }, // '#fff' kept raw — always-white on dark overlay
+    videoUser: { fontSize: 11, color: '#fff', flex: 1 }, // '#fff' kept raw — always-white on dark overlay
 
-  loadingWrap: { paddingTop: 60, alignItems: 'center' },
-  emptyWrap: { paddingTop: 80, alignItems: 'center', gap: 10, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  emptySub: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 19 },
-  retryBtn: { marginTop: 8, backgroundColor: '#FF6900', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 10 },
-  retryBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-});
+    loadingWrap: { paddingTop: 60, alignItems: 'center' },
+    emptyWrap: { paddingTop: 80, alignItems: 'center', gap: 10, paddingHorizontal: 40 },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    emptySub: { fontSize: 13, color: colors.text.tertiary, textAlign: 'center', lineHeight: 19 },
+    retryBtn: { marginTop: 8, backgroundColor: colors.brand.orange, borderRadius: 20, paddingHorizontal: 24, paddingVertical: 10 },
+    retryBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' }, // '#fff' kept raw — always-white on Card Orange fill
+  });
+}

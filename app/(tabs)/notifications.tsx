@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
 import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 type NotifType = 'like' | 'comment' | 'follow' | 'moderation_approved' | 'moderation_rejected';
 
@@ -68,8 +69,8 @@ function notifTimeAgo(d: string, t: (k: string, opts?: any) => string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
-  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
   const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
 
@@ -251,7 +252,7 @@ export default function NotificationsScreen() {
 
   return (
     // edges={['top']} — tab bar 已處理底部 safe area，不需再加
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.surface.section }]} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Nav */}
       <View style={styles.nav}>
         {/* 在 tab 內用 navigate 回主頁，而非 back() */}
@@ -278,7 +279,7 @@ export default function NotificationsScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor="#FF6900" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.brand.orange} />}
         >
           {groups.map(group => (
             <View key={group.key}>
@@ -295,75 +296,78 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.section },
+    loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#F3F4F6',
-  },
-  navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  navBackText: { fontSize: 28, color: '#101828', fontWeight: '300' },
-  navTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  markAllBtn: { paddingHorizontal: 4 },
-  markAllText: { fontSize: 13, color: '#FF6900', fontWeight: '600' },
+    nav: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 12,
+      borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+    },
+    navBack: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    navBackText: { fontSize: 28, color: colors.text.primary, fontWeight: '300' },
+    navTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    markAllBtn: { paddingHorizontal: 4 },
+    markAllText: { fontSize: 13, color: colors.brand.orange, fontWeight: '600' },
 
-  groupHeader: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 6 },
-  groupLabel: { fontSize: 12, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.8 },
+    groupHeader: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 6 },
+    groupLabel: { fontSize: 12, fontWeight: '700', color: colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.8 },
 
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 0.5, borderBottomColor: '#F9FAFB',
-  },
-  rowUnread: { backgroundColor: '#FFFBF5' },
-  rowRejected: { backgroundColor: '#FFF5F5' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingHorizontal: 16, paddingVertical: 14,
+      borderBottomWidth: 0.5, borderBottomColor: colors.border.default,
+      backgroundColor: colors.surface.card,
+    },
+    rowUnread: { backgroundColor: colors.brand.peach },
+    rowRejected: { backgroundColor: '#FFF5F5' }, // semantic destructive tint kept raw
 
-  avatarWrap: { position: 'relative', flexShrink: 0 },
-  avatar: { width: 46, height: 46, borderRadius: 23 },
-  avatarPlaceholder: {
-    width: 46, height: 46, borderRadius: 23,
-    backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center',
-  },
-  typeIconBadge: {
-    position: 'absolute', bottom: -2, right: -4,
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#F3F4F6',
-  },
-  typeIconImg: { width: 12, height: 12, resizeMode: 'contain' },
-  avatarPlaceholderIcon: { width: 24, height: 24, tintColor: '#C4C9D4', resizeMode: 'contain' },
+    avatarWrap: { position: 'relative', flexShrink: 0 },
+    avatar: { width: 46, height: 46, borderRadius: 23 },
+    avatarPlaceholder: {
+      width: 46, height: 46, borderRadius: 23,
+      backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center',
+    },
+    typeIconBadge: {
+      position: 'absolute', bottom: -2, right: -4,
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: colors.surface.card, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1, borderColor: colors.border.default,
+    },
+    typeIconImg: { width: 12, height: 12, resizeMode: 'contain' },
+    avatarPlaceholderIcon: { width: 24, height: 24, tintColor: colors.text.tertiary, resizeMode: 'contain' },
 
-  systemIcon: {
-    width: 46, height: 46, borderRadius: 23,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  systemIconGreen: { backgroundColor: '#ECFDF5' },
-  systemIconRed:   { backgroundColor: '#FEF2F2' },
-  systemIconImg:   { width: 24, height: 24, resizeMode: 'contain' },
+    systemIcon: {
+      width: 46, height: 46, borderRadius: 23,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    systemIconGreen: { backgroundColor: '#ECFDF5' }, // semantic success tint kept raw
+    systemIconRed:   { backgroundColor: '#FEF2F2' }, // semantic destructive tint kept raw
+    systemIconImg:   { width: 24, height: 24, resizeMode: 'contain' },
 
-  textWrap: { flex: 1 },
-  notifText: { fontSize: 14, color: '#101828', lineHeight: 20 },
-  actorName: { fontWeight: '700' },
-  rejectedText: { color: '#EF4444' },
-  timeText: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
+    textWrap: { flex: 1 },
+    notifText: { fontSize: 14, color: colors.text.primary, lineHeight: 20 },
+    actorName: { fontWeight: '700' },
+    rejectedText: { color: '#EF4444' }, // destructive red kept raw
+    timeText: { fontSize: 12, color: colors.text.tertiary, marginTop: 3 },
 
-  postThumb: { width: 48, height: 48, borderRadius: 8, flexShrink: 0 },
-  postThumbPlaceholder: {
-    width: 48, height: 48, borderRadius: 8,
-    backgroundColor: '#F3F4F6', flexShrink: 0,
-  },
+    postThumb: { width: 48, height: 48, borderRadius: 8, flexShrink: 0 },
+    postThumbPlaceholder: {
+      width: 48, height: 48, borderRadius: 8,
+      backgroundColor: colors.surface.section, flexShrink: 0,
+    },
 
-  unreadDot: {
-    position: 'absolute', right: 14, top: '50%', marginTop: -4,
-    width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF6900',
-  },
-  unreadDotRed: { backgroundColor: '#EF4444' },
+    unreadDot: {
+      position: 'absolute', right: 14, top: '50%', marginTop: -4,
+      width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand.orange,
+    },
+    unreadDotRed: { backgroundColor: '#EF4444' }, // destructive red kept raw
 
-  emptyWrap: { flex: 1, paddingTop: 80, alignItems: 'center', gap: 10, paddingHorizontal: 40 },
-  emptyIcon: { width: 52, height: 52, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#101828' },
-  emptySub: { fontSize: 13, color: '#9CA3AF', textAlign: 'center', lineHeight: 19 },
-});
+    emptyWrap: { flex: 1, paddingTop: 80, alignItems: 'center', gap: 10, paddingHorizontal: 40 },
+    emptyIcon: { width: 52, height: 52, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary },
+    emptySub: { fontSize: 13, color: colors.text.tertiary, textAlign: 'center', lineHeight: 19 },
+  });
+}

@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Dimensions,
@@ -16,6 +16,7 @@ import Header from '../../components/Header';
 import Loader from '../../components/Loader';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeProvider';
+import { type ColorTokens } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_W = (width - 3) / 3;
@@ -44,8 +45,8 @@ type Post = {
 type SubTab = 'posts' | 'following' | 'feed';
 
 export default function ProfileScreen() {
-  // Hotfix: status bar visible in dark mode. Phase 4 full migration upcoming.
   const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { t } = useTranslation();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -391,188 +392,194 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+function makeStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.surface.card },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  profileSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-  },
-  profileTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 20,
-  },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FF6900',
-  },
-  avatarEmoji: { width: 40, height: 40, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  statsRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
-  statItem: { alignItems: 'center', paddingHorizontal: 6, paddingVertical: 4 },
-  statNumber: { fontSize: 18, fontWeight: '700', color: '#101828' },
-  statLabel: { fontSize: 12, color: '#6B7280', marginTop: 2 },
-  profileName: { fontSize: 15, fontWeight: '700', color: '#101828', marginBottom: 4 },
-  profileBio: { fontSize: 13, color: '#6B7280', lineHeight: 18, marginBottom: 12 },
-  profileActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  editBtn: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  editBtnText: { fontSize: 14, fontWeight: '600', color: '#101828' },
-  newPostBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#FF6900',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  newPostBtnText: { fontSize: 22, color: '#fff', fontWeight: '400' },
-  entryBtnFull: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, paddingVertical: 13, borderWidth: 1, marginTop: 10 },
-  entryRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  entryBtnHalf: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, paddingVertical: 13, borderWidth: 1 },
-  entryBtnSeller: { backgroundColor: '#FFF3E8', borderColor: '#FFD4B2' },
-  entryBtnIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: '#6B7280' },
-  entryBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
+    profileSection: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 16,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border.default,
+    },
+    profileTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 20,
+    },
+    avatar: {
+      width: 84,
+      height: 84,
+      borderRadius: 42,
+      backgroundColor: colors.surface.section,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.brand.orange,
+    },
+    avatarEmoji: { width: 40, height: 40, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    statsRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
+    statItem: { alignItems: 'center', paddingHorizontal: 6, paddingVertical: 4 },
+    statNumber: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    statLabel: { fontSize: 12, color: colors.text.secondary, marginTop: 2 },
+    profileName: { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 4 },
+    profileBio: { fontSize: 13, color: colors.text.secondary, lineHeight: 18, marginBottom: 12 },
+    profileActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    editBtn: {
+      flex: 1,
+      backgroundColor: colors.surface.section,
+      borderRadius: 12,
+      paddingVertical: 11,
+      alignItems: 'center',
+    },
+    editBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
+    newPostBtn: {
+      width: 44,
+      height: 44,
+      backgroundColor: colors.brand.orange,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // newPostBtnText '#fff' kept raw — always-white on Card Orange
+    newPostBtnText: { fontSize: 22, color: '#fff', fontWeight: '400' },
+    entryBtnFull: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, paddingVertical: 13, borderWidth: 1, marginTop: 10 },
+    entryRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+    entryBtnHalf: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, paddingVertical: 13, borderWidth: 1 },
+    entryBtnSeller: { backgroundColor: colors.brand.peach, borderColor: colors.brand.peach },
+    entryBtnIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: colors.text.secondary },
+    entryBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
 
-  // Sub-tab bar
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-  },
-  tabBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabBtnActive: { borderBottomColor: '#FF6900' },
-  tabIcon: { width: 16, height: 16, resizeMode: 'contain' },
-  tabLabel: { fontSize: 13, fontWeight: '600', color: '#9CA3AF' },
-  tabLabelActive: { color: '#FF6900' },
+    // Sub-tab bar
+    tabBar: {
+      flexDirection: 'row',
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border.default,
+    },
+    tabBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      gap: 6,
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabBtnActive: { borderBottomColor: colors.brand.orange },
+    tabIcon: { width: 16, height: 16, resizeMode: 'contain' },
+    tabLabel: { fontSize: 13, fontWeight: '600', color: colors.text.tertiary },
+    tabLabelActive: { color: colors.brand.orange },
 
-  // View-all bar (only on feed tab)
-  viewAllBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFF3E8',
-    marginHorizontal: 12,
-    marginTop: 10,
-    borderRadius: 10,
-  },
-  viewAllText: { fontSize: 13, fontWeight: '600', color: '#FF6900' },
-  viewAllArrow: { fontSize: 20, color: '#FF6900', marginTop: -2 },
+    // View-all bar (only on feed tab)
+    viewAllBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.brand.peach,
+      marginHorizontal: 12,
+      marginTop: 10,
+      borderRadius: 10,
+    },
+    viewAllText: { fontSize: 13, fontWeight: '600', color: colors.brand.orange },
+    viewAllArrow: { fontSize: 20, color: colors.brand.orange, marginTop: -2 },
 
-  emptyState: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: '#101828', marginBottom: 6, textAlign: 'center' },
-  emptySub: { fontSize: 13, color: '#9CA3AF', marginBottom: 20, textAlign: 'center' },
-  emptyBtn: {
-    backgroundColor: '#FF6900',
-    borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  emptyBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+    emptyState: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text.primary, marginBottom: 6, textAlign: 'center' },
+    emptySub: { fontSize: 13, color: colors.text.tertiary, marginBottom: 20, textAlign: 'center' },
+    emptyBtn: {
+      backgroundColor: colors.brand.orange,
+      borderRadius: 12,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+    },
+    // emptyBtnText '#fff' kept raw — on Card Orange
+    emptyBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 
-  row: { gap: 1.5 },
-  gridItem: { width: GRID_ITEM_W, height: GRID_ITEM_W, marginBottom: 1.5 },
-  gridImage: { width: '100%', height: '100%' },
-  gridPlaceholder: { backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  placeholderIcon: { width: 28, height: 28, tintColor: '#D1D5DB', resizeMode: 'contain' },
+    row: { gap: 1.5 },
+    gridItem: { width: GRID_ITEM_W, height: GRID_ITEM_W, marginBottom: 1.5 },
+    gridImage: { width: '100%', height: '100%' },
+    gridPlaceholder: { backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center' },
+    placeholderIcon: { width: 28, height: 28, tintColor: colors.border.strong, resizeMode: 'contain' },
 
-  videoTag: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  videoTagText: { fontSize: 10, color: '#fff' },
+    // videoTag overlays on top of image — keep rgba scrim + '#fff' text
+    videoTag: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    videoTagText: { fontSize: 10, color: '#fff' },
 
-  qtyTag: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  qtyTagText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+    qtyTag: {
+      position: 'absolute',
+      top: 6,
+      left: 6,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    qtyTagText: { fontSize: 10, color: '#fff', fontWeight: '700' },
 
-  psaTag: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#FF6900',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  psaTagText: { fontSize: 9, color: '#fff', fontWeight: '700' },
+    psaTag: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      backgroundColor: colors.brand.orange,
+      borderRadius: 4,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+    },
+    // psaTagText '#fff' kept raw — on Card Orange
+    psaTagText: { fontSize: 9, color: '#fff', fontWeight: '700' },
 
-  statsOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-  },
-  statsOverlayItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statsOverlayIcon: { width: 10, height: 10, tintColor: '#fff', resizeMode: 'contain' },
-  statsOverlayText: { fontSize: 10, color: '#fff', fontWeight: '700' },
+    statsOverlay: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-evenly',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      paddingVertical: 4,
+      paddingHorizontal: 4,
+    },
+    statsOverlayItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    statsOverlayIcon: { width: 10, height: 10, tintColor: '#fff', resizeMode: 'contain' },
+    statsOverlayText: { fontSize: 10, color: '#fff', fontWeight: '700' },
 
-  // Feed (single-column list)
-  feedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
-  },
-  feedAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  feedAvatarIcon: { width: 20, height: 20, tintColor: '#C4C9D4', resizeMode: 'contain' },
-  feedBody: { flex: 1, minWidth: 0 },
-  feedUser: { fontSize: 13, fontWeight: '700', color: '#101828' },
-  feedCaption: { fontSize: 13, color: '#374151', marginTop: 2 },
-  feedMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  feedMetaIcon: { width: 12, height: 12, tintColor: '#9CA3AF', resizeMode: 'contain' },
-  feedMetaText: { fontSize: 11, color: '#9CA3AF', marginLeft: 3 },
-  feedThumb: { width: 56, height: 56, borderRadius: 8 },
-});
+    // Feed (single-column list)
+    feedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 12,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border.default,
+    },
+    feedAvatar: {
+      width: 40, height: 40, borderRadius: 20,
+      backgroundColor: colors.surface.section,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    feedAvatarIcon: { width: 20, height: 20, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    feedBody: { flex: 1, minWidth: 0 },
+    feedUser: { fontSize: 13, fontWeight: '700', color: colors.text.primary },
+    feedCaption: { fontSize: 13, color: colors.text.primary, marginTop: 2 },
+    feedMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+    feedMetaIcon: { width: 12, height: 12, tintColor: colors.text.tertiary, resizeMode: 'contain' },
+    feedMetaText: { fontSize: 11, color: colors.text.tertiary, marginLeft: 3 },
+    feedThumb: { width: 56, height: 56, borderRadius: 8 },
+  });
+}
