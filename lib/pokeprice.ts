@@ -39,9 +39,10 @@ export type PPTPrice = {
   psa9:   number;  // eBay PSA 9 avg (0 if unavailable)
   psa10:  number;  // eBay PSA 10 avg (0 if unavailable)
   cgc10:  number;  // eBay CGC 10 (bonus data)
+  change1d:     number; // % change vs ~1 day ago — primary 今日熱門 ranking signal (0 if no history)
   change7d:     number; // % change vs ~7 days ago (0 if no history)
   change30d:    number; // % change vs ~30 days ago (0 if no history)
-  weeklyVolume: number; // eBay weekly sales count (tiebreak for 今日熱門 ranking; primary signal is |change30d|)
+  weeklyVolume: number; // eBay weekly sales count (final tiebreak for 今日熱門 ranking; primary is |change1d|)
   history:  { date: string; price: number }[]; // sorted oldest → newest
 };
 
@@ -151,6 +152,7 @@ function revivePPTCard(r: any): PPTCard | null {
         psa9:         toNum(r.price.psa9),
         psa10:        toNum(r.price.psa10),
         cgc10:        toNum(r.price.cgc10),
+        change1d:     toNum(r.price.change1d),
         change7d:     toNum(r.price.change7d),
         change30d:    toNum(r.price.change30d),
         weeklyVolume: toNum(r.price.weeklyVolume),
@@ -192,18 +194,26 @@ function parseCard(raw: any): PPTCard | null {
   const cgc10 = gradePrice('cgc10');
 
   // ── Price history ──────────────────────────────────────────────────────────
-  // Try ungraded history first, then PSA10 grade history as fallback
+  // Two series, two roles:
+  //   - `history` (returned on the card)  → market-price series, used by the
+  //     chart on Card Detail + portfolio chart compatibility. Falls back to
+  //     PSA 10 only when no ungraded history exists, to avoid an empty chart.
+  //   - `changeHistory` (local var)       → the SAME tier as the displayed
+  //     price (PSA 10 if psa10 > 0, else ungraded). Used to compute the
+  //     change1d/7d/30d % values shown next to PSA 10 prices and used by
+  //     getMarketMovers. Mixing tiers here caused 「今日熱門」rankings to
+  //     reflect the wrong tier (Fix A-2, 2026-05-27).
   const ungradedHistory = parseHistory(
     raw.priceHistory ?? raw.history ?? raw.historicalPrices ?? raw.price_history ?? null
   );
   const psa10History = parseHistory(raw.ebay?.priceHistory?.psa10 ?? null);
-  const history = ungradedHistory.length > 0 ? ungradedHistory : psa10History;
+  const history       = ungradedHistory.length > 0 ? ungradedHistory : psa10History;
+  const changeHistory = psa10 > 0 && psa10History.length > 0 ? psa10History : ungradedHistory;
 
-  // Use PSA 10 series if we have it (more meaningful for graded collectors),
-  // otherwise ungraded. Both windows compute from the same `history`.
   const refPrice  = psa10 > 0 ? psa10 : market;
-  const change7d  = calcChangeNd(history, refPrice, 7);
-  const change30d = calcChangeNd(history, refPrice, 30);
+  const change1d  = calcChangeNd(changeHistory, refPrice, 1);
+  const change7d  = calcChangeNd(changeHistory, refPrice, 7);
+  const change30d = calcChangeNd(changeHistory, refPrice, 30);
 
   // ── Image ──────────────────────────────────────────────────────────────────
   const rawId  = String(raw.tcgPlayerId ?? raw.tcg_player_id ?? raw.id ?? '');
@@ -258,7 +268,7 @@ function parseCard(raw: any): PPTCard | null {
     language: language as 'japanese' | 'english',
     image,
     imageLarge,
-    price: { market, low, high, psa9, psa10, cgc10, change7d, change30d, weeklyVolume, history },
+    price: { market, low, high, psa9, psa10, cgc10, change1d, change7d, change30d, weeklyVolume, history },
   };
 }
 
@@ -272,8 +282,8 @@ const CARD_MEM_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // ── Supabase cache helpers ─────────────────────────────────────────────────────
 
-const HOT_CACHE_KEY    = 'ppt_hot_jp_v8'; // v8: ranking switched from weeklyVolume → 30d price delta (getMarketMovers); v7 cache invalidated to force immediate re-fetch.
-const HOT_EN_CACHE_KEY = 'ppt_hot_en_v2'; // v2: bumped in lock-step with JP v8 even though EN rail ranks via pokemontcg.io orderBy — keeps user-visible cache state coherent across both rails.
+const HOT_CACHE_KEY    = 'ppt_hot_jp_v9'; // v9: ranking moved to |change1d| from per-tier history (PSA 10 series when psa10>0); also adds change1d field so cached entries must be refreshed.
+const HOT_EN_CACHE_KEY = 'ppt_hot_en_v3'; // v3: bumped in lock-step with JP v9 so revivePPTCard sees the new change1d field on next read (older cache rows lack it).
 
 async function dbReadHot(): Promise<PPTCard[] | null> {
   try {
@@ -533,36 +543,43 @@ export async function getCardPrice(
 }
 
 /**
- * Return "hot" cards — sorted by 30-day price movement magnitude.
+ * Return "hot" cards — sorted by 1-day price movement magnitude.
  *
- * Previous ranking (≤ v7 cache) used eBay weekly sales volume, but for the
- * $641+ PSA10 JP-grail segment the same 10 cards held the top-volume slots
- * for weeks at a time (1–4 sales/week per card → sticky leaderboard, looked
- * frozen to users despite a healthy 6h cache refresh).
+ * Ranking history:
+ *   ≤ v7 cache : eBay weekly sales volume → sticky leaderboard on $641+ JP
+ *                grails (1–4 sales/wk per card, same 10 cards monopolise top
+ *                slots for weeks)
+ *   v8         : |change30d| from generic history → rotation OK but signal
+ *                derived from the wrong price tier (ungraded market used for
+ *                a PSA 10 rail; see parseCard Fix A-2 comment)
+ *   v9 (now)   : |change1d| from per-tier history (psa10History when psa10
+ *                > 0, else ungraded). Daily granularity matches the user-
+ *                facing label "今日熱門" — every day, biggest one-day movers.
  *
- * New ranking ranks by |change30d| — cards that have MOVED (up OR down) in
- * the last 30 days regardless of trade volume. Movement is what "hot" should
- * convey on a marketplace surface. Rotation is expected as prices drift.
- *
- * Requires fetchHotCards to be called with includeHistory: 'true' (already
- * the case for the JP path) so change30d is populated. Cards without history
- * carry change30d = 0 and fall through to the weeklyVolume tiebreak — same
- * legacy behavior — so an unhistoried fetch degrades gracefully.
+ * Fallback chain: change1d → change7d → change30d → weeklyVolume → market.
+ * Each tier degrades gracefully when the previous returns 0 / equal, so a
+ * card with sparse history still ranks meaningfully.
  *
  * No API call — works on already-fetched hot cards.
  */
 export function getMarketMovers(cards: PPTCard[], limit = 10): PPTCard[] {
+  const EPS = 0.01;
   return [...cards]
     .filter(c => c.price.weeklyVolume > 0 || c.price.market > 0)
     .sort((a, b) => {
-      // Primary: absolute 30-day price change % (most-moved card first).
-      const deltaDiff = Math.abs(b.price.change30d) - Math.abs(a.price.change30d);
-      if (Math.abs(deltaDiff) > 0.01) return deltaDiff;
-      // Secondary: weekly eBay sales volume (legacy primary — preserved as
-      // tiebreak so the rail still works when history is missing / equal).
+      // Primary: |change1d| — today's biggest movers (up OR down).
+      const d1 = Math.abs(b.price.change1d) - Math.abs(a.price.change1d);
+      if (Math.abs(d1) > EPS) return d1;
+      // Secondary: |change7d| — covers cards without daily history.
+      const d7 = Math.abs(b.price.change7d) - Math.abs(a.price.change7d);
+      if (Math.abs(d7) > EPS) return d7;
+      // Tertiary: |change30d| — last-resort movement signal.
+      const d30 = Math.abs(b.price.change30d) - Math.abs(a.price.change30d);
+      if (Math.abs(d30) > EPS) return d30;
+      // Quaternary: weekly eBay sales volume (legacy primary).
       const volDiff = b.price.weeklyVolume - a.price.weeklyVolume;
-      if (Math.abs(volDiff) > 0.01) return volDiff;
-      // Tertiary: market price (legacy tiebreak preserved).
+      if (Math.abs(volDiff) > EPS) return volDiff;
+      // Quinary: market price (legacy tiebreak).
       return b.price.market - a.price.market;
     })
     .slice(0, limit);
