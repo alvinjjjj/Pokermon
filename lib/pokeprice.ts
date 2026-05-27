@@ -282,8 +282,8 @@ const CARD_MEM_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 // ── Supabase cache helpers ─────────────────────────────────────────────────────
 
-const HOT_CACHE_KEY    = 'ppt_hot_jp_v10'; // v10: PPT call window widened to days:'30' (was '7') so includeHistory:'true' actually returns ≥2 history points; required for change1d/7d/30d to be non-zero in getMarketMovers sort.
-const HOT_EN_CACHE_KEY = 'ppt_hot_en_v4';  // v4: fetchHotEnCards now passes includeHistory:'true' + days:'30' (was missing / '7'); EN rail will populate change deltas for the first time.
+const HOT_CACHE_KEY    = 'ppt_hot_jp_v11'; // v11: PSA10_MIN_USD floor lowered $641→$150 (Path B). Mid-tier PSA 10 cards now eligible; weeklyVolume sort over expanded pool produces daily rotation.
+const HOT_EN_CACHE_KEY = 'ppt_hot_en_v5';  // v5: bumped in lock-step with JP v11 so the EN rail also re-fetches and stays cache-coherent (no semantic change to EN-side filter, which lives in app/(tabs)/index.tsx at PSA10_MIN_USD=385).
 
 async function dbReadHot(): Promise<PPTCard[] | null> {
   try {
@@ -450,7 +450,17 @@ export async function fetchHotCards(limit = 30): Promise<PPTCard[]> {
   if (!json) return [];
 
   const raw: any[] = json.data ?? json.cards ?? (Array.isArray(json) ? json : []);
-  const PSA10_MIN_USD = 641; // HK$5,000 / 7.8
+  // HK$1,200 floor (≈ $150 USD). Lowered from $641 (HK$5,000) on 2026-05-27
+  // after SQL verify confirmed PPT hot endpoint structurally returns
+  // history:[] regardless of days/includeHistory params. Fix A's change-based
+  // sort always degrades to weeklyVolume fallback, so the only lever to
+  // unstick rail rotation is pool size. $641 left 1–4 sales/wk per card on
+  // JP grail tier → frozen top 10. $150 brings mid-tier PSA 10 cards into
+  // play (5–30+ sales/wk) → daily rotation via weeklyVolume sort.
+  // Brand: rail intent shifts from "rare grails" to "active mid-tier
+  // PSA 10 trades" — still cleared a quality gate (PSA 10 graded), just
+  // not pristine-only.
+  const PSA10_MIN_USD = 150; // HK$1,200 / 7.8
 
   const cards = raw
     .map(r => {
