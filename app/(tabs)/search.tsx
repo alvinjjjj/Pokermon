@@ -34,6 +34,7 @@ import { BoxPrices, getBoxPricesMap } from '../../lib/boosterPrices';
 import { normalizeQuery } from '../../constants/pokemonNames';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { fetchHotCards, fetchHotEnCards, getCardPrice as getPPTCardPrice, pptPriceCompat, searchJPCards, searchENCards, PPTCard } from '../../lib/pokeprice';
+import { fetchWithTimeout } from '../../lib/fetchWithTimeout';
 import { supabase } from '../../lib/supabase';
 import { fetchLowestPrices, LowestListing } from '../../lib/lowestPrices';
 import { fetchHiresJPImages, hasReliableImage } from '../../lib/jpImages';
@@ -232,7 +233,7 @@ export default function SearchScreen() {
       // JP: PPT for prices + artofpkm/TCGdex for hi-res images
       const [enPokeIo, pptEN, pptJP] = await Promise.all([
         fetchEn
-          ? fetch(
+          ? fetchWithTimeout(
               `${POKEMON_TCG_BASE_URL}/cards?q=${encodeURIComponent('set.series:"Scarlet & Violet"')}&pageSize=20&orderBy=-set.releaseDate&page=${page}&select=id,name,number,rarity,set,images,cardmarket,tcgplayer`,
               { headers: { 'X-Api-Key': POKEMON_TCG_API_KEY } }
             ).then(r => r.json()).catch(() => ({ data: [] }))
@@ -426,7 +427,7 @@ export default function SearchScreen() {
       // JP: PPT API with artofpkm hi-res image enrichment
       const [enRes, enPPT, jpPPT] = await Promise.all([
         showEn
-          ? fetch(
+          ? fetchWithTimeout(
               `${POKEMON_TCG_BASE_URL}/cards?q=${encodeURIComponent(baseQ)}&pageSize=20&orderBy=-set.releaseDate&select=id,name,number,rarity,set,images,cardmarket,tcgplayer`,
               { headers: { 'X-Api-Key': POKEMON_TCG_API_KEY }, signal }
             ).then(r => r.json()).catch(() => ({ data: [] }))

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Header from '../../../components/Header';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { type ColorTokens } from '../../../constants/colors';
+import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
 import {
   ActivityIndicator,
   Dimensions,
@@ -558,7 +559,7 @@ export default function CardDetailScreen() {
   const fetchCard = async (cardId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${POKEMON_TCG_BASE_URL}/cards/${cardId}`, {
+      const res = await fetchWithTimeout(`${POKEMON_TCG_BASE_URL}/cards/${cardId}`, {
         headers: { 'X-Api-Key': POKEMON_TCG_API_KEY },
       });
       if (!res.ok) throw new Error(`API ${res.status}`);
@@ -581,10 +582,10 @@ export default function CardDetailScreen() {
           c.set.name,
           isJP ? 'japanese' : 'english',
         ),
-        fetch(
+        fetchWithTimeout(
           `${POKEMON_TCG_BASE_URL}/cards?q=${encodeURIComponent(relatedQuery)}&pageSize=12&orderBy=-cardmarket.prices.averageSellPrice`,
           { headers: { 'X-Api-Key': POKEMON_TCG_API_KEY } },
-        ).then(r => r.json()),
+        ).then(r => r.json()).catch(() => ({ data: [] })),
       ]);
 
       // Apply PPT price data (real PSA 9/10 eBay prices + 30-day history)
@@ -609,7 +610,7 @@ export default function CardDetailScreen() {
       if (!isJP) {
         // 這是 EN 卡 → 搜尋對應的 JP 版本
         const jpQuery = `name:"${c.name}" set.series:"Scarlet & Violet (Japanese)" OR set.series:"Sword & Shield (Japanese)"`;
-        fetch(
+        fetchWithTimeout(
           `${POKEMON_TCG_BASE_URL}/cards?q=${encodeURIComponent(jpQuery)}&pageSize=3`,
           { headers: { 'X-Api-Key': POKEMON_TCG_API_KEY } }
         ).then(r => r.json()).then(jpRes => {
@@ -620,7 +621,7 @@ export default function CardDetailScreen() {
       } else {
         // 這是 JP 卡 → 搜尋對應的 EN 版本
         const enQuery = `name:"${c.name}" -set.series:"Scarlet & Violet (Japanese)" -set.series:"Sword & Shield (Japanese)" -set.series:"Sun & Moon (Japanese)"`;
-        fetch(
+        fetchWithTimeout(
           `${POKEMON_TCG_BASE_URL}/cards?q=${encodeURIComponent(enQuery)}&pageSize=3&orderBy=-set.releaseDate`,
           { headers: { 'X-Api-Key': POKEMON_TCG_API_KEY } }
         ).then(r => r.json()).then(enRes => {

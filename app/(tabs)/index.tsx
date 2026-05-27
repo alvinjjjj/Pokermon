@@ -16,6 +16,7 @@ const PSA10_MIN_USD = 385;           // ≈ HK$3,000 at 7.8
 const periods = ['1D', '7D', '1M', '3M', '6M', 'MAX'];
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { fetchHotCards, fetchHotEnCards, getHotCacheTimestamp, getMarketMovers, pptPriceCompat, PPTCard } from '../../lib/pokeprice';
+import { fetchWithTimeout } from '../../lib/fetchWithTimeout';
 import { fetchLowestPrices, LowestListing } from '../../lib/lowestPrices';
 import { fetchHiresJPImages } from '../../lib/jpImages';
 
@@ -482,7 +483,7 @@ export default function HomeScreen() {
       let hotEnCards: MarketCard[] = [];
       try {
         const [pokeIoRes, pptEn] = await Promise.all([
-          fetch(
+          fetchWithTimeout(
             'https://api.pokemontcg.io/v2/cards?q=set.series%3A%22Scarlet%20%26%20Violet%22&orderBy=-cardmarket.prices.averageSellPrice&select=id,name,number,rarity,set,images,cardmarket,tcgplayer&pageSize=30'
           ).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
           fetchHotEnCards(30),
