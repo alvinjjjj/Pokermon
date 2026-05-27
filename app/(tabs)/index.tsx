@@ -437,118 +437,121 @@ export default function HomeScreen() {
 
   const fetchMarketCards = async () => {
     try {
-      // ── Step 1: PPT — 30 JP 熱門卡 ───────────────────────────────────────
-      const pptCards = await fetchHotCards(30).catch(() => [] as PPTCard[]);
+      // ── Parallelize ALL three independent fetches at the top level ───────
+      //
+      // Previous flow was strictly sequential:
+      //   [JP PPT 8s] → [JP hires images 4s] → [Promise.all(pokemontcg, PPT EN) 8s]
+      //   = ~20s cold-start critical path
+      //
+      // JP and EN rails are independent — EN data needs nothing from JP.
+      // The JP chain still has its own internal sequence (PPT fetch must
+      // resolve before hires lookup), because PPT JP cards default to
+      // TCGPlayer-CDN URLs which 403 when hotlinked from React Native; the
+      // artofpkm/TCGdex hires upgrade is required for JP cards to render
+      // at all (not just polish). So "render JP thumbnails first, upgrade
+      // later" would leave the JP rail visually empty.
+      //
+      // What we CAN do is run the JP sub-chain concurrently with the EN
+      // sub-fetches. Critical path becomes max(JP=12s, EN=8s) ≈ 12s.
+      const [jpResult, pokeIoRes, pptEn] = await Promise.all([
+        // JP sub-chain (sequential internally, but the whole arm runs in
+        // parallel with the two EN-side arms below).
+        (async () => {
+          const pptCards = await fetchHotCards(30).catch(() => [] as PPTCard[]);
+          const hiresMap = await fetchHiresJPImages(
+            pptCards.map(c => ({ name: c.name, setName: c.setName })),
+          ).catch(() => ({} as Record<string, string>));
+          return { pptCards, hiresMap };
+        })(),
+        // EN-side arm 1: pokemontcg.io (with Option-A 8s timeout)
+        fetchWithTimeout(
+          'https://api.pokemontcg.io/v2/cards?q=set.series%3A%22Scarlet%20%26%20Violet%22&orderBy=-cardmarket.prices.averageSellPrice&select=id,name,number,rarity,set,images,cardmarket,tcgplayer&pageSize=30',
+        ).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] as any[] })),
+        // EN-side arm 2: PPT EN (covers both the merge enrichment and the
+        // empty-pokemontcg.io fallback path further down — single fetch,
+        // not double).
+        fetchHotEnCards(30).catch(() => [] as PPTCard[]),
+      ]);
 
-      // ── Step 2: TCGdex hi-res images (600×825px) ──────────────────────────
-      // Uses card number in PPT name for precise lookup, e.g. "Pikachu - 175/XY-P"
-      // Falls back to 400x400 TCGPlayer CDN (already set in imageLarge by pokeprice.ts)
-      const hiresMap = await fetchHiresJPImages(pptCards.map(c => ({ name: c.name, setName: c.setName })));
+      const { pptCards, hiresMap } = jpResult;
+
+      // ── Build JP rails from PPT + hires merge ────────────────────────────
       const pptEnriched = pptCards.map(c =>
-        hiresMap[c.name] ? { ...c, imageLarge: hiresMap[c.name] } : c
+        hiresMap[c.name] ? { ...c, imageLarge: hiresMap[c.name] } : c,
       );
-      // Reliable image sources: artofpkm, TCGdex, TCGPlayer CDN 400x400, pokemontcg.io hires.
-      // Anything else (raw PPT JP thumbnail URLs) may fail to load → treat as no-image.
-      // tcgplayer-cdn.tcgplayer.com is excluded — returns 403 when hotlinked from React Native
+      // Reliable image sources: artofpkm, TCGdex, pokemontcg.io hires.
+      // tcgplayer-cdn.tcgplayer.com is excluded — returns 403 when hotlinked.
       const hasReliableImage = (url: string) =>
         url.includes('artofpkm.com') ||
         url.includes('tcgdex.net') ||
         url.includes('images.pokemontcg.io');
 
-      // Only show cards with a confirmed loadable image
       const allPPT: MarketCard[] = pptEnriched
         .filter(c => hasReliableImage(c.imageLarge || c.image || ''))
         .map(pptCardToMarket);
 
-      // ── Step 3: 最有價值 = 按 PSA 10 / market 現價排序 ──────────────────
-      // allPPT already has reliable-image-only cards, so topCards inherits the filter.
-      // Result: promo cards + popular Pokémon (artofpkm/TCGdex) + any EN card with
-      // TCGPlayer/pokemontcg.io image. Trainer cards and obscure JP cards are excluded.
       const topCards: MarketCard[] = [...allPPT]
         .sort((a, b) => (b._jtcgPrice?.psa10 ?? b._jtcgPrice?.market ?? 0)
                       - (a._jtcgPrice?.psa10 ?? a._jtcgPrice?.market ?? 0))
         .slice(0, 10);
 
-      // ── Step 4: 今日熱門 = eBay 週成交量最高 ─────────────────────────────
       const movers = getMarketMovers(
         pptEnriched.filter(c => hasReliableImage(c.imageLarge || c.image || '')),
-        10
+        10,
       );
       const hotCards: MarketCard[] = movers.map(pptCardToMarket);
 
-      // ── Step 5: 今日熱門 EN ─────────────────────────────────────────────────
-      // pokemontcg.io = reliable images (images.pokemontcg.io CDN, never 403)
-      // PPT = real eBay PSA10 prices for ordering and display
-      // Merged by card name → pokemontcg.io image + PPT price
+      // ── Build EN rail from pokemontcg.io result + PPT EN merge ───────────
       let hotEnCards: MarketCard[] = [];
-      try {
-        const [pokeIoRes, pptEn] = await Promise.all([
-          fetchWithTimeout(
-            'https://api.pokemontcg.io/v2/cards?q=set.series%3A%22Scarlet%20%26%20Violet%22&orderBy=-cardmarket.prices.averageSellPrice&select=id,name,number,rarity,set,images,cardmarket,tcgplayer&pageSize=30'
-          ).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
-          fetchHotEnCards(30),
-        ]);
+      const pptEnMap = new Map<string, PPTCard>(pptEn.map(c => [c.name.toLowerCase(), c]));
 
-        // PPT price map: name (lowercase) → PPTCard
-        const pptEnMap = new Map<string, PPTCard>(pptEn.map(c => [c.name.toLowerCase(), c]));
+      hotEnCards = ((pokeIoRes.data ?? []) as any[])
+        .map((c: any): MarketCard => {
+          const ppt = pptEnMap.get(c.name.toLowerCase());
+          return {
+            id:         c.id,
+            name:       c.name,
+            set:        { id: c.set?.id || '', name: c.set?.name || '', series: c.set?.series },
+            rarity:     c.rarity,
+            images:     { small: c.images?.small || '', large: c.images?.large || '' },
+            cardmarket: c.cardmarket,
+            tcgplayer:  c.tcgplayer,
+            _lang:      'EN',
+            _jtcgPrice: ppt ? pptPriceCompat(ppt) : null,
+            _pptCard:   ppt ?? null,
+          };
+        })
+        .filter((c: MarketCard) => {
+          // Only show if PSA10 estimate ≥ HK$3,000 (~$385 USD)
+          const psa10 = c._jtcgPrice?.psa10 ?? 0;
+          const mkt   = c._jtcgPrice?.market ?? getCardPrice(c);
+          const est   = psa10 > 0 ? psa10 : mkt * 3;
+          return est >= PSA10_MIN_USD;
+        })
+        .sort((a: MarketCard, b: MarketCard) => {
+          const aV = (a._jtcgPrice?.psa10 ?? 0) > 0 ? a._jtcgPrice!.psa10 : (a._jtcgPrice?.market ?? getCardPrice(a)) * 3;
+          const bV = (b._jtcgPrice?.psa10 ?? 0) > 0 ? b._jtcgPrice!.psa10 : (b._jtcgPrice?.market ?? getCardPrice(b)) * 3;
+          return bV - aV;
+        })
+        .slice(0, 10);
 
-        hotEnCards = ((pokeIoRes.data ?? []) as any[])
-          .map((c: any): MarketCard => {
-            const ppt = pptEnMap.get(c.name.toLowerCase());
-            return {
-              id:         c.id,
-              name:       c.name,
-              set:        { id: c.set?.id || '', name: c.set?.name || '', series: c.set?.series },
-              rarity:     c.rarity,
-              images:     { small: c.images?.small || '', large: c.images?.large || '' },
-              cardmarket: c.cardmarket,
-              tcgplayer:  c.tcgplayer,
-              _lang:      'EN',
-              _jtcgPrice: ppt ? pptPriceCompat(ppt) : null,
-              _pptCard:   ppt ?? null,
-            };
-          })
-          .filter((c: MarketCard) => {
-            // Only show if PSA10 estimate ≥ HK$3,000 (~$385 USD)
+      // Fallback: pokemontcg.io returned 0 → reuse the pptEn array already
+      // fetched at the top of this function (NO additional network call,
+      // unlike the previous version which re-called fetchHotEnCards here).
+      if (hotEnCards.length === 0 && pptEn.length > 0) {
+        hotEnCards = pptEn
+          .map(pptCardToMarket)
+          .filter(c => {
             const psa10 = c._jtcgPrice?.psa10 ?? 0;
-            const mkt   = c._jtcgPrice?.market ?? getCardPrice(c);
+            const mkt   = c._jtcgPrice?.market ?? 0;
             const est   = psa10 > 0 ? psa10 : mkt * 3;
             return est >= PSA10_MIN_USD;
           })
-          .sort((a: MarketCard, b: MarketCard) => {
-            const aV = (a._jtcgPrice?.psa10 ?? 0) > 0 ? a._jtcgPrice!.psa10 : (a._jtcgPrice?.market ?? getCardPrice(a)) * 3;
-            const bV = (b._jtcgPrice?.psa10 ?? 0) > 0 ? b._jtcgPrice!.psa10 : (b._jtcgPrice?.market ?? getCardPrice(b)) * 3;
-            return bV - aV;
-          })
           .slice(0, 10);
-      } catch (e) {
-        if (__DEV__) console.warn('[Home] EN hot fetch failed:', e);
+        if (__DEV__) console.log(`[Home] EN rail fallback: pokemontcg.io empty, using ${hotEnCards.length} PPT cards`);
       }
 
-      // Fallback: if pokemontcg.io returned 0 cards (rate-limit, network, or
-      // the "Scarlet & Violet" series query no longer matches anything when
-      // the current era set name drifts), build hotEnCards directly from PPT
-      // EN data. Means the rail still populates even when pokemontcg.io is
-      // unavailable — at the cost of less-reliable PPT thumbnails.
-      if (hotEnCards.length === 0) {
-        const pptEnFallback = await fetchHotEnCards(30).catch(() => [] as PPTCard[]);
-        if (pptEnFallback.length > 0) {
-          hotEnCards = pptEnFallback
-            .map(pptCardToMarket)
-            .filter(c => {
-              // Mirror the upstream pokemontcg.io path's filter exactly:
-              // psa10 used as-is when present; market multiplied ×3 as PSA10 proxy.
-              const psa10 = c._jtcgPrice?.psa10 ?? 0;
-              const mkt   = c._jtcgPrice?.market ?? 0;
-              const est   = psa10 > 0 ? psa10 : mkt * 3;
-              return est >= PSA10_MIN_USD;
-            })
-            .slice(0, 10);
-          if (__DEV__) console.log(`[Home] EN rail fallback: pokemontcg.io empty, using ${hotEnCards.length} PPT cards`);
-        }
-      }
-
-      // ── Step 6: HK 平台最低價（Supabase listings）──────────────────────
+      // HK 平台最低價 — background, non-blocking
       const allIds = [...topCards, ...hotCards, ...hotEnCards].map(c => c.id).filter(Boolean);
       if (allIds.length) fetchLowestPrices(allIds).then(setLowestPrices);
 
