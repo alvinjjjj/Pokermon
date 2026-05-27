@@ -6,6 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 import Header from '../../components/Header';
+import { SkeletonCard } from '../../components/SkeletonCard';
 import { type ColorTokens } from '../../constants/colors';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -348,7 +349,12 @@ export default function HomeScreen() {
   const [lowestPrices, setLowestPrices]         = useState<Record<string, LowestListing>>({});
   const [certifiedMerchants, setCertifiedMerchants] = useState<CertifiedMerchant[]>([]);
   const [merchantsLoaded, setMerchantsLoaded]   = useState(false);
-  const [marketLoaded, setMarketLoaded]         = useState(false);
+  // Per-rail loading flags so each HOT rail can render skeleton independently
+  // and reveal real cards as soon as its own fetch arm resolves. EN arm
+  // typically resolves ~4s before JP (no hires-image dependency), so users
+  // see the EN rail populate first.
+  const [hotJpLoading, setHotJpLoading]         = useState(true);
+  const [hotEnLoading, setHotEnLoading]         = useState(true);
   const [marketError, setMarketError]           = useState(false);
   const [portfolioError, setPortfolioError]     = useState(false);
   const didLoadMarket                           = useRef(false);
@@ -435,136 +441,147 @@ export default function HomeScreen() {
     }
   };
 
+  // Reliable image sources: artofpkm, TCGdex, pokemontcg.io hires.
+  // tcgplayer-cdn.tcgplayer.com is excluded — returns 403 when hotlinked.
+  const hasReliableImage = (url: string) =>
+    url.includes('artofpkm.com') ||
+    url.includes('tcgdex.net') ||
+    url.includes('images.pokemontcg.io');
+
   const fetchMarketCards = async () => {
-    try {
-      // ── Parallelize ALL three independent fetches at the top level ───────
-      //
-      // Previous flow was strictly sequential:
-      //   [JP PPT 8s] → [JP hires images 4s] → [Promise.all(pokemontcg, PPT EN) 8s]
-      //   = ~20s cold-start critical path
-      //
-      // JP and EN rails are independent — EN data needs nothing from JP.
-      // The JP chain still has its own internal sequence (PPT fetch must
-      // resolve before hires lookup), because PPT JP cards default to
-      // TCGPlayer-CDN URLs which 403 when hotlinked from React Native; the
-      // artofpkm/TCGdex hires upgrade is required for JP cards to render
-      // at all (not just polish). So "render JP thumbnails first, upgrade
-      // later" would leave the JP rail visually empty.
-      //
-      // What we CAN do is run the JP sub-chain concurrently with the EN
-      // sub-fetches. Critical path becomes max(JP=12s, EN=8s) ≈ 12s.
-      const [jpResult, pokeIoRes, pptEn] = await Promise.all([
-        // JP sub-chain (sequential internally, but the whole arm runs in
-        // parallel with the two EN-side arms below).
-        (async () => {
-          const pptCards = await fetchHotCards(30).catch(() => [] as PPTCard[]);
-          const hiresMap = await fetchHiresJPImages(
-            pptCards.map(c => ({ name: c.name, setName: c.setName })),
-          ).catch(() => ({} as Record<string, string>));
-          return { pptCards, hiresMap };
-        })(),
-        // EN-side arm 1: pokemontcg.io (with Option-A 8s timeout)
-        fetchWithTimeout(
-          'https://api.pokemontcg.io/v2/cards?q=set.series%3A%22Scarlet%20%26%20Violet%22&orderBy=-cardmarket.prices.averageSellPrice&select=id,name,number,rarity,set,images,cardmarket,tcgplayer&pageSize=30',
-        ).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] as any[] })),
-        // EN-side arm 2: PPT EN (covers both the merge enrichment and the
-        // empty-pokemontcg.io fallback path further down — single fetch,
-        // not double).
-        fetchHotEnCards(30).catch(() => [] as PPTCard[]),
-      ]);
+    // Reset per-rail loading flags so a retry (after marketError) shows
+    // skeletons again instead of stale empty grids.
+    setHotJpLoading(true);
+    setHotEnLoading(true);
+    setMarketError(false);
 
-      const { pptCards, hiresMap } = jpResult;
+    // ── Two independent async arms, both fired immediately ───────────────
+    //
+    // Each arm calls its own setState as soon as data lands, so React
+    // renders the corresponding rail. EN typically resolves ~4s before JP
+    // (no hires-image dependency) → users see the EN rail populate first
+    // while JP still shows skeleton, then JP fills in.
+    //
+    // Constraint kept: JP arm is sequential internally (PPT → hires) because
+    // PPT JP cards default to TCGPlayer-CDN URLs that 403 in React Native;
+    // hires upgrade is required for JP cards to render at all.
 
-      // ── Build JP rails from PPT + hires merge ────────────────────────────
-      const pptEnriched = pptCards.map(c =>
-        hiresMap[c.name] ? { ...c, imageLarge: hiresMap[c.name] } : c,
-      );
-      // Reliable image sources: artofpkm, TCGdex, pokemontcg.io hires.
-      // tcgplayer-cdn.tcgplayer.com is excluded — returns 403 when hotlinked.
-      const hasReliableImage = (url: string) =>
-        url.includes('artofpkm.com') ||
-        url.includes('tcgdex.net') ||
-        url.includes('images.pokemontcg.io');
+    const jpArm = (async () => {
+      try {
+        const pptCards = await fetchHotCards(30).catch(() => [] as PPTCard[]);
+        const hiresMap = await fetchHiresJPImages(
+          pptCards.map(c => ({ name: c.name, setName: c.setName })),
+        ).catch(() => ({} as Record<string, string>));
 
-      const allPPT: MarketCard[] = pptEnriched
-        .filter(c => hasReliableImage(c.imageLarge || c.image || ''))
-        .map(pptCardToMarket);
+        const pptEnriched = pptCards.map(c =>
+          hiresMap[c.name] ? { ...c, imageLarge: hiresMap[c.name] } : c,
+        );
 
-      const topCards: MarketCard[] = [...allPPT]
-        .sort((a, b) => (b._jtcgPrice?.psa10 ?? b._jtcgPrice?.market ?? 0)
-                      - (a._jtcgPrice?.psa10 ?? a._jtcgPrice?.market ?? 0))
-        .slice(0, 10);
+        const allPPT: MarketCard[] = pptEnriched
+          .filter(c => hasReliableImage(c.imageLarge || c.image || ''))
+          .map(pptCardToMarket);
 
-      const movers = getMarketMovers(
-        pptEnriched.filter(c => hasReliableImage(c.imageLarge || c.image || '')),
-        10,
-      );
-      const hotCards: MarketCard[] = movers.map(pptCardToMarket);
+        const topCards: MarketCard[] = [...allPPT]
+          .sort((a, b) => (b._jtcgPrice?.psa10 ?? b._jtcgPrice?.market ?? 0)
+                        - (a._jtcgPrice?.psa10 ?? a._jtcgPrice?.market ?? 0))
+          .slice(0, 10);
 
-      // ── Build EN rail from pokemontcg.io result + PPT EN merge ───────────
-      let hotEnCards: MarketCard[] = [];
-      const pptEnMap = new Map<string, PPTCard>(pptEn.map(c => [c.name.toLowerCase(), c]));
+        const movers = getMarketMovers(
+          pptEnriched.filter(c => hasReliableImage(c.imageLarge || c.image || '')),
+          10,
+        );
+        const hotCards: MarketCard[] = movers.map(pptCardToMarket);
 
-      hotEnCards = ((pokeIoRes.data ?? []) as any[])
-        .map((c: any): MarketCard => {
-          const ppt = pptEnMap.get(c.name.toLowerCase());
-          return {
-            id:         c.id,
-            name:       c.name,
-            set:        { id: c.set?.id || '', name: c.set?.name || '', series: c.set?.series },
-            rarity:     c.rarity,
-            images:     { small: c.images?.small || '', large: c.images?.large || '' },
-            cardmarket: c.cardmarket,
-            tcgplayer:  c.tcgplayer,
-            _lang:      'EN',
-            _jtcgPrice: ppt ? pptPriceCompat(ppt) : null,
-            _pptCard:   ppt ?? null,
-          };
-        })
-        .filter((c: MarketCard) => {
-          // Only show if PSA10 estimate ≥ HK$3,000 (~$385 USD)
-          const psa10 = c._jtcgPrice?.psa10 ?? 0;
-          const mkt   = c._jtcgPrice?.market ?? getCardPrice(c);
-          const est   = psa10 > 0 ? psa10 : mkt * 3;
-          return est >= PSA10_MIN_USD;
-        })
-        .sort((a: MarketCard, b: MarketCard) => {
-          const aV = (a._jtcgPrice?.psa10 ?? 0) > 0 ? a._jtcgPrice!.psa10 : (a._jtcgPrice?.market ?? getCardPrice(a)) * 3;
-          const bV = (b._jtcgPrice?.psa10 ?? 0) > 0 ? b._jtcgPrice!.psa10 : (b._jtcgPrice?.market ?? getCardPrice(b)) * 3;
-          return bV - aV;
-        })
-        .slice(0, 10);
+        setTopCards(topCards);
+        setHotCards(hotCards);
+        if (__DEV__) console.log(`[Home] JP arm: PPT ${pptCards.length}, movers ${movers.length}`);
+        return { topCards, hotCards };
+      } catch (e) {
+        if (__DEV__) console.error('[Home] JP arm error:', e);
+        return { topCards: [] as MarketCard[], hotCards: [] as MarketCard[] };
+      } finally {
+        setHotJpLoading(false);
+      }
+    })();
 
-      // Fallback: pokemontcg.io returned 0 → reuse the pptEn array already
-      // fetched at the top of this function (NO additional network call,
-      // unlike the previous version which re-called fetchHotEnCards here).
-      if (hotEnCards.length === 0 && pptEn.length > 0) {
-        hotEnCards = pptEn
-          .map(pptCardToMarket)
-          .filter(c => {
+    const enArm = (async () => {
+      try {
+        // Both EN sub-fetches in parallel (8s timeout each).
+        const [pokeIoRes, pptEn] = await Promise.all([
+          fetchWithTimeout(
+            'https://api.pokemontcg.io/v2/cards?q=set.series%3A%22Scarlet%20%26%20Violet%22&orderBy=-cardmarket.prices.averageSellPrice&select=id,name,number,rarity,set,images,cardmarket,tcgplayer&pageSize=30',
+          ).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] as any[] })),
+          fetchHotEnCards(30).catch(() => [] as PPTCard[]),
+        ]);
+
+        const pptEnMap = new Map<string, PPTCard>(pptEn.map(c => [c.name.toLowerCase(), c]));
+
+        let hotEnCards: MarketCard[] = ((pokeIoRes.data ?? []) as any[])
+          .map((c: any): MarketCard => {
+            const ppt = pptEnMap.get(c.name.toLowerCase());
+            return {
+              id:         c.id,
+              name:       c.name,
+              set:        { id: c.set?.id || '', name: c.set?.name || '', series: c.set?.series },
+              rarity:     c.rarity,
+              images:     { small: c.images?.small || '', large: c.images?.large || '' },
+              cardmarket: c.cardmarket,
+              tcgplayer:  c.tcgplayer,
+              _lang:      'EN',
+              _jtcgPrice: ppt ? pptPriceCompat(ppt) : null,
+              _pptCard:   ppt ?? null,
+            };
+          })
+          .filter((c: MarketCard) => {
             const psa10 = c._jtcgPrice?.psa10 ?? 0;
-            const mkt   = c._jtcgPrice?.market ?? 0;
+            const mkt   = c._jtcgPrice?.market ?? getCardPrice(c);
             const est   = psa10 > 0 ? psa10 : mkt * 3;
             return est >= PSA10_MIN_USD;
           })
+          .sort((a: MarketCard, b: MarketCard) => {
+            const aV = (a._jtcgPrice?.psa10 ?? 0) > 0 ? a._jtcgPrice!.psa10 : (a._jtcgPrice?.market ?? getCardPrice(a)) * 3;
+            const bV = (b._jtcgPrice?.psa10 ?? 0) > 0 ? b._jtcgPrice!.psa10 : (b._jtcgPrice?.market ?? getCardPrice(b)) * 3;
+            return bV - aV;
+          })
           .slice(0, 10);
-        if (__DEV__) console.log(`[Home] EN rail fallback: pokemontcg.io empty, using ${hotEnCards.length} PPT cards`);
+
+        // Fallback: pokemontcg.io returned 0 → reuse already-fetched pptEn
+        // (no extra network call).
+        if (hotEnCards.length === 0 && pptEn.length > 0) {
+          hotEnCards = pptEn
+            .map(pptCardToMarket)
+            .filter(c => {
+              const psa10 = c._jtcgPrice?.psa10 ?? 0;
+              const mkt   = c._jtcgPrice?.market ?? 0;
+              const est   = psa10 > 0 ? psa10 : mkt * 3;
+              return est >= PSA10_MIN_USD;
+            })
+            .slice(0, 10);
+          if (__DEV__) console.log(`[Home] EN rail fallback: pokemontcg.io empty, using ${hotEnCards.length} PPT cards`);
+        }
+
+        setHotEnCards(hotEnCards);
+        if (__DEV__) console.log(`[Home] EN arm: ${hotEnCards.length} cards`);
+        return hotEnCards;
+      } catch (e) {
+        if (__DEV__) console.error('[Home] EN arm error:', e);
+        return [] as MarketCard[];
+      } finally {
+        setHotEnLoading(false);
       }
+    })();
 
-      // HK 平台最低價 — background, non-blocking
-      const allIds = [...topCards, ...hotCards, ...hotEnCards].map(c => c.id).filter(Boolean);
+    // Wait for both arms so we can issue the HK price fetch with the full
+    // card-id set, and so an uncaught throw flips marketError.
+    try {
+      const [jpData, enData] = await Promise.all([jpArm, enArm]);
+      const allIds = [...jpData.topCards, ...jpData.hotCards, ...enData]
+        .map(c => c.id)
+        .filter(Boolean);
       if (allIds.length) fetchLowestPrices(allIds).then(setLowestPrices);
-
-      setTopCards(topCards);
-      setHotCards(hotCards);
-      setHotEnCards(hotEnCards);
-      if (__DEV__) console.log(`[Home] PPT: ${pptCards.length} cards, movers: ${movers.length}, hotEN: ${hotEnCards.length}`);
-
     } catch (e) {
       if (__DEV__) console.error('fetchMarketCards:', e);
       setMarketError(true);
-    } finally {
-      setMarketLoaded(true);
     }
   };
 
@@ -870,15 +887,21 @@ export default function HomeScreen() {
               資料更新於 {formatRelative(hotFreshness)}
             </Text>
           )}
-          {!marketLoaded ? (
-            <View style={styles.sectionLoading}>
-              <ActivityIndicator color={colors.brand.orange} size="small" />
-              <Text style={styles.sectionLoadingText}>{t('home.loadingMarket')}</Text>
-            </View>
+          {hotJpLoading ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cardRow}
+              scrollEnabled={false}
+            >
+              {[0, 1, 2, 3, 4].map(i => (
+                <SkeletonCard key={`sk-jp-${i}`} width={CARD_W} height={Math.round(CARD_W * 1.65)} borderRadius={16} />
+              ))}
+            </ScrollView>
           ) : marketError ? (
             <View style={styles.sectionError}>
               <Text style={styles.sectionErrorText}>{t('home.marketLoadFailed')}</Text>
-              <TouchableOpacity style={styles.sectionRetryBtn} onPress={() => { setMarketError(false); setMarketLoaded(false); didLoadMarket.current = true; fetchMarketCards(); }}>
+              <TouchableOpacity style={styles.sectionRetryBtn} onPress={() => { didLoadMarket.current = true; fetchMarketCards(); }}>
                 <Text style={styles.sectionRetryText}>{t('home.retry')}</Text>
               </TouchableOpacity>
             </View>
@@ -908,11 +931,17 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>{t('home.todayHotEN')}</Text>
             <Text style={styles.sectionSub}>{t('home.hotSubEN')}</Text>
           </View>
-          {!marketLoaded ? (
-            <View style={styles.sectionLoading}>
-              <ActivityIndicator color={colors.brand.orange} size="small" />
-              <Text style={styles.sectionLoadingText}>{t('home.loadingMarket')}</Text>
-            </View>
+          {hotEnLoading ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cardRow}
+              scrollEnabled={false}
+            >
+              {[0, 1, 2, 3, 4].map(i => (
+                <SkeletonCard key={`sk-en-${i}`} width={CARD_W} height={Math.round(CARD_W * 1.65)} borderRadius={16} />
+              ))}
+            </ScrollView>
           ) : hotEnCards.length === 0 ? (
             <View style={styles.sectionLoading}>
               <Text style={styles.sectionLoadingText}>{t('common.noData')}</Text>
@@ -939,15 +968,21 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>{t('home.collectibles')}</Text>
             <Text style={styles.sectionSub}>{t('home.psaMinPrice')}</Text>
           </View>
-          {!marketLoaded ? (
-            <View style={styles.sectionLoading}>
-              <ActivityIndicator color={colors.brand.orange} size="small" />
-              <Text style={styles.sectionLoadingText}>{t('home.loadingMarket')}</Text>
-            </View>
+          {hotJpLoading ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cardRow}
+              scrollEnabled={false}
+            >
+              {[0, 1, 2, 3, 4].map(i => (
+                <SkeletonCard key={`sk-top-${i}`} width={CARD_W} height={Math.round(CARD_W * 1.65)} borderRadius={16} />
+              ))}
+            </ScrollView>
           ) : marketError ? (
             <View style={styles.sectionError}>
               <Text style={styles.sectionErrorText}>{t('home.marketLoadFailed')}</Text>
-              <TouchableOpacity style={styles.sectionRetryBtn} onPress={() => { setMarketError(false); setMarketLoaded(false); didLoadMarket.current = true; fetchMarketCards(); }}>
+              <TouchableOpacity style={styles.sectionRetryBtn} onPress={() => { didLoadMarket.current = true; fetchMarketCards(); }}>
                 <Text style={styles.sectionRetryText}>{t('home.retry')}</Text>
               </TouchableOpacity>
             </View>
