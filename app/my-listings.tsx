@@ -12,6 +12,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -36,6 +37,10 @@ type SellerProfile = {
 
 type Listing = {
   id: string;
+  // Surfaced for listing_transactions write — DB row already has these via select('*')
+  card_id: string | null;
+  seller_id: string;
+  seller_type: 'certified_merchant' | 'individual_seller';
   card_name: string;
   set_name: string | null;
   card_image_url: string | null;
@@ -79,6 +84,12 @@ export default function MyListings() {
   const [actionTarget, setActionTarget] = useState<Listing | null>(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  // Sold-price prompt — pre-launch transaction tracking (Phase 2 attribution
+  // depends on this). When seller marks a listing 'sold' we open this modal
+  // BEFORE the status flip so we can write a listing_transactions row with
+  // the actual close price (may differ from asking_price via bargaining).
+  const [showSoldModal, setShowSoldModal]     = useState(false);
+  const [soldPriceInput, setSoldPriceInput]   = useState('');
 
   useFocusEffect(useCallback(() => { loadAll(); }, []));
 
@@ -129,6 +140,18 @@ export default function MyListings() {
 
   const handleStatusChange = async (newStatus: 'active' | 'hidden' | 'sold') => {
     if (!actionTarget) return;
+
+    // 'sold' transition routes through the sold-price prompt so we can
+    // capture the actual close price into listing_transactions. The status
+    // flip only happens after the transaction insert succeeds (confirmSold).
+    // 'active' / 'hidden' transitions stay on the fast path below.
+    if (newStatus === 'sold') {
+      setSoldPriceInput(String(Math.round(actionTarget.price)));
+      setShowActionModal(false);
+      setShowSoldModal(true);
+      return;
+    }
+
     setActionLoading(true);
     const { error } = await supabase
       .from('listings')
@@ -141,6 +164,59 @@ export default function MyListings() {
       // Optimistic update + silent background reload (isRefresh=true avoids full-screen spinner)
       setListings(prev => prev.map(l => l.id === actionTarget.id ? { ...l, status: newStatus } : l));
       loadAll(true);
+    }
+  };
+
+  // Writes a listing_transactions row with the actual sold price, then flips
+  // the listing's status to 'sold'. Atomic at the app level: status update
+  // only runs if the transaction insert succeeded. Off-platform default —
+  // on-platform escrow flow comes later.
+  const confirmSold = async () => {
+    if (!actionTarget) return;
+    const parsed = parseFloat(soldPriceInput);
+    const soldPrice = Number.isFinite(parsed) && parsed >= 0 ? parsed : actionTarget.price;
+
+    setActionLoading(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) throw new Error('Not signed in');
+
+      const { error: txError } = await supabase
+        .from('listing_transactions')
+        .insert({
+          listing_id:   actionTarget.id,
+          card_id:      actionTarget.card_id ?? '',
+          card_name:    actionTarget.card_name,
+          set_name:     actionTarget.set_name,
+          seller_id:    userId,
+          buyer_id:     null,
+          seller_type:  actionTarget.seller_type,
+          asking_price: actionTarget.price,
+          sold_price:   soldPrice,
+          condition:    actionTarget.condition,
+          sold_via:     'off_platform',
+        });
+      if (txError) throw txError;
+
+      const { error: statusError } = await supabase
+        .from('listings')
+        .update({ status: 'sold' })
+        .eq('id', actionTarget.id);
+      if (statusError) throw statusError;
+
+      // Optimistic UI + background reload
+      setListings(prev => prev.map(l => l.id === actionTarget.id ? { ...l, status: 'sold' } : l));
+      loadAll(true);
+    } catch (e: any) {
+      if (__DEV__) console.error('[MyListings] confirmSold error:', e);
+      Alert.alert(t('myListings.markSoldFailedTitle'), e?.message ?? t('common.tryAgainLater'));
+    } finally {
+      setActionLoading(false);
+      setShowSoldModal(false);
+      setShowActionModal(false);
+      setActionTarget(null);
+      setSoldPriceInput('');
     }
   };
 
@@ -277,6 +353,70 @@ export default function MyListings() {
     </Modal>
   );
 
+  // ── Sold-price Modal ──────────────────────────────────────────────────────
+  // Opens when seller picks 「Mark as Sold」 in the action sheet. Captures
+  // the actual close price (default = asking price). Writes a
+  // listing_transactions row, then flips listings.status to 'sold'.
+  const renderSoldModal = () => (
+    <Modal visible={showSoldModal} transparent animationType="slide" onRequestClose={() => setShowSoldModal(false)}>
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => !actionLoading && setShowSoldModal(false)}>
+        <TouchableOpacity activeOpacity={1} style={styles.actionSheet}>
+          <View style={styles.sheetHandle} />
+
+          {actionTarget && (
+            <View style={styles.sheetCardPreview}>
+              {(actionTarget.photo_urls?.[0] ?? actionTarget.card_image_url) && (
+                <Image
+                  source={{ uri: (actionTarget.photo_urls?.[0] ?? actionTarget.card_image_url)! }}
+                  style={styles.sheetCardImg}
+                  resizeMode="contain"
+                />
+              )}
+              <View style={styles.sheetCardInfo}>
+                <Text style={styles.sheetCardName}>{actionTarget.card_name}</Text>
+                <Text style={styles.sheetCardPrice}>{t('myListings.askingPriceLabel', { price: actionTarget.price.toLocaleString() })}</Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.soldInputBlock}>
+            <Text style={styles.soldInputLabel}>{t('myListings.soldPriceLabel')}</Text>
+            <View style={styles.soldInputRow}>
+              <Text style={styles.soldInputPrefix}>HK$</Text>
+              <TextInput
+                style={styles.soldInput}
+                value={soldPriceInput}
+                onChangeText={setSoldPriceInput}
+                keyboardType="numeric"
+                placeholder={String(Math.round(actionTarget?.price ?? 0))}
+                placeholderTextColor={colors.text.tertiary}
+                editable={!actionLoading}
+                autoFocus
+              />
+            </View>
+            <Text style={styles.soldInputHint}>{t('myListings.soldPriceHint')}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.soldConfirmBtn, actionLoading && { opacity: 0.5 }]}
+            onPress={confirmSold}
+            disabled={actionLoading}
+          >
+            {actionLoading
+              // '#fff' kept raw — always-white on Card Orange
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.soldConfirmBtnText}>{t('myListings.confirmSold')}</Text>
+            }
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.sheetCancel} onPress={() => setShowSoldModal(false)} disabled={actionLoading}>
+            <Text style={styles.sheetCancelText}>{t('common.cancel')}</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   // ── Main render ────────────────────────────────────────────────────────────
 
   return (
@@ -400,6 +540,7 @@ export default function MyListings() {
       )}
 
       {renderActionModal()}
+      {renderSoldModal()}
     </SafeAreaView>
   );
 }
@@ -504,5 +645,17 @@ function makeStyles(colors: ColorTokens) {
     sheetRowTextDanger: { color: '#EF4444' },
     sheetCancel: { marginTop: 12, backgroundColor: colors.surface.section, borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
     sheetCancelText: { fontSize: 16, fontWeight: '600', color: colors.text.primary },
+
+    // Sold-price modal — reuses sheetCardPreview / sheetCardImg above,
+    // adds an inline TextInput row + a Card-Orange confirm button.
+    soldInputBlock:   { marginTop: 16, marginBottom: 6 },
+    soldInputLabel:   { fontSize: 13, fontWeight: '700', color: colors.text.primary, marginBottom: 8 },
+    soldInputRow:     { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface.section, borderRadius: 14, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border.default },
+    soldInputPrefix:  { fontSize: 15, color: colors.text.tertiary, marginRight: 4 },
+    soldInput:        { flex: 1, fontSize: 20, fontWeight: '700', color: colors.text.primary, paddingVertical: 12 },
+    soldInputHint:    { fontSize: 11, color: colors.text.tertiary, marginTop: 6 },
+    soldConfirmBtn:   { marginTop: 16, backgroundColor: colors.brand.orange, borderRadius: 16, paddingVertical: 15, alignItems: 'center' },
+    // soldConfirmBtnText '#fff' kept raw — always-white on Card Orange
+    soldConfirmBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   });
 }
