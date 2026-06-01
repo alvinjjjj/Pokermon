@@ -6,6 +6,7 @@ import { CurrencyProvider } from '../contexts/CurrencyContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { clearArtofpkmCaches } from '../lib/artofpkm';
 import { clearJpImageCaches } from '../lib/jpImages';
+import { clearEnImageCache } from '../lib/pokemontcg';
 import { supabase } from '../lib/supabase';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 
@@ -37,6 +38,7 @@ export default function RootLayout() {
       if (event === 'SIGNED_OUT') {
         clearArtofpkmCaches();
         clearJpImageCaches();
+        clearEnImageCache();
       }
     });
 

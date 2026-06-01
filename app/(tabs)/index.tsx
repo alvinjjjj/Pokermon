@@ -18,6 +18,7 @@ const periods = ['1D', '7D', '1M', '3M', '6M', 'MAX'];
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { fetchHotCards, fetchHotEnCards, getHotCacheTimestamp, getMarketMovers, pptPriceCompat, PPTCard } from '../../lib/pokeprice';
 import { fetchWithTimeout } from '../../lib/fetchWithTimeout';
+import { searchCardImages } from '../../lib/pokemontcg';
 import { fetchLowestPrices, LowestListing } from '../../lib/lowestPrices';
 import { fetchHiresJPImages } from '../../lib/jpImages';
 
@@ -562,6 +563,39 @@ export default function HomeScreen() {
 
         setHotEnCards(hotEnCards);
         if (__DEV__) console.log(`[Home] EN arm: ${hotEnCards.length} cards`);
+
+        // ── Background image enrichment (Issue #3) ────────────────────────
+        //
+        // Some EN cards on this rail end up with TCGPlayer-CDN image URLs
+        // (`tcgplayer-cdn.tcgplayer.com/...`) which 403 when hotlinked from
+        // React Native, leaving the card slot visually empty. This happens
+        // primarily on the PPT-fallback path above (when pokemontcg.io
+        // returned 0 cards and we fell back to PPT-only data), and
+        // occasionally for cards in the merged primary path whose
+        // pokemontcg.io entry had no images field.
+        //
+        // searchCardImages looks each card name up in pokemontcg.io and
+        // returns the reliable images.pokemontcg.io URL. We overlay only
+        // for cards whose current image URL is NOT already on a reliable
+        // CDN — avoids triggering a redundant re-render for the primary
+        // path's already-good URLs.
+        //
+        // Fire-and-forget. Failure leaves whatever's there untouched.
+        if (hotEnCards.length > 0) {
+          const names = hotEnCards.map(c => c.name).filter(Boolean);
+          searchCardImages(names).then(imageMap => {
+            if (imageMap.size === 0) return;
+            setHotEnCards(prev => prev.map(c => {
+              const reliable = imageMap.get(c.name.toLowerCase());
+              if (!reliable) return c;
+              const current = c.images.small || c.images.large || '';
+              if (current.includes('images.pokemontcg.io')) return c;
+              return { ...c, images: { small: reliable, large: reliable } };
+            }));
+            if (__DEV__) console.log(`[Home] EN image enrichment: ${imageMap.size}/${names.length} resolved`);
+          }).catch(() => { /* best-effort */ });
+        }
+
         return hotEnCards;
       } catch (e) {
         if (__DEV__) console.error('[Home] EN arm error:', e);
