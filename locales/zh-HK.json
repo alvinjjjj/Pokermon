@@ -636,7 +636,12 @@
     "delist": "暫時下架",
     "markSold": "標記為已售出",
     "deleteListing": "刪除商品",
-    "stock": "存貨：{{n}}"
+    "stock": "存貨：{{n}}",
+    "askingPriceLabel": "上架價 HK${{price}}",
+    "soldPriceLabel": "實際成交價",
+    "soldPriceHint": "預設為上架價 · 可修改",
+    "confirmSold": "確認售出",
+    "markSoldFailedTitle": "記錄失敗"
   },
   "inbox": {
     "title": "訊息",

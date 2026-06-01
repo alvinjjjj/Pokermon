@@ -636,7 +636,12 @@
     "delist": "非表示にする",
     "markSold": "売れたとしてマーク",
     "deleteListing": "出品を削除",
-    "stock": "在庫：{{n}}"
+    "stock": "在庫：{{n}}",
+    "askingPriceLabel": "出品価格 HK${{price}}",
+    "soldPriceLabel": "実際の成約価格",
+    "soldPriceHint": "出品価格をデフォルト · 編集可能",
+    "confirmSold": "売却を確認",
+    "markSoldFailedTitle": "記録に失敗"
   },
   "inbox": {
     "title": "メッセージ",

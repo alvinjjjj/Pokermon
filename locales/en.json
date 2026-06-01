@@ -636,7 +636,12 @@
     "delist": "Delist",
     "markSold": "Mark as Sold",
     "deleteListing": "Delete Listing",
-    "stock": "Stock: {{n}}"
+    "stock": "Stock: {{n}}",
+    "askingPriceLabel": "Asking HK${{price}}",
+    "soldPriceLabel": "Actual sold price",
+    "soldPriceHint": "Defaults to asking price · editable",
+    "confirmSold": "Confirm sold",
+    "markSoldFailedTitle": "Record failed"
   },
   "inbox": {
     "title": "Messages",
