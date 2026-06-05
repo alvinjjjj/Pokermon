@@ -513,6 +513,9 @@ export default function PortfolioScreen() {
                       const isJPPortfolio = card.card_id.startsWith('ppt_') || card.card_id.startsWith('jtcg_');
                       router.push({
                         pathname: '/card/[id]' as any,
+                        // psa_grade propagation: detail page initializes its
+                        // selectedPSA tier from this param when present.
+                        // Empty string falls through to discovery default ('10').
                         params: isJPPortfolio ? {
                           id:        card.card_id,
                           jp_name:   card.card_name  ?? '',
@@ -521,7 +524,11 @@ export default function PortfolioScreen() {
                           jp_market: String(card.current_price ?? 0),
                           jp_psa10:  '0',
                           jp_psa9:   '0',
-                        } : { id: card.card_id },
+                          psa_grade: card.psa_grade ?? '',
+                        } : {
+                          id: card.card_id,
+                          psa_grade: card.psa_grade ?? '',
+                        },
                       });
                     }
                   }}

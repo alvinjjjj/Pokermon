@@ -382,15 +382,43 @@ function PriceChart({
   );
 }
 
+/**
+ * paramToSelectedPSA — map an incoming psa_grade route param to the detail
+ * page's internal selectedPSA enum ('Raw' | '9' | '10').
+ *
+ * The detail page keeps its own mixed-case enum (vs PSAGradeBadge's lowercase
+ * 'raw' | '9' | '10') because several downstream sites check `selectedPSA ===
+ * 'Raw'` literally (lines ~666, ~1111). Changing the enum would touch more
+ * surface than the surgical fix warrants.
+ *
+ * Accepts the common Supabase shapes ('Raw', '9', '10', 'PSA 9', 'PSA 10',
+ * 'PSA9', 'PSA10'). Anything unrecognized — including the empty-string sentinel
+ * from non-portfolio entries — falls back to '10' (discovery default · matches
+ * the headline-price tier most users land on).
+ */
+function paramToSelectedPSA(raw: string | undefined): 'Raw' | '9' | '10' {
+  if (!raw) return '10';
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s === 'RAW') return 'Raw';
+  if (s === '9' || s === 'PSA9') return '9';
+  return '10';
+}
+
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function CardDetailScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const { id, jp_name, jp_image, jp_set, jp_number, jp_psa10, jp_psa9, jp_market } =
+  const { id, jp_name, jp_image, jp_set, jp_number, jp_psa10, jp_psa9, jp_market,
+          psa_grade } =
     useLocalSearchParams<{
       id: string;
       jp_name?: string; jp_image?: string; jp_set?: string; jp_number?: string;
       jp_psa10?: string; jp_psa9?: string; jp_market?: string;
+      // Optional: when arriving from Portfolio / Public-portfolio the caller
+      // passes the user's stored grade so the detail page opens on the right
+      // tier. Other entry points (Home / Search) omit it and fall through to
+      // the discovery default ('10').
+      psa_grade?: string;
     }>();
   const router = useRouter();
   const { convert, currency, rate, symbol } = useCurrency();
@@ -406,7 +434,9 @@ export default function CardDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('1M');
   const [showPSAModal, setShowPSAModal] = useState(false);
-  const [selectedPSA, setSelectedPSA] = useState('10');
+  const [selectedPSA, setSelectedPSA] = useState<'Raw' | '9' | '10'>(
+    paramToSelectedPSA(psa_grade)
+  );
   const [adding, setAdding] = useState(false);
   const [addedGrades, setAddedGrades] = useState<Set<string>>(new Set());
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -793,7 +823,15 @@ export default function CardDetailScreen() {
               text — see brand/brand_book_addendum_v01.md §A.3 and
               components/PSAGradeBadge.tsx. */}
           <View style={{ marginBottom: 14 }}>
-            <PSAGradeBadge grade="10" size="md" />
+            {/* Hero badge derives from selectedPSA — updates live when user
+                switches tier in the price picker below. Adapter maps the
+                detail page's mixed-case 'Raw' to PSAGradeBadge's lowercase
+                'raw' (the two enums diverge intentionally — see
+                paramToSelectedPSA header comment). */}
+            <PSAGradeBadge
+              grade={selectedPSA === 'Raw' ? 'raw' : (selectedPSA as '9' | '10')}
+              size="md"
+            />
           </View>
 
           {/* Card name + set */}

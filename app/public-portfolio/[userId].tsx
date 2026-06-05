@@ -86,7 +86,12 @@ export default function PublicPortfolioScreen() {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => item.card_id && !isBox && router.push({ pathname: '/card/[id]' as any, params: { id: item.card_id } })}
+        onPress={() => item.card_id && !isBox && router.push({
+          pathname: '/card/[id]' as any,
+          // psa_grade propagation: detail page reads this to initialize
+          // selectedPSA. Empty string → discovery default ('10').
+          params: { id: item.card_id, psa_grade: item.psa_grade ?? '' },
+        })}
         activeOpacity={item.card_id && !isBox ? 0.8 : 1}
       >
         <View style={[styles.cardImgBox, isBox && { aspectRatio: 1 }]}>
