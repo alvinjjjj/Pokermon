@@ -6,6 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 import Header from '../../components/Header';
+import { PSAGradeBadge } from '../../components/PSAGradeBadge';
 import { SkeletonCard } from '../../components/SkeletonCard';
 import { type ColorTokens } from '../../constants/colors';
 import { supabase } from '../../lib/supabase';
@@ -810,13 +811,14 @@ export default function HomeScreen() {
             <Text style={styles.cardName} numberOfLines={1}>{card.name}</Text>
             <Text style={styles.cardSet}  numberOfLines={1}>{card.set.name}</Text>
             {card.rarity && <Text style={styles.cardRarity} numberOfLines={1}>{card.rarity}</Text>}
-            {/* Unified PSA 10 tag — no "PPT" / "LIVE" / "≈" suffix in the label
-                itself. Real vs estimated is conveyed by the green LIVE badge
-                on the image + the "≈" prefix on the price. */}
-            <View style={[styles.psaRow, isLive ? styles.psaRowJP : styles.psaRowRaw]}>
-              <Text style={[styles.psaRowText, isLive ? styles.psaRowTextJP : styles.psaRowTextRaw]}>
-                PSA 10
-              </Text>
+            {/* Vol.03 §A.3 outline-pattern badge. The isLive distinction
+                that previously fill-tinted this tag (orange-on-peach for JP
+                LIVE vs gray for EN/estimate) is now conveyed solely by the
+                separate green LIVE badge on the card image — no need to
+                duplicate the signal here. Inline marginBottom matches the
+                existing wrapper pattern at search.tsx:774. */}
+            <View style={{ marginBottom: 6 }}>
+              <PSAGradeBadge grade="10" size="sm" />
             </View>
             <Text style={styles.cardPrice}>{priceStr}</Text>
             {changeP !== null && Math.abs(changeP) > 0.5 && (
@@ -1237,12 +1239,8 @@ function makeStyles(colors: ColorTokens) {
     cardName:            { fontSize: 13, fontWeight: '700', color: colors.text.primary, marginBottom: 2 },
     cardSet:             { fontSize: 11, color: colors.text.secondary, marginBottom: 2 },
     cardRarity:          { fontSize: 11, color: colors.state.info, fontWeight: '500', marginBottom: 4 },
-    psaRow:              { flexDirection: 'row', alignItems: 'center', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, marginBottom: 6, alignSelf: 'flex-start' },
-    psaRowJP:            { backgroundColor: colors.brand.peach },
-    psaRowRaw:           { backgroundColor: colors.surface.section },
-    psaRowText:          { fontSize: 11, fontWeight: '600' },
-    psaRowTextJP:        { color: colors.brand.orange },
-    psaRowTextRaw:       { color: colors.text.secondary },
+    // Vol.03 §A.3: psaRow* styles deleted — fill-pattern PSA badge replaced
+    // with the outline-pattern <PSAGradeBadge /> primitive (commit a5b86e2).
     cardPrice:           { fontSize: 15, fontWeight: '800', color: colors.text.primary, marginBottom: 4 },
     change30Row:         { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
     change30Text:        { fontSize: 11, fontWeight: '700' },
