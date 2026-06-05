@@ -810,6 +810,7 @@
   },
   "editShop": {
     "title": "Edit Shop Profile",
+    "tabShop": "Shop Profile",
     "savedTitle": "Saved",
     "savedMsg": "Shop profile updated",
     "saveFailed": "Save failed",
@@ -821,6 +822,38 @@
     "downgradeMsg":       "You'll lose your certified merchant badge. Individual sellers can list up to 5 cards. You can re-apply later.",
     "downgradeConfirm":   "Yes, downgrade",
     "downgradeDoneTitle": "Downgraded",
-    "downgradeDoneMsg":   "You're now an individual seller. You can re-apply to become a certified merchant any time."
+    "downgradeDoneMsg":   "You're now an individual seller. You can re-apply to become a certified merchant any time.",
+    "buyOrders": {
+      "tabTitle": "Buy Orders",
+      "activeCount": "Active {{count}}/10",
+      "addButton": "+ Add Buy Order",
+      "maxReached": "Reached the 10 active buy-order limit",
+      "formTitleNew": "New Buy Order",
+      "formTitleEdit": "Edit Buy Order",
+      "formIncomplete": "Please complete all required fields",
+      "cardNameLabel": "Card Name",
+      "cardSetLabel": "Set (Optional)",
+      "cardIdLabel": "Card ID",
+      "priceLabel": "Buy Price (HKD)",
+      "conditionsLabel": "Accepted Conditions",
+      "languagesLabel": "Accepted Languages",
+      "dailyLimitLabel": "Daily Limit",
+      "notesLabel": "Notes (Optional)",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "editBtn": "Edit",
+      "pauseBtn": "Pause",
+      "resumeBtn": "Resume",
+      "deleteBtn": "Delete",
+      "deleteConfirm": "Delete this order?",
+      "emptyState": "No buy orders yet",
+      "pausedToast": "Paused",
+      "resumedToast": "Resumed",
+      "deletedToast": "Deleted",
+      "savedToast": "Saved",
+      "remainingHours": "{{hours}}h left",
+      "dailyProgress": "Today {{filled}}/{{limit}}",
+      "priceFormat": "Buy HK${{price}}"
+    }
   }
 }

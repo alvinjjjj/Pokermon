@@ -810,6 +810,7 @@
   },
   "editShop": {
     "title": "店舗情報を編集",
+    "tabShop": "店舗設定",
     "savedTitle": "保存しました",
     "savedMsg": "店舗情報を更新しました",
     "saveFailed": "保存に失敗しました",
@@ -821,6 +822,38 @@
     "downgradeMsg":       "認証加盟店バッジが失われます。個人販売者は最大 5 枚まで出品可能。後で再申請できます。",
     "downgradeConfirm":   "ダウングレードする",
     "downgradeDoneTitle": "ダウングレード完了",
-    "downgradeDoneMsg":   "現在は個人販売者です。いつでも認証加盟店に再申請できます。"
+    "downgradeDoneMsg":   "現在は個人販売者です。いつでも認証加盟店に再申請できます。",
+    "buyOrders": {
+      "tabTitle": "買取注文",
+      "activeCount": "稼働中 {{count}}/10",
+      "addButton": "+ 買取追加",
+      "maxReached": "稼働中の買取上限（10件）に達しました",
+      "formTitleNew": "買取注文を新規作成",
+      "formTitleEdit": "買取注文を編集",
+      "formIncomplete": "必須項目をすべてご入力ください",
+      "cardNameLabel": "カード名",
+      "cardSetLabel": "シリーズ（任意）",
+      "cardIdLabel": "カード ID",
+      "priceLabel": "買取価格（HKD）",
+      "conditionsLabel": "受付可能な状態",
+      "languagesLabel": "受付可能な言語",
+      "dailyLimitLabel": "1日あたりの上限",
+      "notesLabel": "備考（任意）",
+      "confirm": "確定する",
+      "cancel": "キャンセル",
+      "editBtn": "編集",
+      "pauseBtn": "一時停止",
+      "resumeBtn": "再開",
+      "deleteBtn": "削除",
+      "deleteConfirm": "この注文を削除しますか？",
+      "emptyState": "買取注文はまだありません",
+      "pausedToast": "一時停止しました",
+      "resumedToast": "再開しました",
+      "deletedToast": "削除しました",
+      "savedToast": "保存しました",
+      "remainingHours": "あと {{hours}} 時間",
+      "dailyProgress": "本日 {{filled}}/{{limit}}",
+      "priceFormat": "買取 HK${{price}}"
+    }
   }
 }

@@ -810,6 +810,7 @@
   },
   "editShop": {
     "title": "编辑商店资料",
+    "tabShop": "店铺设定",
     "savedTitle": "已保存",
     "savedMsg": "商店资料已更新",
     "saveFailed": "保存失败",
@@ -821,6 +822,38 @@
     "downgradeMsg":       "降级后将失去认证商家标志，个人卖家不能上架超过 5 张。可日后重新申请。",
     "downgradeConfirm":   "确定降级",
     "downgradeDoneTitle": "已降级",
-    "downgradeDoneMsg":   "你现在是个人卖家。日后可重新申请成为认证商家。"
+    "downgradeDoneMsg":   "你现在是个人卖家。日后可重新申请成为认证商家。",
+    "buyOrders": {
+      "tabTitle": "买入订单",
+      "activeCount": "活跃 {{count}}/10",
+      "addButton": "+ 加入买入",
+      "maxReached": "已达 10 个活跃买入上限",
+      "formTitleNew": "新增买入订单",
+      "formTitleEdit": "编辑买入订单",
+      "formIncomplete": "请完成所有必填栏位",
+      "cardNameLabel": "卡片名称",
+      "cardSetLabel": "系列（可选）",
+      "cardIdLabel": "卡片 ID",
+      "priceLabel": "买入价（HKD）",
+      "conditionsLabel": "接受条件",
+      "languagesLabel": "接受语言",
+      "dailyLimitLabel": "每日上限",
+      "notesLabel": "备注（可选）",
+      "confirm": "确认加入",
+      "cancel": "取消",
+      "editBtn": "编辑",
+      "pauseBtn": "暂停",
+      "resumeBtn": "启用",
+      "deleteBtn": "删除",
+      "deleteConfirm": "确定删除？",
+      "emptyState": "暂无买入订单",
+      "pausedToast": "已暂停",
+      "resumedToast": "已启用",
+      "deletedToast": "已删除",
+      "savedToast": "已保存",
+      "remainingHours": "{{hours}} 小时到期",
+      "dailyProgress": "今日 {{filled}}/{{limit}}",
+      "priceFormat": "收 HK${{price}}"
+    }
   }
 }
