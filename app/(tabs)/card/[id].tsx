@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Header from '../../../components/Header';
 import { PSAGradeBadge } from '../../../components/PSAGradeBadge';
@@ -445,6 +445,23 @@ export default function CardDetailScreen() {
   const [listingsLoading, setListingsLoading] = useState(false);
   const [snapshots, setSnapshots] = useState<{ date: string; price_usd: number; psa10_usd: number | null }[]>([]);
 
+  // ── Phase B.3 · Merchant buy offers (kaitori) ────────────────────────
+  // Read-only display below the price-tier row. Reservation flow ('我有呢張'
+  // button + 24hr lock) is deferred to B.4.
+  type BuyOffer = {
+    id:             string;
+    merchant_id:    string;
+    merchant_name?: string;
+    buy_price:      number;
+    conditions:     string[];
+    languages:      string[];
+    daily_filled:   number;
+    daily_limit:    number;
+    expires_at:     string;
+  };
+  const [buyOffers, setBuyOffers] = useState<BuyOffer[]>([]);
+  const [buyOffersLoading, setBuyOffersLoading] = useState(false);
+
   // JP / EN 卡圖切換
   const [imgLang, setImgLang] = useState<'original' | 'jp' | 'en'>('original');
   const [jpAltImage, setJpAltImage] = useState<string | null>(null);   // JP 對應版卡圖
@@ -469,6 +486,54 @@ export default function CardDetailScreen() {
     }
     setListingsLoading(false);
   };
+
+  // Phase B.3 · Fetch all active merchant buy offers for this card.
+  // Sorted by buy_price DESC (highest offer first — what users want to see).
+  // Two-step query: merchant_buy_orders → batch-fetch merchant_profiles by
+  // merchant_id list → merge for display. Avoids depending on a Supabase
+  // implicit-relation join (which only works if the FK is declared in the
+  // table editor — fragile across migrations).
+  const fetchBuyOffers = useCallback(async () => {
+    if (!id) return;
+    setBuyOffersLoading(true);
+    try {
+      const cardId = typeof id === 'string' ? id : id[0];
+      const { data: orders, error } = await supabase
+        .from('merchant_buy_orders')
+        .select('id, merchant_id, buy_price, conditions, languages, daily_filled, daily_limit, expires_at')
+        .eq('card_id', cardId)
+        .eq('status', 'active')
+        .order('buy_price', { ascending: false });
+      if (error) {
+        if (__DEV__) console.warn('[buy offers]', error.message);
+        setBuyOffers([]);
+        return;
+      }
+      const orderList = (orders ?? []) as BuyOffer[];
+      if (orderList.length === 0) { setBuyOffers([]); return; }
+      // Batch-resolve merchant shop names. Missing rows fall back to a
+      // generic '商戶' label so a deleted/missing profile doesn't blank
+      // the offer (the offer itself is still valid against the merchant_id).
+      const merchantIds = Array.from(new Set(orderList.map(o => o.merchant_id)));
+      const { data: profiles } = await supabase
+        .from('merchant_profiles')
+        .select('user_id, display_name, shop_name_zh, shop_name_en')
+        .in('user_id', merchantIds);
+      const nameMap = new Map<string, string>();
+      (profiles ?? []).forEach((p: any) => {
+        nameMap.set(p.user_id, p.shop_name_zh || p.shop_name_en || p.display_name || t('cardDetail.buyOffers.fallbackMerchant'));
+      });
+      const enriched = orderList.map(o => ({
+        ...o,
+        merchant_name: nameMap.get(o.merchant_id) ?? t('cardDetail.buyOffers.fallbackMerchant'),
+      }));
+      setBuyOffers(enriched);
+    } finally {
+      setBuyOffersLoading(false);
+    }
+  }, [id, t]);
+
+  useEffect(() => { fetchBuyOffers(); }, [fetchBuyOffers]);
 
   useEffect(() => {
     if (!id) return;
@@ -941,6 +1006,68 @@ export default function CardDetailScreen() {
           </View>
         </View>
 
+        {/* Phase B.3 · Merchant buy offers section.
+            Display-only — '我有呢張' reservation flow lives in B.4.
+            Hidden entirely when no active offers (no empty state — keeps
+            the detail page clean for cards no merchant is buying). */}
+        {buyOffers.length > 0 && (
+          <View style={styles.buyOffersSection}>
+            <Text style={styles.buyOffersTitle}>{t('cardDetail.buyOffers.sectionTitle')}</Text>
+            <Text style={styles.buyOffersSubtitle}>
+              {t('cardDetail.buyOffers.subtitle', { count: buyOffers.length })}
+            </Text>
+            {buyOffers.map(offer => {
+              const expiresIn = Math.max(
+                0,
+                Math.floor((new Date(offer.expires_at).getTime() - Date.now()) / 3600000),
+              );
+              const full = offer.daily_filled >= offer.daily_limit;
+              return (
+                <View
+                  key={offer.id}
+                  style={[styles.buyOfferRow, full && styles.buyOfferRowFull]}
+                >
+                  <View style={styles.buyOfferLeft}>
+                    <Text style={styles.buyOfferMerchant} numberOfLines={1}>
+                      {offer.merchant_name}
+                    </Text>
+                    <View style={styles.buyOfferChipsRow}>
+                      {offer.conditions.map(c => (
+                        <View key={c} style={styles.buyOfferConditionChip}>
+                          <Text style={styles.buyOfferConditionText}>{c}</Text>
+                        </View>
+                      ))}
+                      {offer.languages.map(l => (
+                        <View key={l} style={styles.buyOfferLangChip}>
+                          <Text style={styles.buyOfferLangText}>{l}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                  <View style={styles.buyOfferRight}>
+                    <Text style={styles.buyOfferPrice}>
+                      {t('cardDetail.buyOffers.priceFormat', {
+                        price: offer.buy_price.toLocaleString(),
+                      })}
+                    </Text>
+                    <Text style={styles.buyOfferMeta}>
+                      {t('cardDetail.buyOffers.dailyProgress', {
+                        filled: offer.daily_filled,
+                        limit:  offer.daily_limit,
+                      })}
+                    </Text>
+                    <Text style={styles.buyOfferMeta}>
+                      {expiresIn > 0
+                        ? t('cardDetail.buyOffers.remainingHours', { hours: expiresIn })
+                        : t('cardDetail.buyOffers.expired')}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {/* Period toggles + Chart */}
         {chartBase > 0 && (
           <View style={styles.chartSection}>
@@ -1270,6 +1397,45 @@ function makeStyles(colors: ColorTokens) {
     changePillDown:     { backgroundColor: colors.state.down + '22' },
     changePillText:     { fontSize: 12, fontWeight: '700' },
     priceRow:           { flexDirection: 'row', gap: 8, marginTop: 16, width: '100%' },
+    // ── Phase B.3 · Merchant buy offers ────────────────────────────────
+    buyOffersSection: { marginTop: 24, marginHorizontal: 16 },
+    buyOffersTitle: {
+      fontSize: 16, fontWeight: '700', color: colors.text.primary,
+      letterSpacing: 0.3, marginBottom: 4,
+    },
+    buyOffersSubtitle: {
+      fontSize: 12, color: colors.text.tertiary, marginBottom: 12,
+    },
+    buyOfferRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+      padding: 14, marginBottom: 8, borderRadius: 10,
+      backgroundColor: colors.surface.card,
+      borderWidth: 1, borderColor: colors.border.default,
+    },
+    buyOfferRowFull: { opacity: 0.55 },
+    buyOfferLeft:    { flex: 1, marginRight: 12 },
+    buyOfferMerchant: { fontSize: 14, fontWeight: '600', color: colors.text.primary, marginBottom: 6 },
+    buyOfferChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    buyOfferConditionChip: {
+      paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3,
+      borderWidth: 1, borderColor: colors.text.primary,
+    },
+    buyOfferConditionText: {
+      fontSize: 10, fontWeight: '600', color: colors.text.primary, letterSpacing: 0.3,
+    },
+    buyOfferLangChip: {
+      paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3,
+      borderWidth: 1, borderColor: colors.text.mute,
+    },
+    buyOfferLangText: {
+      fontSize: 10, fontWeight: '600', color: colors.text.tertiary, letterSpacing: 0.3,
+    },
+    buyOfferRight: { alignItems: 'flex-end' },
+    buyOfferPrice: {
+      fontSize: 16, fontWeight: '700', color: colors.brand.orange, marginBottom: 4,
+    },
+    buyOfferMeta: { fontSize: 11, color: colors.text.tertiary, lineHeight: 14 },
+
     priceBox:           { flex: 1, backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
     priceBoxHighlight:  { backgroundColor: colors.text.primary, borderColor: colors.text.primary },
     priceBoxLabel:      { fontSize: 10, color: colors.text.tertiary, fontWeight: '600', marginBottom: 4 },

@@ -451,6 +451,15 @@
     "setNamePlaceholder": "例：Prismatic Evolutions"
   },
   "cardDetail": {
+    "buyOffers": {
+      "sectionTitle": "認証加盟店の買取",
+      "subtitle": "{{count}} 店舗が買取中",
+      "priceFormat": "買取 HK${{price}}",
+      "dailyProgress": "本日 {{filled}}/{{limit}}",
+      "remainingHours": "あと {{hours}} 時間",
+      "expired": "期限切れ",
+      "fallbackMerchant": "加盟店"
+    },
     "loading": "カードデータを読み込み中...",
     "notFound": "カードが見つかりません",
     "addToCollection": "☆ コレクションに追加",

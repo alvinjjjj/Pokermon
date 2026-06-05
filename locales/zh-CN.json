@@ -451,6 +451,15 @@
     "setNamePlaceholder": "例：Prismatic Evolutions"
   },
   "cardDetail": {
+    "buyOffers": {
+      "sectionTitle": "认证商户买取",
+      "subtitle": "{{count}} 间商户正在收",
+      "priceFormat": "收 HK${{price}}",
+      "dailyProgress": "今日 {{filled}}/{{limit}}",
+      "remainingHours": "剩 {{hours}} 小时",
+      "expired": "已过期",
+      "fallbackMerchant": "商户"
+    },
     "loading": "加载卡片数据...",
     "notFound": "找不到卡片",
     "addToCollection": "☆ 加入收藏",

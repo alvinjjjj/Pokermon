@@ -451,6 +451,15 @@
     "setNamePlaceholder": "e.g. Prismatic Evolutions"
   },
   "cardDetail": {
+    "buyOffers": {
+      "sectionTitle": "Merchant Buy Offers",
+      "subtitle": "{{count}} merchants buying",
+      "priceFormat": "HK${{price}}",
+      "dailyProgress": "Today {{filled}}/{{limit}}",
+      "remainingHours": "{{hours}}h left",
+      "expired": "Expired",
+      "fallbackMerchant": "Merchant"
+    },
     "loading": "Loading card data...",
     "notFound": "Card not found",
     "addToCollection": "☆ Add to Collection",
