@@ -458,7 +458,17 @@
       "dailyProgress": "今日 {{filled}}/{{limit}}",
       "remainingHours": "剩 {{hours}} 小時",
       "expired": "已過期",
-      "fallbackMerchant": "商戶"
+      "fallbackMerchant": "商戶",
+      "reserveButton": "我有呢張",
+      "reserveButtonDisabled": "已收滿",
+      "reserveTitle": "預留交易",
+      "notePlaceholder": "備註（可選）",
+      "reserveHint": "預留之後 24 小時內商戶必須確認回應",
+      "confirmReserve": "確認預留",
+      "submitting": "預留中...",
+      "reserveSuccessTitle": "已預留",
+      "reserveSuccessMessage": "商戶會喺 24 小時內聯絡你確認",
+      "reserveFailedTitle": "預留失敗"
     },
     "loading": "載入卡片資料...",
     "notFound": "找不到卡片",

@@ -458,7 +458,17 @@
       "dailyProgress": "Today {{filled}}/{{limit}}",
       "remainingHours": "{{hours}}h left",
       "expired": "Expired",
-      "fallbackMerchant": "Merchant"
+      "fallbackMerchant": "Merchant",
+      "reserveButton": "I have this",
+      "reserveButtonDisabled": "Filled",
+      "reserveTitle": "Reserve Transaction",
+      "notePlaceholder": "Note (optional)",
+      "reserveHint": "Merchant will confirm within 24 hours after reservation",
+      "confirmReserve": "Confirm Reservation",
+      "submitting": "Submitting...",
+      "reserveSuccessTitle": "Reserved",
+      "reserveSuccessMessage": "Merchant will contact you within 24h",
+      "reserveFailedTitle": "Reservation Failed"
     },
     "loading": "Loading card data...",
     "notFound": "Card not found",

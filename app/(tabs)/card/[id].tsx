@@ -461,6 +461,11 @@ export default function CardDetailScreen() {
   };
   const [buyOffers, setBuyOffers] = useState<BuyOffer[]>([]);
   const [buyOffersLoading, setBuyOffersLoading] = useState(false);
+  // B.4 · Reservation modal state. `reserveModalOffer` holds the offer
+  // the user is reserving against (null = modal closed).
+  const [reserveModalOffer, setReserveModalOffer] = useState<BuyOffer | null>(null);
+  const [reserveSubmitting, setReserveSubmitting] = useState(false);
+  const [buyerNote, setBuyerNote] = useState('');
 
   // JP / EN 卡圖切換
   const [imgLang, setImgLang] = useState<'original' | 'jp' | 'en'>('original');
@@ -534,6 +539,50 @@ export default function CardDetailScreen() {
   }, [id, t]);
 
   useEffect(() => { fetchBuyOffers(); }, [fetchBuyOffers]);
+
+  // Phase B.4 · Buyer reservation flow ("我有呢張").
+  // Inserts a merchant_buy_reservations row · DB trigger auto-increments
+  // the buy_order's daily_filled. RLS requires auth.uid() = buyer_id.
+  const handleReserve = async () => {
+    if (!reserveModalOffer || reserveSubmitting) return;
+    setReserveSubmitting(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        alert(t('cardDetail.loginRequired'));
+        return;
+      }
+      // Card identity is denormalized from the page's known card — not the
+      // buy_order row — so the snapshot always reflects what the buyer was
+      // actually viewing when they tapped.
+      const cardId = typeof id === 'string' ? id : id[0];
+      const cardNameSnapshot = card?.name ?? jp_name ?? 'Unknown';
+      const { error } = await supabase
+        .from('merchant_buy_reservations')
+        .insert({
+          buy_order_id:   reserveModalOffer.id,
+          buyer_id:       user.id,
+          merchant_id:    reserveModalOffer.merchant_id,
+          card_id:        cardId,
+          card_name:      cardNameSnapshot,
+          reserved_price: reserveModalOffer.buy_price,
+          conditions:     reserveModalOffer.conditions,
+          buyer_note:     buyerNote.trim() || null,
+        });
+      if (error) {
+        alert(`${t('cardDetail.buyOffers.reserveFailedTitle')}: ${error.message}`);
+        return;
+      }
+      setReserveModalOffer(null);
+      setBuyerNote('');
+      alert(`${t('cardDetail.buyOffers.reserveSuccessTitle')} — ${t('cardDetail.buyOffers.reserveSuccessMessage')}`);
+      // Refresh buy offers to reflect the updated daily_filled counter.
+      fetchBuyOffers();
+    } finally {
+      setReserveSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -1022,46 +1071,65 @@ export default function CardDetailScreen() {
                 Math.floor((new Date(offer.expires_at).getTime() - Date.now()) / 3600000),
               );
               const full = offer.daily_filled >= offer.daily_limit;
+              const expired = expiresIn === 0;
+              const reserveDisabled = full || expired;
               return (
                 <View
                   key={offer.id}
                   style={[styles.buyOfferRow, full && styles.buyOfferRowFull]}
                 >
-                  <View style={styles.buyOfferLeft}>
-                    <Text style={styles.buyOfferMerchant} numberOfLines={1}>
-                      {offer.merchant_name}
-                    </Text>
-                    <View style={styles.buyOfferChipsRow}>
-                      {offer.conditions.map(c => (
-                        <View key={c} style={styles.buyOfferConditionChip}>
-                          <Text style={styles.buyOfferConditionText}>{c}</Text>
-                        </View>
-                      ))}
-                      {offer.languages.map(l => (
-                        <View key={l} style={styles.buyOfferLangChip}>
-                          <Text style={styles.buyOfferLangText}>{l}</Text>
-                        </View>
-                      ))}
+                  <View style={styles.buyOfferTopRow}>
+                    <View style={styles.buyOfferLeft}>
+                      <Text style={styles.buyOfferMerchant} numberOfLines={1}>
+                        {offer.merchant_name}
+                      </Text>
+                      <View style={styles.buyOfferChipsRow}>
+                        {offer.conditions.map(c => (
+                          <View key={c} style={styles.buyOfferConditionChip}>
+                            <Text style={styles.buyOfferConditionText}>{c}</Text>
+                          </View>
+                        ))}
+                        {offer.languages.map(l => (
+                          <View key={l} style={styles.buyOfferLangChip}>
+                            <Text style={styles.buyOfferLangText}>{l}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={styles.buyOfferRight}>
+                      <Text style={styles.buyOfferPrice}>
+                        {t('cardDetail.buyOffers.priceFormat', {
+                          price: offer.buy_price.toLocaleString(),
+                        })}
+                      </Text>
+                      <Text style={styles.buyOfferMeta}>
+                        {t('cardDetail.buyOffers.dailyProgress', {
+                          filled: offer.daily_filled,
+                          limit:  offer.daily_limit,
+                        })}
+                      </Text>
+                      <Text style={styles.buyOfferMeta}>
+                        {expiresIn > 0
+                          ? t('cardDetail.buyOffers.remainingHours', { hours: expiresIn })
+                          : t('cardDetail.buyOffers.expired')}
+                      </Text>
                     </View>
                   </View>
-                  <View style={styles.buyOfferRight}>
-                    <Text style={styles.buyOfferPrice}>
-                      {t('cardDetail.buyOffers.priceFormat', {
-                        price: offer.buy_price.toLocaleString(),
-                      })}
+                  {/* Phase B.4 · Reserve action.
+                      §A.6 form control: Card Orange outline (not solid) so it
+                      reads as actionable but defers visual weight to the
+                      price column above. Disabled when full or expired. */}
+                  <TouchableOpacity
+                    style={[styles.reserveButton, reserveDisabled && styles.reserveButtonDisabled]}
+                    onPress={() => { setBuyerNote(''); setReserveModalOffer(offer); }}
+                    disabled={reserveDisabled}
+                  >
+                    <Text style={[styles.reserveButtonText, reserveDisabled && styles.reserveButtonTextDisabled]}>
+                      {full
+                        ? t('cardDetail.buyOffers.reserveButtonDisabled')
+                        : t('cardDetail.buyOffers.reserveButton')}
                     </Text>
-                    <Text style={styles.buyOfferMeta}>
-                      {t('cardDetail.buyOffers.dailyProgress', {
-                        filled: offer.daily_filled,
-                        limit:  offer.daily_limit,
-                      })}
-                    </Text>
-                    <Text style={styles.buyOfferMeta}>
-                      {expiresIn > 0
-                        ? t('cardDetail.buyOffers.remainingHours', { hours: expiresIn })
-                        : t('cardDetail.buyOffers.expired')}
-                    </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               );
             })}
@@ -1346,6 +1414,76 @@ export default function CardDetailScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Phase B.4 · Reservation bottom sheet. Mirrors PSA Add modal's
+          slide-up pattern for consistency. Opens with an offer payload;
+          closes by clearing it. */}
+      <Modal
+        visible={!!reserveModalOffer}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReserveModalOffer(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.reserveModalBackdrop}
+        >
+          <View style={styles.reserveModalSheet}>
+            <Text style={styles.reserveModalTitle}>
+              {t('cardDetail.buyOffers.reserveTitle')}
+            </Text>
+            <Text style={styles.reserveModalCardName} numberOfLines={1}>
+              {card?.name ?? jp_name ?? ''}
+            </Text>
+
+            <View style={styles.reserveModalSummary}>
+              <Text style={styles.reserveModalMerchant}>
+                {reserveModalOffer?.merchant_name}
+              </Text>
+              <Text style={styles.reserveModalPrice}>
+                {reserveModalOffer
+                  ? t('cardDetail.buyOffers.priceFormat', {
+                      price: reserveModalOffer.buy_price.toLocaleString(),
+                    })
+                  : ''}
+              </Text>
+              <Text style={styles.reserveModalConditions}>
+                {reserveModalOffer?.conditions.join(' / ')}
+              </Text>
+            </View>
+
+            <TextInput
+              value={buyerNote}
+              onChangeText={setBuyerNote}
+              placeholder={t('cardDetail.buyOffers.notePlaceholder')}
+              placeholderTextColor={colors.text.tertiary}
+              style={styles.reserveModalNoteInput}
+              multiline
+              maxLength={200}
+            />
+
+            <Text style={styles.reserveModalHint}>
+              {t('cardDetail.buyOffers.reserveHint')}
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleReserve}
+              disabled={reserveSubmitting}
+              style={[styles.reserveModalConfirm, reserveSubmitting && styles.reserveModalConfirmDisabled]}
+            >
+              <Text style={styles.reserveModalConfirmText}>
+                {reserveSubmitting
+                  ? t('cardDetail.buyOffers.submitting')
+                  : t('cardDetail.buyOffers.confirmReserve')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setReserveModalOffer(null)}>
+              <Text style={styles.reserveModalCancel}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1407,10 +1545,12 @@ function makeStyles(colors: ColorTokens) {
       fontSize: 12, color: colors.text.tertiary, marginBottom: 12,
     },
     buyOfferRow: {
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
       padding: 14, marginBottom: 8, borderRadius: 10,
       backgroundColor: colors.surface.card,
       borderWidth: 1, borderColor: colors.border.default,
+    },
+    buyOfferTopRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
     },
     buyOfferRowFull: { opacity: 0.55 },
     buyOfferLeft:    { flex: 1, marginRight: 12 },
@@ -1435,6 +1575,73 @@ function makeStyles(colors: ColorTokens) {
       fontSize: 16, fontWeight: '700', color: colors.brand.orange, marginBottom: 4,
     },
     buyOfferMeta: { fontSize: 11, color: colors.text.tertiary, lineHeight: 14 },
+
+    // ── B.4 · Reservation button (§A.6 form control · outline-only) ─────
+    reserveButton: {
+      marginTop: 12, paddingVertical: 10, borderRadius: 8,
+      borderWidth: 1, borderColor: colors.brand.orange,
+      backgroundColor: 'transparent', alignItems: 'center',
+    },
+    reserveButtonDisabled: {
+      borderColor: colors.text.mute,
+    },
+    reserveButtonText: {
+      fontSize: 13, fontWeight: '700', color: colors.brand.orange, letterSpacing: 0.3,
+    },
+    reserveButtonTextDisabled: { color: colors.text.tertiary },
+
+    // ── B.4 · Reservation bottom sheet ─────────────────────────────────
+    // 'rgba(0,0,0,0.5)' kept raw — universal modal scrim, theme-independent
+    reserveModalBackdrop: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+    },
+    reserveModalSheet: {
+      backgroundColor: colors.surface.card,
+      borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingHorizontal: 20, paddingTop: 18, paddingBottom: 28,
+    },
+    reserveModalTitle: {
+      fontSize: 18, fontWeight: '700', color: colors.text.primary,
+      marginBottom: 4, textAlign: 'center',
+    },
+    reserveModalCardName: {
+      fontSize: 14, color: colors.text.secondary,
+      marginBottom: 16, textAlign: 'center',
+    },
+    reserveModalSummary: {
+      padding: 14, borderRadius: 10,
+      backgroundColor: colors.surface.section,
+      marginBottom: 14,
+    },
+    reserveModalMerchant: { fontSize: 13, fontWeight: '600', color: colors.text.primary },
+    reserveModalPrice: {
+      fontSize: 18, fontWeight: '800', color: colors.brand.orange, marginTop: 6,
+    },
+    reserveModalConditions: {
+      fontSize: 12, color: colors.text.tertiary, marginTop: 4, letterSpacing: 0.3,
+    },
+    reserveModalNoteInput: {
+      minHeight: 60, padding: 12, borderRadius: 8,
+      borderWidth: 1, borderColor: colors.border.default,
+      backgroundColor: colors.surface.section,
+      fontSize: 14, color: colors.text.primary,
+      textAlignVertical: 'top',
+    },
+    reserveModalHint: {
+      fontSize: 11, color: colors.text.tertiary, marginTop: 10, marginBottom: 18,
+      textAlign: 'center',
+    },
+    reserveModalConfirm: {
+      paddingVertical: 14, borderRadius: 50, alignItems: 'center',
+      backgroundColor: colors.brand.orange,
+    },
+    reserveModalConfirmDisabled: { opacity: 0.5 },
+    // '#fff' kept raw — always-white on brand orange
+    reserveModalConfirmText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    reserveModalCancel: {
+      fontSize: 14, color: colors.text.tertiary, textAlign: 'center',
+      paddingVertical: 14,
+    },
 
     priceBox:           { flex: 1, backgroundColor: colors.surface.section, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border.default },
     priceBoxHighlight:  { backgroundColor: colors.text.primary, borderColor: colors.text.primary },

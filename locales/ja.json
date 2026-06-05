@@ -458,7 +458,17 @@
       "dailyProgress": "本日 {{filled}}/{{limit}}",
       "remainingHours": "あと {{hours}} 時間",
       "expired": "期限切れ",
-      "fallbackMerchant": "加盟店"
+      "fallbackMerchant": "加盟店",
+      "reserveButton": "このカードあります",
+      "reserveButtonDisabled": "受付終了",
+      "reserveTitle": "取引を予約",
+      "notePlaceholder": "備考（任意）",
+      "reserveHint": "予約後、加盟店は 24 時間以内にご回答します",
+      "confirmReserve": "予約を確定",
+      "submitting": "送信中...",
+      "reserveSuccessTitle": "予約完了",
+      "reserveSuccessMessage": "加盟店より 24 時間以内にご連絡します",
+      "reserveFailedTitle": "予約に失敗しました"
     },
     "loading": "カードデータを読み込み中...",
     "notFound": "カードが見つかりません",
