@@ -62,6 +62,25 @@ export function PSAGradeBadge({ grade, authority = 'PSA', size = 'md' }: Props) 
   );
 }
 
+/**
+ * normalizeGrade — maps messy psa_grade DB values to the PSAGradeBadge
+ * grade prop union '10' | '9' | 'raw'.
+ *
+ * Handles common shapes from Supabase user_collection.psa_grade column:
+ *   'Raw', '9', '10', 'PSA 9', 'PSA 10', 'PSA9', 'PSA10', null, undefined
+ *
+ * Anything unrecognized or null falls back to 'raw' (safe default — Mute
+ * border, Mute text per A.3). Future expansion (CGC, BGS Black Label)
+ * can extend the PSAGrade prop union; this normalizer updates same file.
+ */
+export function normalizeGrade(value: string | null | undefined): PSAGrade {
+  if (!value) return 'raw';
+  const s = value.toString().trim().toUpperCase().replace(/\s+/g, '');
+  if (s === '10' || s === 'PSA10') return '10';
+  if (s === '9' || s === 'PSA9') return '9';
+  return 'raw';
+}
+
 const styles = StyleSheet.create({
   badge: {
     borderWidth: 1,

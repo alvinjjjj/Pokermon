@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import Loader from '../../components/Loader';
+import { PSAGradeBadge, normalizeGrade } from '../../components/PSAGradeBadge';
 import { useTheme } from '../../theme/ThemeProvider';
 import { type ColorTokens } from '../../constants/colors';
 
@@ -40,16 +41,9 @@ type Profile = {
   portfolio_name: string | null;
 };
 
-const GRADE_COLORS: Record<string, string> = {
-  'Raw': '#6B7280', 'PSA 9': '#3B82F6', 'PSA 10': '#F59E0B',
-  '9': '#3B82F6', '10': '#F59E0B',
-};
-
-function gradeLabel(g: string): string {
-  if (g === '9' || g === 'PSA 9') return 'PSA 9';
-  if (g === '10' || g === 'PSA 10') return 'PSA 10';
-  return g;
-}
+// Vol.03 §A.3: GRADE_COLORS map + gradeLabel() helper deleted —
+// replaced by <PSAGradeBadge /> + normalizeGrade() (single source of truth
+// in components/PSAGradeBadge.tsx).
 
 export default function PublicPortfolioScreen() {
   const { colors } = useTheme();
@@ -88,7 +82,6 @@ export default function PublicPortfolioScreen() {
 
   const renderCard = ({ item }: { item: Card }) => {
     const isBox = item.item_type === 'box';
-    const gradeColor = item.psa_grade ? (GRADE_COLORS[item.psa_grade] ?? '#9CA3AF') : null;
 
     return (
       <TouchableOpacity
@@ -101,10 +94,13 @@ export default function PublicPortfolioScreen() {
             ? <Image source={{ uri: item.image_url }} style={styles.cardImg} resizeMode="contain" />
             : null
           }
-          {/* Grade badge */}
-          {!isBox && item.psa_grade && gradeColor && (
-            <View style={[styles.gradeBadge, { backgroundColor: gradeColor }]}>
-              <Text style={styles.gradeBadgeText}>{gradeLabel(item.psa_grade)}</Text>
+          {/* Grade badge — Vol.03 §A.3 outline-only.
+              gradeBadgeAnchor is positioning-only; PSAGradeBadge brings its
+              own padding + border. Old gradeBadge style still used by box
+              badge below (needs its own padding for the colored fill). */}
+          {!isBox && item.psa_grade && (
+            <View style={styles.gradeBadgeAnchor}>
+              <PSAGradeBadge grade={normalizeGrade(item.psa_grade)} size="sm" />
             </View>
           )}
           {/* Box badge */}
@@ -228,7 +224,9 @@ function makeStyles(colors: ColorTokens) {
     cardImgBox: { width: '100%', aspectRatio: 0.72, backgroundColor: colors.surface.section, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     cardImg: { width: '100%', height: '100%' },
     gradeBadge: { position: 'absolute', top: 8, left: 8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-    // '#fff' kept raw — always-white on grade fill
+    // gradeBadgeAnchor: positioning-only wrapper for PSAGradeBadge (no fill).
+    gradeBadgeAnchor: { position: 'absolute', top: 8, left: 8 },
+    // '#fff' kept raw — always-white on grade fill (Sealed/Opened box badge below)
     gradeBadgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
     cardInfo: { padding: 10 },
     cardName: { fontSize: 13, fontWeight: '700', color: colors.text.primary },

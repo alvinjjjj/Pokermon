@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
+import { PSAGradeBadge, normalizeGrade } from '../../components/PSAGradeBadge';
 import { SkeletonGrid } from '../../components/SkeletonCard';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { supabase } from '../../lib/supabase';
@@ -538,22 +539,12 @@ export default function PortfolioScreen() {
                       if (card.image_url) return <Image source={{ uri: card.image_url }} style={isBox ? styles.boxImage : styles.cardImage} resizeMode="contain" />;
                       return <Image source={require('../../assets/icons/portfolio.png')} style={{ width: 44, height: 44, tintColor: colors.border.strong, resizeMode: 'contain' }} />;
                     })()}
-                    {/* Grade badge for cards */}
+                    {/* Grade badge for cards — Vol.03 §A.3 outline-only.
+                        Wrapped in absolute-position View so it floats on the
+                        card image like the previous psaBadge did. */}
                     {!isBox && card.psa_grade && (
-                      <View style={[
-                        styles.psaBadge,
-                        card.psa_grade === 'Raw'  && styles.gradeBadgeRaw,
-                        card.psa_grade === '9'    && styles.gradeBadgePsa9,
-                        card.psa_grade === '10'   && styles.gradeBadgePsa10,
-                        card.psa_grade === 'PSA 9'  && styles.gradeBadgePsa9,
-                        card.psa_grade === 'PSA 10' && styles.gradeBadgePsa10,
-                      ]}>
-                        <Text style={styles.psaBadgeText}>
-                          {card.psa_grade === 'Raw' ? 'Raw'
-                            : card.psa_grade === '9'  || card.psa_grade === 'PSA 9'  ? 'PSA 9'
-                            : card.psa_grade === '10' || card.psa_grade === 'PSA 10' ? 'PSA 10'
-                            : `PSA ${card.psa_grade}`}
-                        </Text>
+                      <View style={styles.gradeBadgeAnchor}>
+                        <PSAGradeBadge grade={normalizeGrade(card.psa_grade)} size="sm" />
                       </View>
                     )}
                     {/* Sealed / Opened badge for boxes */}
@@ -887,11 +878,12 @@ function makeStyles(colors: ColorTokens) {
       paddingHorizontal: 6,
       paddingVertical: 3,
     },
-    // Semantic grade-badge fills (Raw=gray / PSA 9=blue / PSA 10=amber) —
-    // same hue both modes, communicates grade not surface
-    gradeBadgeRaw:   { backgroundColor: '#6B7280' },
-    gradeBadgePsa9:  { backgroundColor: '#3B82F6' },
-    gradeBadgePsa10: { backgroundColor: '#F59E0B' },
+    // Vol.03 §A.3: gradeBadgeRaw / gradeBadgePsa9 / gradeBadgePsa10
+    // (gray/blue/amber semantic fills) deleted — replaced by <PSAGradeBadge />.
+    // gradeBadgeAnchor: positioning-only wrapper so the new outline badge
+    // floats over the card image like the previous psaBadge did. psaBadge
+    // style itself is RETAINED below — still used by Sealed/Opened box badges.
+    gradeBadgeAnchor: { position: 'absolute', top: 8, right: 8 },
     // Semantic sealed/opened indicator (green/amber) — same hue both modes
     sealedBadge: { backgroundColor: '#059669' },
     openedBadge: { backgroundColor: '#D97706' },
