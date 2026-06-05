@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Header from '../../../components/Header';
+import { PSAGradeBadge } from '../../../components/PSAGradeBadge';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { type ColorTokens } from '../../../constants/colors';
 import { fetchWithTimeout } from '../../../lib/fetchWithTimeout';
@@ -786,8 +787,13 @@ export default function CardDetailScreen() {
 
         {/* PSA badge */}
         <View style={styles.heroSection}>
-          <View style={styles.psaBadge}>
-            <Text style={styles.psaBadgeText}>PSA 10</Text>
+          {/* Vol.03 §A.3 outline-pattern hero badge (size="md").
+              Previous solid-fill dark pill (paper-on-ink) violated the
+              "no fill" rule. Now ships as Card Orange 1px outline + Ink
+              text — see brand/brand_book_addendum_v01.md §A.3 and
+              components/PSAGradeBadge.tsx. */}
+          <View style={{ marginBottom: 14 }}>
+            <PSAGradeBadge grade="10" size="md" />
           </View>
 
           {/* Card name + set */}
@@ -1197,9 +1203,7 @@ function makeStyles(colors: ColorTokens) {
     // wishBtnTextActive '#fff' kept raw — on Card Orange
     wishBtnTextActive:  { color: '#fff' },
     heroSection:        { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: colors.surface.base },
-    psaBadge:           { backgroundColor: colors.text.primary, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 7, marginBottom: 14 },
-    // psaBadgeText uses inverse — Paper on dark surface, Ink-light on light surface
-    psaBadgeText:       { color: colors.text.inverse, fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
+    // Vol.03 §A.3: psaBadge / psaBadgeText styles deleted — replaced by <PSAGradeBadge size="md" />
     heroName:           { fontSize: 22, fontWeight: '800', color: colors.text.primary, textAlign: 'center' },
     heroSet:            { fontSize: 13, color: colors.brand.orange, fontWeight: '600', marginTop: 3, textAlign: 'center' },
     // heroRarity '#3B82F6' kept raw — semantic rarity-indicator blue, same hue both modes
