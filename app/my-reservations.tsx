@@ -282,7 +282,17 @@ export default function MyReservationsScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.listContent}>
           {reservations.map(r => {
-            const isPending = r.status === 'pending';
+            // Phase B hardening (C-3): a row stored as 'pending' but past its
+            // 24hr expires_at is functionally expired — no cron has flipped
+            // the DB row yet, but the SLA contract is broken. Render as
+            // 'expired' + hide pending actions. Server stays authoritative;
+            // we never trust the client's flip — if the user beats the cron
+            // and tries to honor/cancel, the action handler still hits the
+            // DB and lets RLS / triggers decide.
+            const isExpiredPending = r.status === 'pending'
+              && Date.now() > new Date(r.expires_at).getTime();
+            const effectiveStatus: ReservationStatus = isExpiredPending ? 'expired' : r.status;
+            const showPendingActions = r.status === 'pending' && !isExpiredPending;
             const partyLabel = mode === 'incoming'
               ? t('myReservations.buyerLabel')
               : t('myReservations.merchantLabel');
@@ -290,9 +300,9 @@ export default function MyReservationsScreen() {
               <View key={r.id} style={styles.row}>
                 <View style={styles.rowTop}>
                   <Text style={styles.rowCardName} numberOfLines={1}>{r.card_name}</Text>
-                  <View style={[styles.statusBadge, statusStyle(r.status)]}>
-                    <Text style={[styles.statusBadgeText, statusTextStyle(r.status)]}>
-                      {statusLabel(r.status)}
+                  <View style={[styles.statusBadge, statusStyle(effectiveStatus)]}>
+                    <Text style={[styles.statusBadgeText, statusTextStyle(effectiveStatus)]}>
+                      {statusLabel(effectiveStatus)}
                     </Text>
                   </View>
                 </View>
@@ -344,8 +354,11 @@ export default function MyReservationsScreen() {
                   </Text>
                 )}
 
-                {/* Actions — role + status gated */}
-                {isPending && mode === 'incoming' && (
+                {/* Actions — role + status gated. showPendingActions
+                    intentionally NOT just `r.status === 'pending'` so
+                    expired-pending rows hide the buttons (see C-3 fix
+                    above). */}
+                {showPendingActions && mode === 'incoming' && (
                   <View style={styles.actionsRow}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.actionButtonHonor, actionInFlight === r.id && styles.actionButtonDisabled]}
@@ -367,7 +380,7 @@ export default function MyReservationsScreen() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {isPending && mode === 'outgoing' && (
+                {showPendingActions && mode === 'outgoing' && (
                   <View style={styles.actionsRow}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.actionButtonCancel, actionInFlight === r.id && styles.actionButtonDisabled]}
