@@ -286,6 +286,19 @@ export default function ProfileScreen() {
             <Text style={[styles.entryBtnText, { color: '#6B7280' }]} numberOfLines={1}>{t('profile.messages')}</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Phase B.5 lite · Reservations entry (full-width row below My
+            Listings / Messages). Single-line minimal styling matches the
+            entryRow visual weight without crowding the 2-button row above. */}
+        <TouchableOpacity
+          style={styles.reservationsEntry}
+          onPress={() => router.push('/my-reservations' as any)}
+        >
+          <Text style={styles.reservationsEntryText} numberOfLines={1}>
+            {t('myReservations.menuItem')}
+          </Text>
+          <Text style={styles.reservationsEntryArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Sub-tab control (Instagram style) */}
@@ -450,6 +463,16 @@ function makeStyles(colors: ColorTokens) {
     entryRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
     entryBtnHalf: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, paddingVertical: 13, borderWidth: 1 },
     entryBtnSeller: { backgroundColor: colors.brand.peach, borderColor: colors.brand.peach },
+    // Phase B.5 lite · Reservations row below My Listings / Messages
+    reservationsEntry: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: colors.surface.section, borderColor: colors.border.default,
+      borderWidth: 1, borderRadius: 14,
+      paddingVertical: 13, paddingHorizontal: 16,
+      marginTop: 10,
+    },
+    reservationsEntryText:  { fontSize: 14, fontWeight: '600', color: colors.text.primary },
+    reservationsEntryArrow: { fontSize: 18, color: colors.text.tertiary },
     entryBtnIcon: { width: 20, height: 20, resizeMode: 'contain', tintColor: colors.text.secondary },
     entryBtnText: { fontSize: 14, fontWeight: '600', color: colors.text.primary },
 
